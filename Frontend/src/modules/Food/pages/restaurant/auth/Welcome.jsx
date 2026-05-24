@@ -34,7 +34,7 @@ const carouselData = [
 
 export default function RestaurantWelcome() {
   const navigate = useNavigate()
-  const companyName = useCompanyName() || "Foodelo"
+  const companyName = useCompanyName() || "Indian Bites"
   const [currentIndex, setCurrentIndex] = useState(0)
   const [direction, setDirection] = useState(0) // 1 for next, -1 for previous
   const [touchStart, setTouchStart] = useState(null)
@@ -289,7 +289,7 @@ export default function RestaurantWelcome() {
         {/* Login Button */}
         <Button
           onClick={handleLogin}
-          className="w-full bg-[#7e3866] hover:bg-[#6a2f56] text-white font-bold py-6 md:py-7 text-base md:text-lg rounded-lg transition-colors shadow-lg"
+          className="w-full bg-primary hover:bg-[#6a2f56] text-white font-bold py-6 md:py-7 text-base md:text-lg rounded-lg transition-colors shadow-lg"
         >
           Login
         </Button>
@@ -298,9 +298,9 @@ export default function RestaurantWelcome() {
         {/* <Button
           onClick={handlePartner}
           variant="outline"
-          className="w-full border-2 border-[#7e3866] text-[#7e3866] hover:bg-[#7e3866] hover:text-white font-bold py-6 md:py-7 text-base md:text-lg rounded-lg transition-all shadow-lg bg-transparent"
+          className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-bold py-6 md:py-7 text-base md:text-lg rounded-lg transition-all shadow-lg bg-transparent"
         >
-          Partner with Foodelo
+          Partner with Indian Bites
         </Button> */}
 
         {/* Terms and Conditions */}

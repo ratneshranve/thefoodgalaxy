@@ -1,6 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@500;600;700;800&family=Sora:wght@600;700&display=swap");
 
-.delivery-v2-theme {
+:root {
   --dv-primary: #15498b;
   --dv-primary-strong: #000000;
   --dv-primary-soft: #e7effa;
@@ -10,6 +10,9 @@
   --dv-text: #0f1724;
   --dv-muted: #4f5f77;
   --dv-border: #d1dceb;
+}
+
+.delivery-v2-theme {
   background:
     radial-gradient(900px 420px at 92% -5%, #d5e3f7 0%, transparent 52%),
     radial-gradient(760px 360px at -8% 0%, #e7edf8 0%, transparent 58%),
@@ -64,7 +67,7 @@
   background: linear-gradient(160deg, #15498b 0%, #000000 100%) !important;
 }
 
-.delivery-v2-theme [class*="text-[#ff8100]"],
+.delivery-v2-theme [class*="text-primary"],
 .delivery-v2-theme [class*="text-[#EB590E]"],
 .delivery-v2-theme [class*="text-[#10B981]"],
 .delivery-v2-theme .text-blue-500,
@@ -84,7 +87,7 @@
   color: var(--dv-primary) !important;
 }
 
-.delivery-v2-theme [class*="bg-[#ff8100]"],
+.delivery-v2-theme [class*="bg-primary"],
 .delivery-v2-theme [class*="bg-[#00B761]"],
 .delivery-v2-theme [class*="bg-[#10B981]"],
 .delivery-v2-theme .bg-blue-500,
@@ -145,7 +148,7 @@
 .delivery-v2-theme .border-cyan-100,
 .delivery-v2-theme .border-indigo-200,
 .delivery-v2-theme [class*="border-[#10B981]"],
-.delivery-v2-theme [class*="border-[#ff8100]"] {
+.delivery-v2-theme [class*="border-primary"] {
   border-color: color-mix(in srgb, var(--dv-primary) 28%, #ffffff) !important;
 }
 

@@ -157,7 +157,7 @@ export default function RestaurantDetailsPage() {
         <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-4 md:p-6">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
-              <div className="bg-primary-orange rounded-lg p-3">
+              <div className="bg-primary rounded-lg p-3">
                 {restaurantData.logo && !logoLoadFailed ? (
                   <img 
                     src={restaurantData.logo} 
@@ -239,7 +239,7 @@ export default function RestaurantDetailsPage() {
                 {activeCategory === category.id && (
                   <motion.div
                     layoutId="activeCategory"
-                    className="absolute inset-0 bg-primary-orange rounded-full z-0"
+                    className="absolute inset-0 bg-primary rounded-full z-0"
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
@@ -310,7 +310,7 @@ export default function RestaurantDetailsPage() {
 
                       <div className="flex items-center justify-between mt-0.5">
                         <div className="flex items-center gap-2">
-                          <p className="text-[#ff8100] font-bold text-sm">
+                          <p className="text-primary font-bold text-sm">
                             ? {item.price.toFixed(2)}
                           </p>
                           <p className="text-gray-500 text-xs">

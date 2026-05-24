@@ -53,14 +53,14 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex flex-col relative overflow-hidden font-['Poppins']">
       {/* Decorative Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#7e3866]/10 via-[#7e3866]/5 to-transparent pointer-events-none" />
-      <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-[#7e3866]/5 rounded-full blur-[120px] pointer-events-none animate-pulse" />
-      <div className="absolute bottom-[-100px] left-[-100px] w-[400px] h-[400px] bg-[#7e3866]/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-primary/10 via-primary/5 to-transparent pointer-events-none" />
+      <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none animate-pulse" />
+      <div className="absolute bottom-[-100px] left-[-100px] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Main Content */}
       <div className="absolute top-6 right-6 z-20">
         <Link to="/user/auth/support">
-          <Button variant="ghost" className="text-gray-500 hover:text-[#7e3866] font-semibold flex items-center gap-2">
+          <Button variant="ghost" className="text-gray-500 hover:text-primary font-semibold flex items-center gap-2">
             <ShieldQuestion className="w-5 h-5" />
             Support
           </Button>
@@ -84,7 +84,7 @@ export default function AdminLogin() {
             >
               <img 
                 src={logoNew} 
-                alt="Foodelo Logo" 
+                alt="Indian Bites Logo" 
                 className="w-32 h-32 md:w-36 md:h-36 object-contain mx-auto"
               />
             </motion.div>
@@ -101,13 +101,13 @@ export default function AdminLogin() {
 
           {/* Login Card */}
           <div className="bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-2xl rounded-[3rem] p-8 sm:p-12 shadow-[0_40px_80px_-20px_rgba(126,56,102,0.2)] dark:shadow-none border border-white/20 dark:border-gray-800 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-[#7e3866]/20 to-transparent" />
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
             <div className="mb-10 text-center sm:text-left">
               <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2 font-['Outfit'] tracking-tight">
                 Admin Entry
               </h2>
-              <div className="h-1 w-10 bg-[#7e3866] rounded-full mb-3 hidden sm:block" />
+              <div className="h-1 w-10 bg-primary rounded-full mb-3 hidden sm:block" />
               <p className="text-base text-gray-500 dark:text-gray-400 font-medium">
                 Authorized access only. Please sign in to continue.
               </p>
@@ -116,7 +116,7 @@ export default function AdminLogin() {
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-[#7e3866] uppercase tracking-[0.2em] ml-1">Email Address</label>
+                  <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
@@ -125,16 +125,16 @@ export default function AdminLogin() {
                       autoFocus
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="block w-full pl-12 pr-6 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border-2 border-transparent focus:border-[#7e3866]/50 rounded-2xl outline-none transition-all placeholder:text-gray-300 font-bold"
-                      placeholder="admin@foodelo.com"
+                      className="block w-full pl-12 pr-6 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border-2 border-transparent focus:border-primary/50 rounded-2xl outline-none transition-all placeholder:text-gray-300 font-bold"
+                      placeholder="admin@indianbites.com"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center px-1">
-                    <label className="text-[10px] font-black text-[#7e3866] uppercase tracking-[0.2em]">Password</label>
-                    <Link to="/admin/forgot-password" size="sm" className="text-[10px] font-bold text-gray-400 hover:text-[#7e3866] uppercase tracking-wider transition-colors">Forgot?</Link>
+                    <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Password</label>
+                    <Link to="/admin/forgot-password" size="sm" className="text-[10px] font-bold text-gray-400 hover:text-primary uppercase tracking-wider transition-colors">Forgot?</Link>
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -143,7 +143,7 @@ export default function AdminLogin() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="block w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border-2 border-transparent focus:border-[#7e3866]/50 rounded-2xl outline-none transition-all placeholder:text-gray-300 font-bold"
+                      className="block w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border-2 border-transparent focus:border-primary/50 rounded-2xl outline-none transition-all placeholder:text-gray-300 font-bold"
                       placeholder="••••••••"
                     />
                     <button
@@ -160,7 +160,7 @@ export default function AdminLogin() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4.5 bg-[#7e3866] hover:bg-[#6a2f56] disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white rounded-2xl font-bold text-lg shadow-xl shadow-[#7e3866]/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group overflow-hidden relative"
+                className="w-full py-4.5 bg-primary hover:bg-[#6a2f56] disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group overflow-hidden relative"
               >
                 {loading ? (
                   <Loader2 className="w-6 h-6 animate-spin" />

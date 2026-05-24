@@ -177,7 +177,7 @@ export default function DiningRestaurantDetails() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f6f7fb]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#7e3866]" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -221,7 +221,7 @@ export default function DiningRestaurantDetails() {
   const handleShare = async () => {
     const shareData = {
       title: restaurantName,
-      text: `Check out ${restaurantName} on Foodelo!`,
+      text: `Check out ${restaurantName} on Indian Bites!`,
       url: window.location.href,
     }
 
@@ -355,7 +355,7 @@ export default function DiningRestaurantDetails() {
                     : "cursor-not-allowed border-[#f2d7da] dark:border-red-900/30 bg-[#fff5f6] dark:bg-red-950/20 text-[#c06a79] opacity-80"
                 }`}
               >
-              <Ticket className="h-[15px] w-[15px] text-[#7e3866]" />
+              <Ticket className="h-[15px] w-[15px] text-primary" />
               <span>{isDiningEnabled ? "Book a table" : "Dining paused"}</span>
               </button>
             </div>
@@ -381,7 +381,7 @@ export default function DiningRestaurantDetails() {
                 }}
                 className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-colors ${
                   activeTab === tab.id
-                    ? "border-[#7e3866] bg-white dark:bg-slate-900 text-[#2a2018] dark:text-slate-100"
+                    ? "border-primary bg-white dark:bg-slate-900 text-[#2a2018] dark:text-slate-100"
                     : "border-[#ece9e1] dark:border-slate-800 bg-[#fafafa] dark:bg-slate-900 text-[#8b8881] dark:text-slate-400"
                 }`}
               >
@@ -396,7 +396,7 @@ export default function DiningRestaurantDetails() {
         <section id="restaurant-prebook">
           <div>
             <h2 className="text-[29px] font-black leading-none text-[#23180f] dark:text-slate-100">Pre-book offers</h2>
-            <p className="mt-1 text-[15px] text-[#7e3866] dark:text-purple-400">Limited slots with extra offers</p>
+            <p className="mt-1 text-[15px] text-primary dark:text-purple-400">Limited slots with extra offers</p>
           </div>
 
           <div className="mt-3 overflow-hidden rounded-[18px] bg-[linear-gradient(135deg,#0f4a87,#0b2954_70%)] text-white shadow-[0_10px_26px_rgba(8,52,95,0.25)]">
@@ -487,7 +487,7 @@ export default function DiningRestaurantDetails() {
               </div>
 
               <div className="flex items-start gap-3">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#7e3866]" />
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <p>{address}</p>
               </div>
             </div>
@@ -530,7 +530,7 @@ export default function DiningRestaurantDetails() {
             disabled={!isDiningEnabled}
             className={`h-12 w-full rounded-2xl border text-[17px] font-medium transition-all ${
               isDiningEnabled
-                ? "border-[#b18da5] bg-white dark:bg-slate-900 text-[#7e3866] dark:text-purple-400 hover:bg-[#fdfafc] dark:hover:bg-slate-800"
+                ? "border-[#b18da5] bg-white dark:bg-slate-900 text-primary dark:text-purple-400 hover:bg-[#fdfafc] dark:hover:bg-slate-800"
                 : "cursor-not-allowed border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-gray-400 dark:text-slate-600 opacity-80"
             }`}
           >
@@ -580,12 +580,12 @@ export default function DiningRestaurantDetails() {
                       onClick={() => setSelectedGuests(count)}
                       className={`relative rounded-2xl border px-3 py-4 text-sm font-bold transition-all ${
                           selectedGuests === count
-                            ? "border-[#7e3866] bg-[#fdfafc] dark:bg-purple-950/30 text-[#7e3866] scale-[1.02] shadow-sm"
+                            ? "border-primary bg-[#fdfafc] dark:bg-purple-950/30 text-primary scale-[1.02] shadow-sm"
                             : isBooked
                               ? "border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-950/20 text-red-400 cursor-not-allowed opacity-70"
                               : isTooLarge
                                 ? "border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 text-gray-300 dark:text-slate-600 cursor-not-allowed"
-                                : "border-[#ece7de] dark:border-slate-800 bg-white dark:bg-slate-800 text-[#23180f] dark:text-slate-100 hover:border-[#7e3866]/30"
+                                : "border-[#ece7de] dark:border-slate-800 bg-white dark:bg-slate-800 text-[#23180f] dark:text-slate-100 hover:border-primary/30"
                       }`}
                     >
                       {isBooked ? (
@@ -604,7 +604,7 @@ export default function DiningRestaurantDetails() {
             <Button
               onClick={handleContinueBooking}
               disabled={remainingSeats === 0 || selectedGuests > remainingSeats}
-              className="mt-6 h-12 w-full rounded-2xl bg-[#7e3866] text-base font-bold text-white hover:bg-[#55254b] disabled:bg-gray-200 disabled:text-gray-400"
+              className="mt-6 h-12 w-full rounded-2xl bg-primary text-base font-bold text-white hover:bg-secondary disabled:bg-gray-200 disabled:text-gray-400"
             >
               {remainingSeats === 0 ? "Fully Booked" : "Continue"}
             </Button>

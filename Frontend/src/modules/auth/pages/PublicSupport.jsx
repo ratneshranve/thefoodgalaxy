@@ -222,7 +222,7 @@ export default function PublicSupport() {
                   </Button>
                   <Button
                     type="submit"
-                    className="flex-1 h-12 bg-[#7e3866] hover:bg-[#6b2f57]"
+                    className="flex-1 h-12 bg-primary hover:bg-[#6b2f57]"
                     disabled={loading}
                   >
                     {loading ? "Sending..." : "Submit Request"}
@@ -247,7 +247,7 @@ export default function PublicSupport() {
               Our support team has been notified. You will receive an update via email or phone within 24 hours.
             </p>
             <Link to="/">
-              <Button className="bg-[#7e3866] hover:bg-[#6b2f57] px-10 h-12">
+              <Button className="bg-primary hover:bg-[#6b2f57] px-10 h-12">
                 Return Home
               </Button>
             </Link>
@@ -258,7 +258,7 @@ export default function PublicSupport() {
         <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 border-t pt-12 dark:border-gray-800">
           <div className="flex items-start gap-4">
             <div className="p-3 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl">
-              <Phone className="h-6 w-6 text-[#7e3866]" />
+              <Phone className="h-6 w-6 text-primary" />
             </div>
             <div>
               <h4 className="font-bold mb-1">Call Us</h4>
@@ -267,7 +267,7 @@ export default function PublicSupport() {
           </div>
           <div className="flex items-start gap-4">
             <div className="p-3 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl">
-              <Mail className="h-6 w-6 text-[#7e3866]" />
+              <Mail className="h-6 w-6 text-primary" />
             </div>
             <div>
               <h4 className="font-bold mb-1">Email Us</h4>
@@ -276,7 +276,7 @@ export default function PublicSupport() {
           </div>
           <div className="flex items-start gap-4">
             <div className="p-3 bg-gray-50 dark:bg-[#1a1a1a] rounded-xl">
-              <Clock className="h-6 w-6 text-[#7e3866]" />
+              <Clock className="h-6 w-6 text-primary" />
             </div>
             <div>
               <h4 className="font-bold mb-1">Hours</h4>

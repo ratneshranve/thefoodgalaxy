@@ -180,7 +180,7 @@ export default function MenuOverlay({ showMenu, setShowMenu }) {
                       className={`flex flex-col items-center justify-center gap-2 p-3 md:p-4 rounded-xl transition-all shadow-md hover:shadow-lg ${
                         option.isLogout || option.isDelete
                           ? "bg-red-500 hover:bg-red-600 text-white"
-                          : "bg-gradient-to-br from-[#ff8100] to-[#ff9500] hover:from-[#e67300] hover:to-[#e68500] text-white"
+                          : "bg-gradient-to-br from-primary to-[#ff9500] hover:from-[#e67300] hover:to-[#e68500] text-white"
                       }`}
                     >
                       <motion.div

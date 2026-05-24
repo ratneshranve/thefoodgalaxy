@@ -204,9 +204,9 @@ export default function RestaurantSignupEmail() {
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 flex items-center text-white pointer-events-none">
-          <div className="bg-primary-orange/80 rounded-r-full py-10 xl:py-20 pl-10 xl:pl-14 pr-10 xl:pr-20 max-w-[70%] shadow-xl backdrop-blur-[1px]">
+          <div className="bg-primary/80 rounded-r-full py-10 xl:py-20 pl-10 xl:pl-14 pr-10 xl:pr-20 max-w-[70%] shadow-xl backdrop-blur-[1px]">
             <h1 className="text-3xl xl:text-4xl font-extrabold mb-4 tracking-wide leading-tight">
-              JOIN FOODELO
+              JOIN INDIAN BITES
               <br />
               FOOD PLATFORM
             </h1>
@@ -222,11 +222,11 @@ export default function RestaurantSignupEmail() {
         {/* Top logo */}
         <div className="relative flex items-center justify-center px-6 sm:px-10 lg:px-16 pt-6 pb-4">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-primary-orange flex items-center justify-center text-white shadow-lg">
+            <div className="h-11 w-11 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg">
               <UtensilsCrossed className="h-6 w-6" />
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-2xl font-bold tracking-wide text-primary-orange">
+              <span className="text-2xl font-bold tracking-wide text-primary">
                 {companyName}
               </span>
               <span className="text-xs font-medium text-gray-500">
@@ -377,7 +377,7 @@ export default function RestaurantSignupEmail() {
 
                   <Button
                     type="submit"
-                    className="h-11 w-full bg-primary-orange hover:bg-primary-orange/90 text-white"
+                    className="h-11 w-full bg-primary hover:bg-primary/90 text-white"
                     disabled={isLoading}
                   >
                     {isLoading ? "Sending..." : "Continue"}
@@ -407,7 +407,7 @@ export default function RestaurantSignupEmail() {
                           onChange={(e) => handleOtpChange(index, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(index, e)}
                           onPaste={index === 0 ? handleOtpPaste : undefined}
-                          className="h-14 w-14 text-center text-2xl font-semibold border-2 focus-visible:ring-2 focus-visible:ring-primary-orange"
+                          className="h-14 w-14 text-center text-2xl font-semibold border-2 focus-visible:ring-2 focus-visible:ring-primary"
                           disabled={isLoading}
                         />
                       ))}
@@ -421,7 +421,7 @@ export default function RestaurantSignupEmail() {
                     <button
                       type="button"
                       onClick={() => setStep(1)}
-                      className="flex items-center gap-2 text-primary-orange hover:text-primary-orange/80 transition-colors"
+                      className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
                       disabled={isLoading}
                     >
                       <ArrowLeft className="h-4 w-4" />
@@ -431,7 +431,7 @@ export default function RestaurantSignupEmail() {
                       type="button"
                       onClick={handleResendOtp}
                       disabled={resendTimer > 0 || isLoading}
-                      className="text-primary-orange hover:underline font-medium disabled:text-gray-400 disabled:no-underline"
+                      className="text-primary hover:underline font-medium disabled:text-gray-400 disabled:no-underline"
                     >
                       {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
                     </button>
@@ -439,7 +439,7 @@ export default function RestaurantSignupEmail() {
 
                   <Button
                     type="submit"
-                    className="h-11 w-full bg-primary-orange hover:bg-primary-orange/90 text-white"
+                    className="h-11 w-full bg-primary hover:bg-primary/90 text-white"
                     disabled={isLoading}
                   >
                     {isLoading ? "Verifying..." : "Verify & Sign Up"}
@@ -450,7 +450,7 @@ export default function RestaurantSignupEmail() {
               <div className="pt-4 border-t">
                 <button
                   onClick={() => navigate("/restaurant/login")}
-                  className="flex items-center gap-2 text-sm text-primary-orange hover:text-primary-orange/80 transition-colors"
+                  className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Back to login
@@ -459,7 +459,7 @@ export default function RestaurantSignupEmail() {
                   Already have an account?{" "}
                   <button
                     onClick={() => navigate("/restaurant/login")}
-                    className="text-primary-orange hover:underline font-medium"
+                    className="text-primary hover:underline font-medium"
                   >
                     Sign in
                   </button>

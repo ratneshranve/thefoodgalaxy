@@ -395,11 +395,11 @@ export default function OrdersPage() {
 
         {/* Main Navigation Tabs */}
         <div className="flex gap-4 mb-6 border-b border-gray-200">
-          <div className="pb-3 px-2 text-sm md:text-base font-medium text-[#ff8100] relative">
+          <div className="pb-3 px-2 text-sm md:text-base font-medium text-primary relative">
             Regular Order
             <motion.div
               layoutId="activeMainTab"
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#ff8100]"
+              className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
             />
           </div>
@@ -451,7 +451,7 @@ export default function OrdersPage() {
                 {activeFilterTab === tab.id && (
                   <motion.div
                     layoutId="activeFilterTab"
-                    className="absolute inset-0 bg-[#ff8100] rounded-full z-0"
+                    className="absolute inset-0 bg-primary rounded-full z-0"
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}

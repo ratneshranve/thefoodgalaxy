@@ -146,7 +146,7 @@ export default function RestaurantSignup() {
         {/* Orange half-circle text block attached to the left with animation */}
         <div className="absolute inset-0 flex items-center text-white pointer-events-none">
           <div
-            className="bg-primary-orange/80 rounded-r-full py-10 xl:py-20 pl-10 xl:pl-14 pr-10 xl:pr-20 max-w-[70%] shadow-xl backdrop-blur-[1px]"
+            className="bg-primary/80 rounded-r-full py-10 xl:py-20 pl-10 xl:pl-14 pr-10 xl:pr-20 max-w-[70%] shadow-xl backdrop-blur-[1px]"
             style={{ animation: "slideInLeft 0.8s ease-out both" }}
           >
             <h1 className="text-3xl xl:text-4xl font-extrabold mb-4 tracking-wide leading-tight">
@@ -169,11 +169,11 @@ export default function RestaurantSignup() {
             className="flex items-center gap-3"
             style={{ animation: "fadeInDown 0.7s ease-out both" }}
           >
-            <div className="h-11 w-11 rounded-xl bg-primary-orange flex items-center justify-center text-white shadow-lg">
+            <div className="h-11 w-11 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg">
               <UtensilsCrossed className="h-6 w-6" />
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-2xl font-bold tracking-wide text-primary-orange">
+              <span className="text-2xl font-bold tracking-wide text-primary">
                 {companyName}
               </span>
               <span className="text-xs font-medium text-gray-500">
@@ -222,7 +222,7 @@ export default function RestaurantSignup() {
                   placeholder="Enter restaurant name"
                   value={formData.name}
                   onChange={handleChange}
-                  className={`h-11 pl-9 border-gray-300 rounded-md shadow-sm focus-visible:ring-primary-orange focus-visible:ring-2 transition-colors placeholder:text-gray-400 ${errors.name ? "border-red-500" : ""}`}
+                  className={`h-11 pl-9 border-gray-300 rounded-md shadow-sm focus-visible:ring-primary focus-visible:ring-2 transition-colors placeholder:text-gray-400 ${errors.name ? "border-red-500" : ""}`}
                   required
                 />
               </div>
@@ -270,7 +270,7 @@ export default function RestaurantSignup() {
                       placeholder="Enter phone number"
                       value={formData.phone}
                       onChange={handleChange}
-                      className={`h-11 pl-9 border-gray-300 rounded-md shadow-sm focus-visible:ring-primary-orange focus-visible:ring-2 transition-colors placeholder:text-gray-400 ${errors.phone ? "border-red-500" : ""}`}
+                      className={`h-11 pl-9 border-gray-300 rounded-md shadow-sm focus-visible:ring-primary focus-visible:ring-2 transition-colors placeholder:text-gray-400 ${errors.phone ? "border-red-500" : ""}`}
                       required
                     />
                   </div>
@@ -293,7 +293,7 @@ export default function RestaurantSignup() {
             {/* Sign up button */}
             <Button
               type="submit"
-              className="mt-2 h-11 w-full bg-primary-orange hover:bg-primary-orange/90 text-white text-base font-semibold rounded-md shadow-md transition-colors"
+              className="mt-2 h-11 w-full bg-primary hover:bg-primary/90 text-white text-base font-semibold rounded-md shadow-md transition-colors"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -313,18 +313,18 @@ export default function RestaurantSignup() {
               <button
                 type="button"
                 onClick={() => navigate("/food/restaurant/login")}
-                className="text-primary-orange hover:underline font-medium"
+                className="text-primary hover:underline font-medium"
               >
                 Login
               </button>
             </p>
             <p className="text-xs text-gray-500">
               By continuing, you agree to our{" "}
-              <Link to="/food/restaurant/profile/terms" className="text-primary-orange hover:underline">
+              <Link to="/food/restaurant/profile/terms" className="text-primary hover:underline">
                 Terms of Service
               </Link>
               {" & "}
-              <Link to="/food/restaurant/profile/privacy" className="text-primary-orange hover:underline">
+              <Link to="/food/restaurant/profile/privacy" className="text-primary hover:underline">
                 Privacy Policy
               </Link>
             </p>
@@ -332,7 +332,7 @@ export default function RestaurantSignup() {
 
           {/* Demo credentials / info bar */}
           <div className="mt-8 w-full max-w-lg rounded-lg border border-orange-100 bg-orange-50 px-4 py-3 text-xs sm:text-sm text-gray-800 flex items-start gap-3">
-            <div className="mt-0.5 text-primary-orange">
+            <div className="mt-0.5 text-primary">
               <AlertCircle className="h-4 w-4" />
             </div>
             <div>

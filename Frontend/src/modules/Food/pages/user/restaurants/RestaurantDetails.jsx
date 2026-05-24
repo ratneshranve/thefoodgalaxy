@@ -2118,7 +2118,7 @@ function RestaurantDetailsContent() {
           {isRecommendedItem(item) && (
             <div className="flex items-center gap-2 mt-1">
               <div className="h-1.5 w-16 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-[#7e3866] w-3/4"></div>
+                <div className="h-full bg-primary w-3/4"></div>
               </div>
               <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Highly reordered</span>
             </div>
@@ -2188,8 +2188,8 @@ function RestaurantDetailsContent() {
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`absolute -bottom-2.5 left-1/2 -translate-x-1/2 font-bold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-2 bg-[#7e3866] text-white min-w-[84px] justify-between z-10 ${
-                shouldShowGrayscale ? 'bg-gray-300 text-gray-400 cursor-not-allowed opacity-50' : 'hover:bg-[#55254b]'
+              className={`absolute -bottom-2.5 left-1/2 -translate-x-1/2 font-bold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-2 bg-primary text-white min-w-[84px] justify-between z-10 ${
+                shouldShowGrayscale ? 'bg-gray-300 text-gray-400 cursor-not-allowed opacity-50' : 'hover:bg-secondary'
               }`}
             >
               <button
@@ -2228,7 +2228,7 @@ function RestaurantDetailsContent() {
                 }
               }}
               disabled={shouldShowGrayscale}
-              className={`absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-[#7e3866] text-white font-bold px-5 py-1.5 rounded-xl shadow-md hover:bg-[#55254b] transition-all whitespace-nowrap min-w-[84px] text-center text-xs tracking-wider border border-white/10 z-10 ${shouldShowGrayscale
+              className={`absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-primary text-white font-bold px-5 py-1.5 rounded-xl shadow-md hover:bg-secondary transition-all whitespace-nowrap min-w-[84px] text-center text-xs tracking-wider border border-white/10 z-10 ${shouldShowGrayscale
                 ? 'bg-gray-300 text-gray-400 cursor-not-allowed opacity-50'
                 : ''
                 }`}
@@ -2262,7 +2262,7 @@ function RestaurantDetailsContent() {
             ]
           }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="flex gap-4 p-4 border-b border-gray-100 dark:border-gray-800 last:border-none relative cursor-pointer transition-all duration-500 rounded-2xl bg-gradient-to-r from-[#7e38660a] to-[#7e386615] dark:from-[#7e386618] dark:to-[#7e386622] ring-2 ring-[#7e3866] z-10 mx-1 my-2"
+          className="flex gap-4 p-4 border-b border-gray-100 dark:border-gray-800 last:border-none relative cursor-pointer transition-all duration-500 rounded-2xl bg-gradient-to-r from-[#7e38660a] to-[#7e386615] dark:from-[#7e386618] dark:to-[#7e386622] ring-2 ring-primary z-10 mx-1 my-2"
           onClick={() => handleItemClick(item)}
         >
           {cardContent}
@@ -2308,7 +2308,7 @@ function RestaurantDetailsContent() {
       <AnimatedPage>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
           <div className="flex flex-col items-center gap-4 text-center">
-            <AlertCircle className={`h-12 w-12 ${restaurantError.includes('Backend server is not connected') ? 'text-[#7e3866]' : 'text-red-500'}`} />
+            <AlertCircle className={`h-12 w-12 ${restaurantError.includes('Backend server is not connected') ? 'text-primary' : 'text-red-500'}`} />
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                 {restaurantError.includes('Backend server is not connected') ? 'Connection Error' : restaurantError === 'Restaurant not found' ? 'Restaurant not found' : 'Error'}
@@ -2384,7 +2384,7 @@ function RestaurantDetailsContent() {
                     placeholder="Search for dishes..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-9 md:h-10 pl-10 pr-10 rounded-full border border-[#7e3866] dark:border-[#7e3866]/80 shadow-sm bg-white dark:bg-[#1a1a1a] text-xs md:text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-[#7e3866] focus:border-transparent"
+                    className="w-full h-9 md:h-10 pl-10 pr-10 rounded-full border border-primary dark:border-primary/80 shadow-sm bg-white dark:bg-[#1a1a1a] text-xs md:text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     autoFocus
                     onBlur={() => {
                       if (!searchQuery) {
@@ -2424,7 +2424,7 @@ function RestaurantDetailsContent() {
           {/* Restaurant Summary */}
           <div className="relative">
             <div className="relative rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] shadow-[0_16px_40px_rgba(15,23,42,0.08)] p-4 sm:p-5 space-y-4 overflow-hidden">
-              <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#7e3866] via-[#8a4b77] to-[#b36b8f]" />
+              <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary via-[#8a4b77] to-[#b36b8f]" />
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -2605,7 +2605,7 @@ function RestaurantDetailsContent() {
                       onClick={() => setSelectedMenuCategory("all")}
                       className={`flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
                         selectedMenuCategory === "all"
-                          ? "border-[#7e3866] bg-[#7e386615] text-[#7e3866]"
+                          ? "border-primary bg-[#7e386615] text-primary"
                           : "border-gray-300 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300"
                       }`}
                     >
@@ -2618,7 +2618,7 @@ function RestaurantDetailsContent() {
                         onClick={() => setSelectedMenuCategory(category.id)}
                         className={`flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
                           selectedMenuCategory === category.id
-                            ? "border-[#7e3866] bg-[#7e386615] text-[#7e3866]"
+                            ? "border-primary bg-[#7e386615] text-primary"
                             : "border-gray-300 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300"
                         }`}
                       >
@@ -2876,7 +2876,7 @@ function RestaurantDetailsContent() {
             className="fixed bottom-24 right-6 z-[60] pointer-events-auto sm:bottom-8 cursor-grab active:cursor-grabbing"
           >
             <Button
-              className="bg-[#7e3866] hover:bg-[#55254b] text-white flex items-center gap-2 shadow-[0_12px_40px_rgba(126,56,102,0.4)] border border-white/20 px-6 py-3.5 h-auto rounded-full font-bold transform transition-all duration-300 active:scale-95 group"
+              className="bg-primary hover:bg-secondary text-white flex items-center gap-2 shadow-[0_12px_40px_rgba(126,56,102,0.4)] border border-white/20 px-6 py-3.5 h-auto rounded-full font-bold transform transition-all duration-300 active:scale-95 group"
               size="lg"
               onClick={() => setShowMenuSheet(true)}
             >
@@ -2966,7 +2966,7 @@ function RestaurantDetailsContent() {
                   {/* Close Button */}
                   <div className="border-t border-gray-200 dark:border-gray-800 px-4 py-4 bg-white dark:bg-[#1a1a1a]">
                     <Button
-                      className="w-full bg-[#7e3866] hover:bg-[#55254b] text-white border-0 flex items-center justify-center gap-2 py-6 rounded-xl font-bold transition-all shadow-lg text-sm"
+                      className="w-full bg-primary hover:bg-secondary text-white border-0 flex items-center justify-center gap-2 py-6 rounded-xl font-bold transition-all shadow-lg text-sm"
                       onClick={() => setShowMenuSheet(false)}
                     >
                       <X className="h-4 w-4" />
@@ -3105,7 +3105,7 @@ function RestaurantDetailsContent() {
                           }))
                         }
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all w-full ${filters.highlyReordered
-                          ? "border-[#7e3866] dark:border-[#7e3866] bg-[#F9F9FB] dark:bg-[#7e3866]/20 text-[#7e3866] dark:text-[#7e3866]"
+                          ? "border-primary dark:border-primary bg-[#F9F9FB] dark:bg-primary/20 text-primary dark:text-primary"
                           : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                           }`}
                       >
@@ -3151,7 +3151,7 @@ function RestaurantDetailsContent() {
                       Clear All
                     </button>
                     <Button
-                      className="bg-[#7e3866] hover:bg-[#55254b] text-white px-6 py-2.5 rounded-lg font-bold"
+                      className="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg font-bold"
                       onClick={() => setShowFilterSheet(false)}
                     >
                       Apply {activeFilterCount > 0 && `(${activeFilterCount})`}
@@ -3210,9 +3210,9 @@ function RestaurantDetailsContent() {
                             className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2a2a2a]"
                           >
                             {outlet?.isNearest && (
-                              <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-[#F9F9FB] dark:bg-[#7e3866]/20 rounded-md">
-                                <Zap className="h-3.5 w-3.5 text-[#7e3866] dark:text-[#7e3866] fill-[#7e3866] dark:fill-[#7e3866]" />
-                                <span className="text-xs font-semibold text-[#7e3866] dark:text-[#7e3866]">
+                              <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-[#F9F9FB] dark:bg-primary/20 rounded-md">
+                                <Zap className="h-3.5 w-3.5 text-primary dark:text-primary fill-primary dark:fill-primary" />
+                                <span className="text-xs font-semibold text-primary dark:text-primary">
                                   Nearest available outlet
                                 </span>
                               </div>
@@ -3378,7 +3378,7 @@ function RestaurantDetailsContent() {
                   {/* Done Button */}
                   <div className="border-t border-gray-200 dark:border-gray-800 px-4 py-4">
                     <Button
-                      className="w-full bg-[#7e3866] hover:bg-[#55254b] text-white py-3 rounded-lg font-bold"
+                      className="w-full bg-primary hover:bg-secondary text-white py-3 rounded-lg font-bold"
                       onClick={() => {
                         setShowManageCollections(false)
                       }}
@@ -3884,7 +3884,7 @@ function RestaurantDetailsContent() {
                   {/* Close Button */}
                   <div className="border-t border-gray-200 dark:border-gray-800 px-4 py-4 bg-white dark:bg-[#1a1a1a]">
                     <Button
-                      className="w-full bg-[#7e3866] hover:bg-[#55254b] text-white border-0 flex items-center justify-center gap-2 py-6 rounded-xl font-bold transition-all shadow-lg text-sm"
+                      className="w-full bg-primary hover:bg-secondary text-white border-0 flex items-center justify-center gap-2 py-6 rounded-xl font-bold transition-all shadow-lg text-sm"
                       onClick={() => setShowOffersSheet(false)}
                     >
                       <X className="h-4 w-4" />

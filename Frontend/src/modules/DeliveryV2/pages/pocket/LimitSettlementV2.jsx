@@ -109,7 +109,7 @@ export const LimitSettlementV2 = () => {
        <div className="px-4 py-6">
           {loading ? (
              <div className="flex flex-col items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-[#ff8100] mb-4" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
                 <p className="text-gray-600 text-sm font-medium">Loading transactions...</p>
              </div>
           ) : transactions.length > 0 ? (

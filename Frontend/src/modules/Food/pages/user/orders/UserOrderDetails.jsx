@@ -110,7 +110,7 @@ export default function UserOrderDetails() {
           <p className="text-gray-700 dark:text-gray-300 text-sm font-medium">Order not found</p>
           <button
             onClick={() => navigate("/user/orders")}
-            className="px-4 py-2 rounded-lg bg-[#7e3866] text-white text-sm font-semibold hover:bg-[#55254b] transition-all active:scale-95 shadow-md"
+            className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-secondary transition-all active:scale-95 shadow-md"
           >
             Back to Orders
           </button>
@@ -429,7 +429,7 @@ export default function UserOrderDetails() {
             <button
               type="button"
               onClick={handleCallRestaurant}
-              className="w-8 h-8 rounded-full border border-[#7e3866]/20 flex items-center justify-center text-[#7e3866] hover:bg-[#7e3866]/5"
+              className="w-8 h-8 rounded-full border border-primary/20 flex items-center justify-center text-primary hover:bg-primary/5"
             >
               <Phone className="w-4 h-4" />
             </button>
@@ -510,7 +510,7 @@ export default function UserOrderDetails() {
             <button
               type="button"
               onClick={handleDownloadSummary}
-              className="w-7 h-7 rounded-full bg-[#7e3866]/10 flex items-center justify-center text-[#7e3866] hover:bg-[#7e3866]/20 transition-colors"
+              className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
             >
               <Download className="w-4 h-4" />
             </button>
@@ -539,11 +539,11 @@ export default function UserOrderDetails() {
             <div className="flex justify-between">
               <span className="text-gray-400 dark:text-gray-500 font-medium">Delivery fee</span>
               {pricing.deliveryFee === 0 && (
-                <span className="text-[#7e3866] text-[10px] font-bold border border-[#7e3866] px-1 rounded ml-1">
+                <span className="text-primary text-[10px] font-bold border border-primary px-1 rounded ml-1">
                   FREE
                 </span>
               )}
-              <span className="text-[#7e3866] dark:text-[#a04882] font-medium uppercase">
+              <span className="text-primary dark:text-[#a04882] font-medium uppercase">
                 {pricing.deliveryFee ? `₹${Number(pricing.deliveryFee).toFixed(2)}` : "Free"}
               </span>
             </div>
@@ -570,7 +570,7 @@ export default function UserOrderDetails() {
 
           {/* Savings Banner */}
           {savings > 0 && (
-            <div className="relative bg-[#7e3866]/5 p-3 pb-4 mt-2">
+            <div className="relative bg-primary/5 p-3 pb-4 mt-2">
               <div className="absolute -top-1.5 left-0 w-full overflow-hidden leading-none">
                 <svg
                   className="relative block w-[calc(100%+1.3px)] h-[8px]"
@@ -586,7 +586,7 @@ export default function UserOrderDetails() {
                 </svg>
               </div>
 
-              <div className="flex items-center justify-center gap-2 pt-1 text-[#7e3866] font-bold text-sm">
+              <div className="flex items-center justify-center gap-2 pt-1 text-primary font-bold text-sm">
                 <span></span>
                 <span>
                   You saved ₹{Number(savings).toFixed(2)} on this order!
@@ -661,7 +661,7 @@ export default function UserOrderDetails() {
         <button
           type="button"
           onClick={() => handleReorder(order)}
-          className="flex-1 bg-[#7e3866] text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-[#55254b] transition-all active:scale-95 shadow-md"
+          className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-secondary transition-all active:scale-95 shadow-md"
         >
           <RotateCcw className="w-4 h-4" />
           Reorder
@@ -669,7 +669,7 @@ export default function UserOrderDetails() {
         <button
           type="button"
           onClick={handleDownloadSummary}
-          className="flex-1 bg-white dark:bg-[#1a1a1a] border border-[#7e3866] text-[#7e3866] py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-[#7e3866]/5 transition-colors"
+          className="flex-1 bg-white dark:bg-[#1a1a1a] border border-primary text-primary py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors"
         >
           <Download className="w-4 h-4" />
           Invoice
@@ -703,7 +703,7 @@ export default function UserOrderDetails() {
               debugLog("Navigating to complaint page with orderId:", orderIdString)
               navigate(`/user/complaints/submit/${encodeURIComponent(orderIdString)}`)
             }}
-            className="w-full bg-[#7e3866]/5 border border-[#7e3866]/20 text-[#7e3866] py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-[#7e3866]/10 transition-colors"
+            className="w-full bg-primary/5 border border-primary/20 text-primary py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-primary/10 transition-colors"
           >
             <FileText className="w-4 h-4" />
             Restaurant Complaint

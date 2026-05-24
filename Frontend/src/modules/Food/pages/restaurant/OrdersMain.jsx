@@ -622,7 +622,7 @@ function TableBookings() {
         <div className="flex items-center gap-3">
            <button 
             onClick={handleRefresh}
-            className="text-[10px] font-black text-primary-orange uppercase tracking-widest hover:opacity-80 transition-opacity"
+            className="text-[10px] font-black text-primary uppercase tracking-widest hover:opacity-80 transition-opacity"
           >
             Refresh
           </button>
@@ -906,7 +906,7 @@ function SearchResults({ query, results, isLoading, onSelectOrder }) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-20">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-orange mb-4" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
         <p className="text-gray-500 text-sm">Searching for "{query}"...</p>
       </div>
     );
@@ -993,7 +993,7 @@ function ScheduledOrders({ onSelectOrder, refreshToken }) {
   if (loading) {
     return (
       <div className="flex justify-center p-10">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-orange" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -2437,7 +2437,7 @@ export default function OrdersMain() {
                 {isActive && (
                   <motion.div
                     layoutId="activeFilterBackground"
-                    className="absolute inset-0 bg-primary-orange rounded-full -z-10"
+                    className="absolute inset-0 bg-primary rounded-full -z-10"
                     initial={false}
                     transition={{
                       type: "spring",
@@ -3087,20 +3087,20 @@ export default function OrdersMain() {
                         onClick={() => setRejectReason(reason)}
                         className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                           rejectReason === reason
-                            ? "border-primary-orange bg-primary-orange/10"
+                            ? "border-primary bg-primary/10"
                             : "border-gray-200 bg-white hover:border-gray-300"
                         }`}>
                         <div className="flex items-center justify-between">
                           <span
                             className={`text-sm font-medium ${
                               rejectReason === reason
-                                ? "text-primary-orange"
+                                ? "text-primary"
                                 : "text-gray-900"
                             }`}>
                             {reason}
                           </span>
                           {rejectReason === reason && (
-                            <div className="w-5 h-5 rounded-full bg-primary-orange flex items-center justify-center">
+                            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
                               <svg
                                 className="w-3 h-3 text-white"
                                 fill="none"
@@ -3133,7 +3133,7 @@ export default function OrdersMain() {
                     disabled={!rejectReason}
                     className={`flex-1 py-3 rounded-lg font-semibold text-sm transition-colors ${
                       rejectReason
-                        ? "!bg-primary-orange !text-white hover:!bg-primary-orange/90"
+                        ? "!bg-primary !text-white hover:!bg-primary/90"
                         : "bg-gray-200 text-gray-400 cursor-not-allowed"
                     }`}>
                     Confirm Rejection
@@ -3373,7 +3373,7 @@ export default function OrdersMain() {
               )}
 
               <button
-                className="w-full bg-primary-orange text-white py-2.5 rounded-xl text-sm font-medium hover:bg-primary-orange/90 transition-colors"
+                className="w-full bg-primary text-white py-2.5 rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors"
                 onClick={() => setIsSheetOpen(false)}>
                 Close
               </button>

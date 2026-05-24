@@ -770,7 +770,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
               {activeOrder ? (
                 <div className="grid grid-cols-2 gap-3 w-full">
                   {/* LEFT: DISTANCE (Vibrant Orange Card) */}
-                  <div className="bg-[#ff8100] rounded-2xl p-3.5 shadow-xl shadow-orange-500/20 border border-orange-400/50 flex items-center justify-between overflow-hidden relative">
+                  <div className="bg-primary rounded-2xl p-3.5 shadow-xl shadow-orange-500/20 border border-orange-400/50 flex items-center justify-between overflow-hidden relative">
                     <div className="flex flex-col z-10">
                       <span className="text-[9px] text-white/70 font-black uppercase tracking-[0.15em] mb-1">Distance</span>
                       <div className="flex items-end gap-1">
@@ -781,7 +781,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                       </div>
                     </div>
                     <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center z-10 shadow-lg">
-                      <Navigation2 className="w-4 h-4 text-[#ff8100] rotate-45" />
+                      <Navigation2 className="w-4 h-4 text-primary rotate-45" />
                     </div>
                   </div>
 

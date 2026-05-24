@@ -27,7 +27,7 @@ export default function SplashScreen({ onFinish }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-[#7e3866]">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-primary">
       <AnimatePresence mode="wait">
         {!isFinishing && (
           <motion.div
@@ -97,7 +97,7 @@ export default function SplashScreen({ onFinish }) {
                 style={{ transform: 'translateZ(0)', willChange: "transform, opacity" }}
                 className="text-7xl md:text-9xl font-black tracking-tighter text-white relative font-['Outfit'] select-none"
               >
-                FOODELO
+                INDIAN BITES
                 
                 {/* Optimized Shine Effect Layer */}
                 <motion.div
@@ -136,7 +136,7 @@ export default function SplashScreen({ onFinish }) {
                transition={{ delay: 0.8 }}
                className="absolute bottom-12 text-white text-[9px] uppercase tracking-[0.2em] font-medium"
             >
-              Powered by Foodelo Inc.
+              Powered by Indian Bites Inc.
             </motion.div>
           </motion.div>
         )}

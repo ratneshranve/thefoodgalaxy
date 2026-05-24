@@ -625,6 +625,13 @@ export const restaurantAPI = {
   /** List withdrawal history for current restaurant. */
   getWithdrawalHistory: () =>
     restaurantClient.get("/food/restaurant/withdrawals"),
+    
+  // Promocodes
+  getPromocodes: () => restaurantClient.get("/food/promocodes"),
+  createPromocode: (data) => restaurantClient.post("/food/promocodes", data),
+  togglePromocodeStatus: (id, isActive) => restaurantClient.patch(`/food/promocodes/${id}`, { isActive }),
+  deletePromocode: (id) => restaurantClient.delete(`/food/promocodes/${id}`),
+
   /** Update restaurant profile fields (name/cuisines/location/menuImages). */
   updateProfile: (body) =>
     restaurantClient
@@ -1566,6 +1573,13 @@ export const userAPI = {
   /** PATCH /food/user/profile (Bearer USER) */
   updateProfile: (body) =>
     userClient.patch("/food/user/profile", body ?? {}),
+    
+  // Promocodes
+  getActivePromocodes: (restaurantId) =>
+    userClient.get(`/food/promocodes/restaurant/${restaurantId}`),
+  validatePromocode: (data) =>
+    userClient.post("/food/promocodes/validate", data),
+    
   /** Upload and set user profile image (multipart). Field name: file */
   uploadProfileImage: (file) => {
     if (!file) return Promise.reject(new Error("File is required"));

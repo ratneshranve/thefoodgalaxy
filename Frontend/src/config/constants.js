@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  NAME: 'Foodelo',
+  NAME: 'Indian Bites',
   VERSION: '1.0.0',
 };
 

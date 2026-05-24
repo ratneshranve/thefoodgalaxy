@@ -354,7 +354,7 @@ export default function RestaurantNavbar({
   }
 
   return (
-    <div className="w-full bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between relative">
+    <div className="w-full bg-gradient-to-r from-[#B80B3D] to-[#66001D] rounded-b-[24px] shadow-lg px-4 pt-5 pb-5 flex items-center justify-between relative">
       {/* Search Overlay */}
       {isSearchActive && (
         <div className="absolute inset-0 bg-white z-50 flex items-center px-4 gap-3">
@@ -384,23 +384,24 @@ export default function RestaurantNavbar({
         {logoUrl && (
           <img src={logoUrl} alt="Logo" className="h-10 w-10 object-contain rounded-lg" />
         )}
-        <div className="min-w-0">
-          {/* Restaurant Name & Company */}
-          <div className="flex items-baseline gap-1.5 min-w-0">
-            <h1 className="text-[15px] font-bold text-gray-900 truncate">
+        <div className="min-w-0 flex-1">
+          {/* Restaurant Name */}
+          <div className="flex items-baseline min-w-0">
+            <h1 className="text-[17px] font-black text-white truncate leading-tight">
               {loading ? "Loading..." : (restaurantName || "Restaurant")}
             </h1>
-            {companyName && !loading && (
-              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight shrink-0">
-                {companyName}
-              </span>
-            )}
           </div>
-          {!loading && location && location.trim() !== "" && (
-            <div className="flex items-center gap-1 mt-0.5 opacity-80">
-              <MapPin className="w-2.5 h-2.5 text-gray-500 shrink-0" />
-              <p className="text-[10px] text-gray-500 truncate font-medium" title={location}>
-                {location}
+          
+          {/* Location & Company */}
+          {!loading && (
+            <div className="flex items-center gap-1 mt-0.5 opacity-90 min-w-0">
+              {location && location.trim() !== "" && (
+                <MapPin className="w-3 h-3 text-white/80 shrink-0" />
+              )}
+              <p className="text-[11px] text-white/80 truncate font-medium">
+                {location && location.trim() !== "" ? location : ""}
+                {location && location.trim() !== "" && companyName ? " • " : ""}
+                {companyName ? <span className="uppercase tracking-wider font-bold">{companyName}</span> : ""}
               </p>
             </div>
           )}
@@ -413,23 +414,18 @@ export default function RestaurantNavbar({
         {showOfflineOnlineTag && (
           <button
             onClick={handleStatusClick}
-            className={`flex items-center gap-1.5 px-2 py-1 border rounded-full hover:opacity-80 transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all shadow-sm ${
               status === "Online" 
-                ? "bg-green-50 border-green-300" 
-                : "bg-gray-100 border-gray-300"
+                ? "bg-white/20 border border-white/20" 
+                : "bg-white/10 border border-white/10"
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              status === "Online" ? "bg-green-500" : "bg-gray-500"
+            <span className={`w-2 h-2 rounded-full ${
+              status === "Online" ? "bg-[#00e676]" : "bg-gray-400"
             }`}></span>
-            <span className={`text-sm font-medium ${
-              status === "Online" ? "text-green-700" : "text-gray-700"
-            }`}>
+            <span className="text-sm font-bold text-white tracking-wide">
               {status}
             </span>
-            <ChevronRight className={`w-4 h-4 ${
-              status === "Online" ? "text-green-700" : "text-gray-700"
-            }`} />
           </button>
         )}
 
@@ -437,10 +433,10 @@ export default function RestaurantNavbar({
         {showSearch && (
           <button
             onClick={handleSearchClick}
-            className="p-2 ml-1 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 ml-1 hover:bg-white/10 rounded-full transition-colors"
             aria-label="Search"
           >
-            <Search className="w-5 h-5 text-gray-700" />
+            <Search className="w-5 h-5 text-white" />
           </button>
         )}
 
@@ -448,10 +444,10 @@ export default function RestaurantNavbar({
         {showNotifications && (
             <button
               onClick={handleNotificationsClick}
-              className="relative p-2 ml-1 hover:bg-gray-100 rounded-full transition-colors"
+              className="relative p-2 ml-1 hover:bg-white/10 rounded-full transition-colors"
               aria-label="Notifications"
             >
-              <Bell className="w-5 h-5 text-gray-700" />
+              <Bell className="w-5 h-5 text-white" />
               {unreadCount > 0 && (
                 <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-red-500 border border-white animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
               )}
@@ -461,29 +457,29 @@ export default function RestaurantNavbar({
         {/* Support/Help Icon */}
         <button
           onClick={() => navigate("/food/restaurant/help-centre/support")}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-2 hover:bg-white/10 rounded-full transition-colors"
           aria-label="Support"
         >
-          <HelpCircle className="w-5 h-5 text-gray-700" />
+          <HelpCircle className="w-5 h-5 text-white" />
         </button>
 
         {/* Hamburger Menu Icon */}
         <button
           onClick={handleMenuClick}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-2 hover:bg-white/10 rounded-full transition-colors"
           aria-label="Menu"
         >
-          <Menu className="w-5 h-5 text-gray-700" />
+          <Menu className="w-5 h-5 text-white" />
         </button>
       </div>
       
       {/* Real-time Dining Booking Popup */}
       {newReservation && (
         <div className="fixed top-20 left-4 right-4 z-[100] animate-in slide-in-from-top duration-300">
-          <div className="bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-[#7e3866]/10 overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-primary/10 overflow-hidden">
             <div className="p-4 flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center shrink-0">
-                <Utensils className="w-6 h-6 text-[#7e3866]" />
+                <Utensils className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-black text-slate-900 text-sm">New Table Request!</h4>
@@ -504,7 +500,7 @@ export default function RestaurantNavbar({
                   clearNewReservation();
                   navigate("/food/restaurant/dining-reservations");
                 }}
-                className="flex-1 h-10 bg-[#7e3866] text-white text-xs font-bold rounded-xl uppercase tracking-widest shadow-lg shadow-purple-200"
+                className="flex-1 h-10 bg-primary text-white text-xs font-bold rounded-xl uppercase tracking-widest shadow-lg shadow-purple-200"
               >
                 View Request
               </button>

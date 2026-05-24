@@ -14,6 +14,11 @@ import('./modules/Food/utils/businessSettings.js')
   .then(({ loadBusinessSettings }) => loadBusinessSettings())
   .catch(() => { /* Silently fail — settings load when admin authenticates */ })
 
+// Apply dynamic theme configuration
+import('./modules/Food/utils/themeSettings.js')
+  .then(({ applyDynamicTheme }) => applyDynamicTheme())
+  .catch(() => { /* Silently fail */ })
+
 // Apply saved theme
 const savedTheme = localStorage.getItem('appTheme') || 'light'
 if (savedTheme === 'dark') {

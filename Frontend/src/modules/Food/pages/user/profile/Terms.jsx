@@ -71,7 +71,7 @@ export default function Terms() {
              <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
                {termsData.title || "Terms of Service"}
              </h1>
-             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Foodelo Policy</p>
+             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Indian Bites Policy</p>
           </div>
         </div>
       </div>
@@ -88,7 +88,7 @@ export default function Terms() {
                 prose-headings:font-black prose-headings:text-gray-900 dark:prose-headings:text-white
                 prose-p:text-gray-600 dark:prose-p:text-gray-400 prose-p:leading-relaxed
                 prose-strong:text-gray-900 dark:prose-strong:text-white
-                prose-a:text-[#CB202D] dark:prose-a:text-[#7e3866]
+                prose-a:text-[#CB202D] dark:prose-a:text-primary
                 prose-li:text-gray-600 dark:prose-li:text-gray-400"
               dangerouslySetInnerHTML={{ __html: termsData.content }}
             />
@@ -102,7 +102,7 @@ export default function Terms() {
 
         <p className="text-center mt-10 text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] leading-relaxed">
           Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} <br />
-          © {new Date().getFullYear()} Foodelo. All Rights Reserved.
+          © {new Date().getFullYear()} Indian Bites. All Rights Reserved.
         </p>
       </div>
     </AnimatedPage>

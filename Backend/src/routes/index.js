@@ -18,12 +18,17 @@ import { requireRoles } from '../core/roles/role.middleware.js';
 import { getQueuesController } from '../controllers/admin.controller.js';
 import webhookRoutes from '../core/payments/routes/webhook.routes.js';
 import searchRoutes from '../modules/food/search/routes/search.routes.js';
+import appConfigRoutes from '../core/appConfig/appConfig.routes.js';
+import promocodeRoutes from './promocodeRoutes.js';
 
 const router = express.Router();
 
 router.get('/v1/health', (req, res) => {
     res.status(200).json({ status: 'UP', message: 'Server is healthy' });
 });
+
+// App Config Route
+router.use('/v1/app-config', appConfigRoutes);
 
 // Food-prefixed auth routes
 router.use('/v1/food/auth', authRoutes);
@@ -34,6 +39,7 @@ router.use('/v1/food/delivery', deliveryRoutes);
 router.use('/v1/food/restaurant', restaurantRoutes);
 router.use('/v1/food', landingRoutes);
 router.use('/v1/food/search', searchRoutes);
+router.use('/v1/food/promocodes', promocodeRoutes);
 router.get('/v1/food/dining/categories/public', getPublicDiningCategories);
 router.get('/v1/food/dining/restaurants/public', getPublicDiningRestaurants);
 router.get('/v1/food/dining/restaurants/:restaurantId/occupied-seats/public', getPublicRestaurantOccupiedSeats);

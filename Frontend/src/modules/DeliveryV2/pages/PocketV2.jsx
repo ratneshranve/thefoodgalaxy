@@ -191,7 +191,7 @@ export const PocketV2 = () => {
 
   if (loading) return (
     <div className="min-h-screen bg-[#f6e9dc] flex flex-col items-center justify-center font-poppins">
-       <div className="w-10 h-10 border-4 border-[#ff8100] border-t-transparent rounded-full animate-spin mb-4" />
+       <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
        <p className="text-xs font-semibold text-gray-500">Loading Pocket...</p>
     </div>
   );
@@ -336,7 +336,7 @@ export const PocketV2 = () => {
              <div className="p-5">
                 <button 
                    onClick={() => setShowDepositPopup(true)}
-                   className="w-full py-4 bg-[#ff8100] hover:bg-orange-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
+                   className="w-full py-4 bg-primary hover:bg-orange-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
                 >
                    Deposit Cash
                 </button>
@@ -356,7 +356,7 @@ export const PocketV2 = () => {
                 </div>
 
                 <div onClick={() => navigate('/food/delivery/pocket/limit-settlement')} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 active:bg-gray-50 flex flex-col justify-between">
-                   <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-[#ff8100] mb-4 border border-orange-100">
+                   <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-primary mb-4 border border-orange-100">
                       <Receipt className="w-5 h-5" />
                    </div>
                    <p className="text-sm font-bold text-gray-800 leading-tight">Limit Settlement</p>
@@ -390,7 +390,7 @@ export const PocketV2 = () => {
                    <div className="w-16 h-1.5 bg-gray-100 rounded-full mx-auto mb-8" />
                    
                    <div className="text-center mb-8">
-                      <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-orange-100 text-[#ff8100]">
+                      <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-orange-100 text-primary">
                          <IndianRupee className="w-10 h-10" />
                       </div>
                       <h3 className="text-2xl font-black text-black mb-1">Deposit Cash</h3>
@@ -407,7 +407,7 @@ export const PocketV2 = () => {
                          <input 
                             type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)}
                             placeholder="Enter amount to deposit"
-                            className="w-full bg-white border border-gray-200 rounded-xl py-4 pl-12 pr-4 text-xl font-bold focus:border-[#ff8100] focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
+                            className="w-full bg-white border border-gray-200 rounded-xl py-4 pl-12 pr-4 text-xl font-bold focus:border-primary focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
                          />
                       </div>
                       <p className="text-[10px] font-bold text-gray-400 mt-3 text-center uppercase tracking-tight">Minimum deposit ₹1 • Instant limit update</p>
@@ -417,7 +417,7 @@ export const PocketV2 = () => {
                       <button 
                          onClick={handleDeposit}
                          disabled={depositing}
-                         className="w-full py-5 bg-[#ff8100] text-white rounded-2xl font-black text-sm shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:bg-gray-300 disabled:shadow-none"
+                         className="w-full py-5 bg-primary text-white rounded-2xl font-black text-sm shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:bg-gray-300 disabled:shadow-none"
                       >
                          {depositing ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
                          {depositing ? 'Securely Processing...' : 'Proceed to Pay'}

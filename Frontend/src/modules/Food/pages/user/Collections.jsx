@@ -90,7 +90,7 @@ export default function Collections() {
           >
             Delivery
             {activeTab === "delivery" && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-[#7e3866] rounded-full" />
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-primary rounded-full" />
             )}
           </button>
           <button
@@ -100,7 +100,7 @@ export default function Collections() {
           >
             Dining
             {activeTab === "dining" && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-[#7e3866] rounded-full" />
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-primary rounded-full" />
             )}
           </button>
         </div>
@@ -146,7 +146,7 @@ export default function Collections() {
                       {/* Right card - Restaurant */}
                       <div className="absolute right-0 top-0 w-14 h-11 bg-white rounded-lg shadow-lg transform rotate-12 overflow-hidden">
                         <div className="w-full h-full bg-gray-50 flex items-center justify-center p-1">
-                          <Store className="h-6 w-6 text-[#7e3866]" />
+                          <Store className="h-6 w-6 text-primary" />
                         </div>
                         {/* Striped awning */}
                         <div className="absolute -top-0.5 left-0 right-0 h-2 bg-gradient-to-r from-orange-400 via-white to-orange-400"
@@ -172,8 +172,8 @@ export default function Collections() {
               onClick={() => setIsCreateDialogOpen(true)}
               className="bg-white dark:bg-[#1a1a1a] border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-4 h-48 flex flex-col items-center justify-center gap-3 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
-              <div className="w-12 h-12 rounded-full bg-[#F9F9FB] dark:bg-[#7e3866]/20 flex items-center justify-center border-2 border-[#7e3866]/30 dark:border-[#7e3866]/40">
-                <Plus className="h-6 w-6 text-[#7e3866] dark:text-[#7e3866]" />
+              <div className="w-12 h-12 rounded-full bg-[#F9F9FB] dark:bg-primary/20 flex items-center justify-center border-2 border-primary/30 dark:border-primary/40">
+                <Plus className="h-6 w-6 text-primary dark:text-primary" />
               </div>
               <div className="text-center">
                 <p className="text-gray-700 dark:text-gray-300 font-semibold">Create a new</p>
@@ -224,7 +224,7 @@ export default function Collections() {
                     handleCreateCollection()
                   }
                 }}
-                className="w-full h-12 text-base border-2 border-gray-200 dark:border-gray-700 focus:border-[#7e3866] dark:focus:border-[#7e3866] rounded-xl bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                className="w-full h-12 text-base border-2 border-gray-200 dark:border-gray-700 focus:border-primary dark:focus:border-primary rounded-xl bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
                 autoFocus
               />
 
@@ -252,7 +252,7 @@ export default function Collections() {
               <Button
                 onClick={handleCreateCollection}
                 disabled={!newCollectionName.trim()}
-                className="flex-1 h-11 bg-[#7e3866] hover:bg-[#55254b] text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 h-11 bg-primary hover:bg-secondary text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create Collection
               </Button>

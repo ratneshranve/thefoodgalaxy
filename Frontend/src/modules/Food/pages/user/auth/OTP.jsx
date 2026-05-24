@@ -506,7 +506,7 @@ export default function OTP() {
                       type="button"
                       onClick={handleResend}
                       disabled={isLoading}
-                      className="text-primary hover:text-[#55254b] font-bold transition-colors disabled:opacity-50"
+                      className="text-primary hover:text-secondary font-bold transition-colors disabled:opacity-50"
                     >
                       Resend SMS
                     </button>
@@ -541,7 +541,7 @@ export default function OTP() {
               <Button
                 onClick={handleSubmitName}
                 disabled={isLoading}
-                className="w-full h-12 md:h-14 bg-primary hover:bg-[#55254b] text-white font-bold text-lg rounded-xl transition-all hover:shadow-lg active:scale-[0.98]"
+                className="w-full h-12 md:h-14 bg-primary hover:bg-secondary text-white font-bold text-lg rounded-xl transition-all hover:shadow-lg active:scale-[0.98]"
               >
                 {isLoading ? "Getting things ready..." : "Finish Registration"}
               </Button>
@@ -559,7 +559,7 @@ export default function OTP() {
         {/* Footer info */}
         <div className="p-6 bg-gray-50 dark:bg-[#1f1f1f] text-center">
             <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-bold">
-                Foodelo Food Delivery
+                Indian Bites Food Delivery
             </p>
         </div>
       </div>

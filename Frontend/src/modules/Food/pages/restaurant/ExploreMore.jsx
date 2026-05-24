@@ -29,6 +29,7 @@ import {
   Calendar,
   MapPin,
   LogOut,
+  Ticket,
 } from "lucide-react"
 import { Card, CardContent } from "@food/components/ui/card"
 import { DateRangeCalendar } from "@food/components/ui/date-range-calendar"
@@ -324,7 +325,7 @@ function TimePickerWheel({
           <div className="border-t border-gray-200 px-4 py-4 flex justify-center">
             <button
               onClick={handleConfirm}
-              className="text-[#7e3866] hover:text-[#6a2f56] font-bold text-base transition-colors"
+              className="text-primary hover:text-[#6a2f56] font-bold text-base transition-colors"
             >
               Okay
             </button>
@@ -788,6 +789,7 @@ export default function ExploreMore() {
     { id: 2, label: "Outlet timings", icon: Clock, route: "/food/restaurant/outlet-timings" },
     { id: 3, label: "Dining Reservations", icon: Calendar, route: "/food/restaurant/reservations" },
     { id: 4, label: "Menu categories", icon: Settings, route: "/food/restaurant/menu-categories" },
+    { id: 6, label: "Promo Codes", icon: Ticket, route: "/food/restaurant/promocodes" },
   ]
 
   const settingsItems = [
@@ -959,7 +961,7 @@ export default function ExploreMore() {
             </button>
             <button
               onClick={() => setProfileOpen(true)}
-              className={`p-2 transition-all duration-200 rounded-full ${profileOpen ? "bg-[#7e3866] text-white shadow-lg" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}
+              className={`p-2 transition-all duration-200 rounded-full ${profileOpen ? "bg-primary text-white shadow-lg" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}
               aria-label="Profile"
             >
               <UserRound className="w-5 h-5" />
@@ -981,14 +983,14 @@ export default function ExploreMore() {
           }}
         >
           <Card 
-            className="bg-white border-gray-200 py-3 mb-6 rounded-lg shadow-0 hover:border-[#7e3866]/30 hover:bg-[#7e3866]/5 transition-all active:scale-[0.99] cursor-pointer"
+            className="bg-white border-gray-200 py-3 mb-6 rounded-lg shadow-0 hover:border-primary/30 hover:bg-primary/5 transition-all active:scale-[0.99] cursor-pointer"
             onClick={() => navigate("/food/restaurant/outlet-info")}
           >
             <CardContent className="px-4">
               <div className="w-full flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1">
-                  <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-[#7e3866]/10 transition-colors">
-                    <Store className="w-5 h-5 text-gray-900 group-hover:text-[#7e3866]" />
+                  <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-primary/10 transition-colors">
+                    <Store className="w-5 h-5 text-gray-900 group-hover:text-primary" />
                   </div>
                   <div className="flex-1 min-w-0 text-left">
                     <h2 className="text-base font-semibold text-gray-900 mb-0.5">
@@ -1060,8 +1062,8 @@ export default function ExploreMore() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#7e3866]/10">
-                  <LogOut className="w-5 h-5 text-[#7e3866]" />
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                  <LogOut className="w-5 h-5 text-primary" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900">Logout?</h3>
                 <p className="mt-1 text-sm text-gray-500">Are you sure you want to logout?</p>
@@ -1083,7 +1085,7 @@ export default function ExploreMore() {
                     setLogoutConfirmOpen(false)
                   }}
                   disabled={isLoggingOut}
-                  className="rounded-2xl bg-[#7e3866] px-4 py-3 text-sm font-bold text-white transition-all hover:bg-[#6a2f56] active:scale-95 disabled:opacity-50"
+                  className="rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white transition-all hover:bg-[#6a2f56] active:scale-95 disabled:opacity-50"
                 >
                   {isLoggingOut ? "Logging out..." : "Yes"}
                 </button>
@@ -1190,7 +1192,7 @@ export default function ExploreMore() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
-                    className="w-full px-4 py-2 pr-10 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7e3866] text-gray-900 placeholder-gray-500"
+                    className="w-full px-4 py-2 pr-10 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 placeholder-gray-500"
                   />
                   {searchQuery && (
                     <button
@@ -1317,7 +1319,7 @@ export default function ExploreMore() {
                   className="w-full flex items-start gap-4 text-left p-2 -m-2 hover:bg-gray-50 rounded-xl transition-colors group"
                 >
                   {/* Avatar */}
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center shrink-0 overflow-hidden ring-4 ring-[#7e3866]/10 group-hover:ring-[#7e3866]/20 transition-all">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center shrink-0 overflow-hidden ring-4 ring-primary/10 group-hover:ring-primary/20 transition-all">
                     {userData.profileImage?.url ? (
                       <img
                         src={userData.profileImage.url}
@@ -1325,8 +1327,8 @@ export default function ExploreMore() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#7e3866]/5 to-[#7e3866]/20">
-                        <User className="w-8 h-8 text-[#7e3866]" />
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/20">
+                        <User className="w-8 h-8 text-primary" />
                       </div>
                     )}
                   </div>
@@ -1349,7 +1351,7 @@ export default function ExploreMore() {
                         {userData.email}
                       </p>
                     )}
-                    <p className="text-[10px] font-bold text-[#7e3866] uppercase tracking-widest mt-2 bg-[#7e3866]/5 w-fit px-2.5 py-1 rounded-full border border-[#7e3866]/10">
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-2 bg-primary/5 w-fit px-2.5 py-1 rounded-full border border-primary/10">
                       {userData.role}
                     </p>
                   </div>
@@ -1379,9 +1381,9 @@ export default function ExploreMore() {
                 <button
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="w-full bg-[#7e3866]/10 text-[#7e3866] border border-[#7e3866]/20 hover:bg-[#7e3866]/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed font-bold py-4 px-4 rounded-2xl transition-all flex items-center justify-center gap-2"
+                  className="w-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed font-bold py-4 px-4 rounded-2xl transition-all flex items-center justify-center gap-2"
                 >
-                  <LogOut className="w-5 h-5 text-[#7e3866]" />
+                  <LogOut className="w-5 h-5 text-primary" />
                   {isLoggingOut ? "Logging out..." : "Logout"}
                 </button>
 
@@ -1389,7 +1391,7 @@ export default function ExploreMore() {
                 <button
                   onClick={handleLogoutAllDevices}
                   disabled={isLoggingOut}
-                  className="w-full bg-[#7e3866]/10 text-[#7e3866] border border-[#7e3866]/20 hover:bg-[#7e3866]/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed font-bold py-4 px-4 rounded-2xl transition-all"
+                  className="w-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed font-bold py-4 px-4 rounded-2xl transition-all"
                 >
                   {isLoggingOut ? "Logging out..." : "Logout from all devices"}
                 </button>
@@ -1622,7 +1624,7 @@ export default function ExploreMore() {
                 {/* Submit Button */}
                 <button
                   onClick={handleSubmitScheduleOff}
-                  className="w-full bg-[#7e3866] hover:bg-[#6a2f56] text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md active:scale-[0.98] mt-4"
+                  className="w-full bg-primary hover:bg-[#6a2f56] text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md active:scale-[0.98] mt-4"
                 >
                   Submit
                 </button>
@@ -1708,7 +1710,7 @@ export default function ExploreMore() {
                     setStartTime({ hour: "9", minute: "00", period: "am" })
                     setEndTime({ hour: "5", minute: "00", period: "pm" })
                   }}
-                  className="w-full bg-[#7e3866] text-white py-3.5 rounded-xl font-bold text-sm hover:bg-[#6a2f56] transition-all shadow-md active:scale-[0.98]"
+                  className="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-sm hover:bg-[#6a2f56] transition-all shadow-md active:scale-[0.98]"
                 >
                   Done 
                 </button>
