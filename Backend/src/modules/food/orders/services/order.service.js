@@ -1449,27 +1449,99 @@ export async function assignDeliveryPartnerAdmin(
 ) {
   const order = await FoodOrder.findById(orderId);
   if (!order) throw new NotFoundError("Order not found");
-  if (order.dispatch.status === "accepted")
-    throw new ValidationError("Order already accepted by partner");
+  
+  if (order.dispatch?.deliveryPartnerId && order.dispatch?.status === "accepted") {
+    throw new ValidationError("Order already assigned to another partner");
+  }
+
+  const cancellableStatuses = ['cancelled_by_user', 'cancelled_by_restaurant', 'cancelled_by_admin', 'delivered'];
+  if (cancellableStatuses.includes(order.orderStatus)) {
+    throw new ValidationError("Order is cancelled or delivered, cannot assign delivery partner");
+  }
 
   const partner = await FoodDeliveryPartner.findById(deliveryPartnerId)
-    .select("status")
+    .select("status availabilityStatus")
     .lean();
-  if (!partner || partner.status !== "approved")
-    throw new ValidationError("Delivery partner not available");
+  if (!partner || partner.status !== "approved" || partner.availabilityStatus !== "online")
+    throw new ValidationError("Delivery partner is not available or offline");
 
-    order.dispatch.status = 'assigned';
-    order.dispatch.deliveryPartnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
-    order.dispatch.assignedAt = new Date();
-    pushStatusHistory(order, { byRole: 'ADMIN', byId: adminId, from: order.dispatch.status, to: 'assigned' });
-    await order.save();
-    enqueueOrderEvent('delivery_partner_assigned', {
-        orderMongoId: order._id?.toString?.(),
-        orderId: order._id.toString(),
-        deliveryPartnerId,
-        adminId
-    });
-    return normalizeOrderForClient(order);
+  const busyPartner = await FoodOrder.findOne({
+    'dispatch.deliveryPartnerId': new mongoose.Types.ObjectId(deliveryPartnerId),
+    'dispatch.status': 'accepted',
+    orderStatus: { $in: ['confirmed', 'preparing', 'ready_for_pickup', 'picked_up', 'reached_drop'] }
+  });
+  if (busyPartner) {
+    throw new ValidationError("Delivery partner is currently busy with another order");
+  }
+
+  const paymentMethod = String(order.payment?.method || order.paymentMethod || 'cash').toLowerCase();
+  if (paymentMethod === 'cash') {
+      const { getPartnerCashCapacity } = await import('./order-delivery.service.js');
+      const partnerCapacity = await getPartnerCashCapacity(deliveryPartnerId);
+      const orderAmount = Math.max(0, Number(order.pricing?.total || 0));
+      if (!partnerCapacity.hasCapacity || Number(partnerCapacity.availableCashLimit || 0) < orderAmount) {
+          throw new ValidationError('Delivery partner cash limit exceeded for this COD order.');
+      }
+  }
+
+  const now = new Date();
+  order.dispatch.status = 'accepted';
+  order.dispatch.deliveryPartnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
+  order.dispatch.assignedAt = now;
+  order.dispatch.acceptedAt = now;
+  
+  pushStatusHistory(order, { byRole: 'ADMIN', byId: adminId, from: 'assigned', to: 'accepted', note: 'Manually assigned by admin' });
+  await order.save();
+
+  // Call the same post-acceptance logic
+  try {
+      // Firebase update
+      const restLoc = order.restaurantId ? (await FoodRestaurant.findById(order.restaurantId).select('location').lean())?.location?.coordinates : null;
+      const userLoc = order.deliveryAddress?.location?.coordinates;
+      if (restLoc?.[0] && userLoc?.[0]) {
+          const { fetchPolyline } = await import('../utils/googleMaps.js');
+          const polyline = await fetchPolyline({ lat: restLoc[1], lng: restLoc[0] }, { lat: userLoc[1], lng: userLoc[0] });
+          const { getFirebaseDB } = await import('../../../../config/firebase.js');
+          const db = getFirebaseDB();
+          if (db) {
+             await db.ref(`active_orders/${order._id.toString()}`).set({
+                polyline, lat: restLoc[1], lng: restLoc[0],
+                boy_lat: restLoc[1], boy_lng: restLoc[0],
+                restaurant_lat: restLoc[1], restaurant_lng: restLoc[0],
+                customer_lat: userLoc[1], customer_lng: userLoc[0],
+                status: 'accepted', last_updated: Date.now(),
+             });
+          }
+      }
+
+      const { getIO, rooms } = await import('../../../../config/socket.js');
+      const io = getIO();
+      if (io) {
+          const payload = { orderMongoId: order._id.toString(), orderId: order._id.toString(), orderStatus: order.orderStatus, dispatchStatus: order.dispatch?.status };
+          io.to(rooms.delivery(deliveryPartnerId)).emit('order_status_update', payload);
+          io.to(rooms.restaurant(order.restaurantId)).emit('order_status_update', payload);
+          io.to(rooms.user(order.userId)).emit('order_status_update', payload);
+          io.to('all_delivery').emit('order_claimed', { orderId: order._id.toString(), claimedBy: deliveryPartnerId });
+      }
+
+      // FCM Notify Partner
+      await notifyOwnerSafely(
+          { ownerType: 'DELIVERY_PARTNER', ownerId: deliveryPartnerId },
+          { title: 'New Order Assigned! 🚀', body: `Admin manually assigned order #${order._id.toString()} to you.`, data: { type: 'delivery_accepted', orderId: order._id.toString() } }
+      );
+  } catch(e) {
+      console.error("Post manual assignment logic failed", e);
+  }
+
+  enqueueOrderEvent('delivery_accepted', {
+      orderMongoId: order._id?.toString?.(),
+      orderId: order._id.toString(),
+      deliveryPartnerId,
+      dispatchStatus: order.dispatch?.status,
+      orderStatus: order.orderStatus,
+  });
+
+  return normalizeOrderForClient(order);
 }
 
 export async function deleteOrderAdmin(orderId, adminId) {

@@ -263,6 +263,12 @@ export const adminAPI = {
     adminClient.patch(`/food/admin/delivery/${String(id)}/approve`, {}),
   rejectDeliveryPartner: (id, reason) =>
     adminClient.patch(`/food/admin/delivery/${String(id)}/reject`, { reason: String(reason || "").trim() }),
+  deleteDeliveryPartner: (id) =>
+    adminClient.delete(`/food/admin/delivery/${String(id)}`),
+  getAvailableDeliveryPartners: (params) =>
+    adminClient.get("/food/admin/delivery/available-partners", { params }),
+  assignDeliveryPartner: (orderId, partnerId) =>
+    adminClient.post(`/food/admin/orders/${String(orderId)}/assign-delivery`, { deliveryPartnerId: partnerId }),
   /** GET /food/admin/delivery/support-tickets - list all delivery support tickets (query: status, priority, search, page, limit). */
   getDeliverySupportTickets: (params) =>
     adminClient.get("/food/admin/delivery/support-tickets", { params }),

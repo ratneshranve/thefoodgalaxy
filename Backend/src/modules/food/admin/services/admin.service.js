@@ -3705,6 +3705,32 @@ export async function updateDeliverySupportTicket(id, body = {}) {
 }
 
 // ----- Delivery partners (approved list) -----
+export async function getAvailableDeliveryPartners(query) {
+    const filter = { status: 'approved', availabilityStatus: 'online' };
+    const list = await FoodDeliveryPartner.find(filter).lean();
+
+    const busyPartners = await FoodOrder.distinct('dispatch.deliveryPartnerId', {
+        'dispatch.status': 'accepted',
+        orderStatus: { $in: ['confirmed', 'preparing', 'ready_for_pickup', 'picked_up', 'reached_drop'] }
+    });
+    const busyIds = busyPartners.map(id => String(id));
+
+    const availablePartners = list.filter(p => !busyIds.includes(String(p._id)));
+
+    return {
+        availablePartners: availablePartners.map(doc => ({
+            _id: doc._id,
+            name: doc.name || '',
+            phone: doc.phone || '',
+            vehicleType: doc.vehicleType || '',
+            profilePhoto: doc.profilePhoto || null,
+            lastLat: doc.lastLat,
+            lastLng: doc.lastLng,
+            city: doc.city,
+            area: doc.address || doc.state || ''
+        }))
+    };
+}
 export async function getDeliveryPartners(query) {
     const { page = 1, limit = 1000, search } = query;
     const filter = { status: 'approved' };
@@ -4562,6 +4588,49 @@ export async function rejectDeliveryPartner(id, reason) {
             );
         } catch (e) {
             console.error('Failed to send delivery partner rejection notification:', e);
+        }
+    }
+    return updated;
+}
+
+export async function deleteDeliveryPartner(id) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
+    const updated = await FoodDeliveryPartner.findByIdAndUpdate(
+        id,
+        {
+            $set: {
+                status: 'rejected',
+                rejectedAt: new Date(),
+                rejectionReason: 'Account deactivated by admin',
+                approvedAt: null,
+                fcmTokens: [],
+                fcmTokenMobile: []
+            }
+        },
+        { new: true }
+    ).lean();
+
+    if (updated) {
+        // Clear refresh tokens to force logout
+        const { FoodRefreshToken } = await import('../../../../core/refreshTokens/refreshToken.model.js');
+        await FoodRefreshToken.deleteMany({ userId: id });
+
+        try {
+            const { notifyOwnerSafely } = await import('../../../../core/notifications/firebase.service.js');
+            await notifyOwnerSafely(
+                { ownerType: 'DELIVERY_PARTNER', ownerId: updated._id },
+                {
+                    title: 'Account Deactivated 🚫',
+                    body: `Your delivery partner account has been deactivated by the admin.`,
+                    image: 'https://i.ibb.co/3m2Yh7r/Appzeto-Brand-Image.png',
+                    data: {
+                        type: 'account_deactivated',
+                        partnerId: String(updated._id)
+                    }
+                }
+            );
+        } catch (e) {
+            console.error('Failed to send delivery partner deactivation notification:', e);
         }
     }
     return updated;

@@ -11,6 +11,7 @@ import FilterPanel from "@food/components/admin/orders/FilterPanel"
 import ViewOrderDialog from "@food/components/admin/orders/ViewOrderDialog"
 import SettingsDialog from "@food/components/admin/orders/SettingsDialog"
 import RefundModal from "@food/components/admin/orders/RefundModal"
+import AssignDeliveryModal from "@food/components/admin/AssignDeliveryModal"
 import { useOrdersManagement } from "@food/components/admin/orders/useOrdersManagement"
 import { Loader2 } from "lucide-react"
 import { OrdersDashboardSkeleton } from "@food/components/ui/loading-skeletons"
@@ -47,6 +48,8 @@ export default function OrdersPage({ statusKey = "all" }) {
   const [deletingOrderId, setDeletingOrderId] = useState(null)
   const [refundModalOpen, setRefundModalOpen] = useState(false)
   const [selectedOrderForRefund, setSelectedOrderForRefund] = useState(null)
+  const [assignDeliveryModalOpen, setAssignDeliveryModalOpen] = useState(false)
+  const [selectedOrderForAssign, setSelectedOrderForAssign] = useState(null)
   const showLoadingSkeleton = useDelayedLoading(isLoading, { delay: 120, minDuration: 360 })
   const seenOrderIdsRef = useRef(new Set())
   const isFirstLoadRef = useRef(true)
@@ -905,6 +908,11 @@ export default function OrdersPage({ statusKey = "all" }) {
     }
   }
 
+  const handleAssignDelivery = (order) => {
+    setSelectedOrderForAssign(order)
+    setAssignDeliveryModalOpen(true)
+  }
+
   if (showLoadingSkeleton) {
     return (
       <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50 p-4 lg:p-6">
@@ -945,6 +953,7 @@ export default function OrdersPage({ statusKey = "all" }) {
         isOpen={isViewOrderOpen}
         onOpenChange={setIsViewOrderOpen}
         order={selectedOrder}
+        onAssignDelivery={handleAssignDelivery}
       />
       <RefundModal
         isOpen={refundModalOpen}
@@ -952,6 +961,18 @@ export default function OrdersPage({ statusKey = "all" }) {
         order={selectedOrderForRefund}
         onConfirm={handleRefundConfirm}
         isProcessing={processingRefund !== null}
+      />
+      <AssignDeliveryModal
+        isOpen={assignDeliveryModalOpen}
+        onClose={() => {
+          setAssignDeliveryModalOpen(false)
+          setSelectedOrderForAssign(null)
+        }}
+        orderId={selectedOrderForAssign?.id || selectedOrderForAssign?.orderId}
+        onAssigned={() => {
+          fetchOrders({ silent: true, withRingCheck: false })
+          setIsViewOrderOpen(false)
+        }}
       />
       <OrdersTable 
         orders={filteredOrders} 
@@ -962,6 +983,7 @@ export default function OrdersPage({ statusKey = "all" }) {
         onDeleteOrder={statusKey === "all" ? handleDeleteOrder : undefined}
         onAcceptOrder={statusKey === "all" ? handleAcceptOrder : undefined}
         onRejectOrder={statusKey === "all" ? handleRejectOrder : undefined}
+        onAssignDelivery={handleAssignDelivery}
         actionLoadingOrderId={processingActionOrderId}
         deletingOrderId={deletingOrderId}
       />

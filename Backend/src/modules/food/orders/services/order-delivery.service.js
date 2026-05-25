@@ -51,7 +51,7 @@ function isOtpMatch(expectedOtp, enteredOtp) {
   return false;
 }
 
-async function getPartnerCashCapacity(deliveryPartnerId) {
+export async function getPartnerCashCapacity(deliveryPartnerId) {
   const partnerObjectId = new mongoose.Types.ObjectId(deliveryPartnerId);
   const limitDoc = await FoodDeliveryCashLimit.findOne({ isActive: true })
     .sort({ createdAt: -1 })

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { Eye, Printer, ArrowUpDown, Loader2, Check, X, Trash2 } from "lucide-react"
+import { Eye, Printer, ArrowUpDown, Loader2, Check, X, Trash2, Truck } from "lucide-react"
 
 const getStatusColor = (orderStatus) => {
   const colors = {
@@ -36,6 +36,7 @@ export default function OrdersTable({
   onDeleteOrder,
   onAcceptOrder,
   onRejectOrder,
+  onAssignDelivery,
   actionLoadingOrderId,
   deletingOrderId,
 }) {
@@ -437,9 +438,19 @@ export default function OrdersTable({
                           <span>Reject</span>
                         </button>
                       )}
+                      {/* Assign Delivery Partner Button */}
+                      {(!order.deliveryPartnerName && onAssignDelivery && ['Pending', 'Processing'].includes(order.orderStatus)) && (
+                        <button
+                          onClick={() => onAssignDelivery(order)}
+                          className="p-1.5 rounded text-orange-600 hover:bg-orange-50 transition-colors"
+                          title="Assign Delivery Partner"
+                        >
+                          <Truck className="w-4 h-4" />
+                        </button>
+                      )}
                       <button 
                         onClick={() => onViewOrder(order)}
-                        className="p-1.5 rounded text-orange-600 hover:bg-orange-50 transition-colors"
+                        className="p-1.5 rounded text-indigo-600 hover:bg-indigo-50 transition-colors"
                         title="View Details"
                       >
                         <Eye className="w-4 h-4" />

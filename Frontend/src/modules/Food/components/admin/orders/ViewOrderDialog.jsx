@@ -37,7 +37,7 @@ const getPaymentStatusColor = (paymentStatus) => {
   return "text-slate-600"
 }
 
-export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
+export default function ViewOrderDialog({ isOpen, onOpenChange, order, onAssignDelivery }) {
   if (!order) return null
 
   // Debug: Log order data to check billImageUrl
@@ -386,12 +386,24 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
           )}
 
           {/* Delivery Partner Information */}
-          {(order.deliveryPartnerName || order.deliveryPartnerPhone) && (
-            <div className="border-t border-slate-200 pt-4">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+          <div className="border-t border-slate-200 pt-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                 <Truck className="w-4 h-4" />
                 Delivery Partner
               </h3>
+              {(!order.deliveryPartnerName && onAssignDelivery && ['Pending', 'Processing'].includes(order.orderStatus)) && (
+                <button
+                  onClick={() => onAssignDelivery(order)}
+                  className="px-3 py-1.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  Assign Partner
+                </button>
+              )}
+            </div>
+            
+            {(order.deliveryPartnerName || order.deliveryPartnerPhone) ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {order.deliveryPartnerName && (
                   <div className="space-y-1">
@@ -406,8 +418,10 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-slate-500 italic">No delivery partner assigned yet.</p>
+            )}
+          </div>
 
           {/* Pricing Breakdown */}
           <div className="border-t border-slate-200 pt-4">

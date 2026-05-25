@@ -1347,6 +1347,38 @@ export async function rejectDeliveryPartner(req, res, next) {
     }
 }
 
+export async function deleteDeliveryPartner(req, res, next) {
+    try {
+        const partner = await adminService.deleteDeliveryPartner(req.params.id);
+        if (!partner) {
+            return res.status(404).json({
+                success: false,
+                message: 'Delivery partner not found'
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: 'Delivery partner deactivated successfully',
+            data: partner
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getAvailableDeliveryPartners(req, res, next) {
+    try {
+        const data = await adminService.getAvailableDeliveryPartners(req.query);
+        res.status(200).json({
+            success: true,
+            message: 'Available delivery partners fetched successfully',
+            data
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
 // ----- Zones -----
 export async function getZones(req, res, next) {
     try {
