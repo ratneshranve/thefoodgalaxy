@@ -241,6 +241,29 @@ const normalizeBankAcc = (val) => String(val || "").replace(/\D/g, "").slice(0, 
 
 const getTodayLocalYMD = () => formatDateToLocalYMD(new Date())
 
+const findZoneForLocation = (lat, lng, zonesList) => {
+  if (!lat || !lng || !zonesList || !zonesList.length) return null;
+  const isPointInPolygon = (latitude, longitude, polygon) => {
+    let isInside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].latitude, yi = polygon[i].longitude;
+      const xj = polygon[j].latitude, yj = polygon[j].longitude;
+      const intersect = ((yi > longitude) !== (yj > longitude)) &&
+          (latitude < (xj - xi) * (longitude - yi) / (yj - yi) + xi);
+      if (intersect) isInside = !isInside;
+    }
+    return isInside;
+  };
+  for (const zone of zonesList) {
+    if (zone.coordinates && zone.coordinates.length >= 3) {
+      if (isPointInPolygon(lat, lng, zone.coordinates)) {
+        return String(zone._id || zone.id);
+      }
+    }
+  }
+  return null;
+}
+
 // Helper functions for localStorage
 const saveOnboardingToLocalStorage = (step1, step2, step3, currentStep) => {
   try {
@@ -555,8 +578,13 @@ export default function RestaurantOnboarding() {
   const [hasExistingRestaurantProfile, setHasExistingRestaurantProfile] = useState(false)
   const [isFssaiCalendarOpen, setIsFssaiCalendarOpen] = useState(false)
   const [zones, setZones] = useState([])
+  const zonesRef = useRef([])
   const [zonesLoading, setZonesLoading] = useState(false)
   const [isOnboardingHydrated, setIsOnboardingHydrated] = useState(false)
+
+  useEffect(() => {
+    zonesRef.current = zones
+  }, [zones])
 
   const [step1, setStep1] = useState({
     restaurantName: "",
@@ -635,6 +663,35 @@ export default function RestaurantOnboarding() {
   const [locationSearchValue, setLocationSearchValue] = useState("")
   const [locationSuggestions, setLocationSuggestions] = useState([])
   const [isSearchingLocation, setIsSearchingLocation] = useState(false)
+
+  const handleLocationSelect = (parsed) => {
+    let matchedZoneId = "";
+    if (parsed.latitude && parsed.longitude && zonesRef.current.length > 0) {
+      matchedZoneId = findZoneForLocation(parsed.latitude, parsed.longitude, zonesRef.current) || "";
+      if (!matchedZoneId) {
+        toast.error("This address is not in our service zone. Please select a valid location.", { id: 'out-of-zone' });
+      }
+    }
+
+    setStep1((prev) => ({
+      ...prev,
+      zoneId: matchedZoneId || prev.zoneId,
+      location: {
+        ...prev.location,
+        formattedAddress: parsed.formattedAddress || prev.location.formattedAddress,
+        addressLine1: parsed.formattedAddress || prev.location.addressLine1 || "",
+        area: parsed.area || prev.location.area,
+        city: parsed.city || prev.location.city,
+        state: parsed.state || prev.location.state,
+        pincode: parsed.pincode || prev.location.pincode,
+        latitude: parsed.latitude !== "" ? parsed.latitude : prev.location.latitude,
+        longitude: parsed.longitude !== "" ? parsed.longitude : prev.location.longitude,
+      },
+    }))
+    
+    setLocationSearchValue(parsed.formattedAddress)
+    setLocationSuggestions([])
+  }
 
   const getPreviewImageUrl = (value) => {
     if (!value) return null
@@ -1757,29 +1814,6 @@ export default function RestaurantOnboarding() {
           <p className="text-sm text-gray-700">
             Add your restaurant's location for order pick-up.
           </p>
-          <div>
-            <Label className="text-xs text-gray-700">Service zone*</Label>
-            <select
-              value={step1.zoneId || ""}
-              onChange={(e) => setStep1({ ...step1, zoneId: e.target.value })}
-              className="mt-1 w-full h-9 rounded-md border border-input bg-white px-3 text-sm"
-              disabled={zonesLoading || !isEditing}
-            >
-              <option value="">{zonesLoading ? "Loading zones..." : "Select a zone"}</option>
-              {zones.map((z) => {
-                const id = String(z?._id || z?.id || "")
-                const label = z?.name || z?.zoneName || z?.serviceLocation || id
-                return (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
-                )
-              })}
-            </select>
-            <p className="text-[11px] text-gray-500 mt-1">
-              Choose the service zone where your restaurant will be available.
-            </p>
-          </div>
           <div className="relative">
             <Label className="text-xs text-gray-700">Search location</Label>
             <div className="relative">
@@ -1790,6 +1824,7 @@ export default function RestaurantOnboarding() {
                 className="mt-1 bg-white text-sm text-black! dark:text-white! placeholder:text-gray-500 dark:placeholder:text-gray-400 caret-black dark:caret-white"
                 style={{ color: "#000", WebkitTextFillColor: "#000" }}
                 placeholder="Start typing your restaurant address..."
+                disabled={!isEditing}
               />
               {isSearchingLocation && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -1812,22 +1847,15 @@ export default function RestaurantOnboarding() {
                       const state = addr.state || ""
                       const pincode = addr.postcode || ""
 
-                      setStep1((prev) => ({
-                        ...prev,
-                        location: {
-                          ...prev.location,
-                          formattedAddress: display,
-                          addressLine1: display,
-                          area: area || prev.location.area,
-                          city: city || prev.location.city,
-                          state: state || prev.location.state,
-                          pincode: pincode || prev.location.pincode,
-                          latitude: lat,
-                          longitude: lng,
-                        },
-                      }))
-                      setLocationSearchValue(display)
-                      setLocationSuggestions([])
+                      handleLocationSelect({
+                        formattedAddress: display,
+                        area,
+                        city,
+                        state,
+                        pincode,
+                        latitude: lat,
+                        longitude: lng
+                      })
                     }}
                     className="w-full px-4 py-2 text-left text-[13px] hover:bg-orange-50 border-b border-gray-100 last:border-none font-medium text-gray-700"
                   >
@@ -1851,6 +1879,7 @@ export default function RestaurantOnboarding() {
             }
             className="bg-white text-sm"
             placeholder="Shop no. / building no. (optional)"
+            disabled={!isEditing}
           />
           <Input
             value={step1.location?.addressLine2 || ""}
@@ -1862,6 +1891,7 @@ export default function RestaurantOnboarding() {
             }
             className="bg-white text-sm"
             placeholder="Floor / tower (optional)"
+            disabled={!isEditing}
           />
           <Input
             value={step1.location?.landmark || ""}
@@ -1873,6 +1903,7 @@ export default function RestaurantOnboarding() {
             }
             className="bg-white text-sm"
             placeholder="Nearby landmark (optional)"
+            disabled={!isEditing}
           />
           <Input
             value={step1.location?.area || ""}
@@ -1884,6 +1915,7 @@ export default function RestaurantOnboarding() {
             }
             className="bg-white text-sm"
             placeholder="Area / Sector / Locality*"
+            disabled={!isEditing || !!step1.location?.latitude}
           />
           <Select
             value={step1.location?.city || ""}
@@ -1893,6 +1925,7 @@ export default function RestaurantOnboarding() {
                 location: { ...step1.location, city: value },
               })
             }
+            disabled={!isEditing || !!step1.location?.latitude}
           >
             <SelectTrigger className="bg-white text-sm text-gray-700">
               <SelectValue placeholder="Select City*" />
@@ -1923,6 +1956,7 @@ export default function RestaurantOnboarding() {
               }
               className="bg-white text-sm"
               placeholder="State"
+              disabled={!isEditing || !!step1.location?.latitude}
             />
             <Input
               value={step1.location?.pincode || ""}
@@ -1934,11 +1968,36 @@ export default function RestaurantOnboarding() {
               }
               className="bg-white text-sm"
               placeholder="Pincode"
+              disabled={!isEditing || !!step1.location?.latitude}
             />
           </div>
           <p className="text-[11px] text-gray-500 mt-1">
             Please ensure that this address is the same as mentioned on your FSSAI license.
           </p>
+
+          <div className="pt-2">
+            <Label className="text-xs text-gray-700">Service zone*</Label>
+            <select
+              value={step1.zoneId || ""}
+              onChange={(e) => setStep1({ ...step1, zoneId: e.target.value })}
+              className="mt-1 w-full h-9 rounded-md border border-input bg-white px-3 text-sm disabled:opacity-50"
+              disabled={zonesLoading || !isEditing || !!step1.location?.latitude}
+            >
+              <option value="">{zonesLoading ? "Loading zones..." : "Select a zone"}</option>
+              {zones.map((z) => {
+                const id = String(z?._id || z?.id || "")
+                const label = z?.name || z?.zoneName || z?.serviceLocation || id
+                return (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                )
+              })}
+            </select>
+            <p className="text-[11px] text-gray-500 mt-1">
+              Choose the service zone where your restaurant will be available.
+            </p>
+          </div>
         </div>
       </section>
     </div>
@@ -2063,23 +2122,9 @@ export default function RestaurantOnboarding() {
           if (!place?.geometry) return
 
           const parsed = parsePlace(place)
-          setStep1((prev) => ({
-            ...prev,
-            location: {
-              ...prev.location,
-              formattedAddress: parsed.formattedAddress || prev.location.formattedAddress,
-              addressLine1: parsed.formattedAddress || prev.location.addressLine1 || "",
-              area: parsed.area || prev.location.area,
-              city: parsed.city || prev.location.city,
-              state: parsed.state || prev.location.state,
-              pincode: parsed.pincode || prev.location.pincode,
-              latitude: parsed.latitude !== "" ? parsed.latitude : prev.location.latitude,
-              longitude: parsed.longitude !== "" ? parsed.longitude : prev.location.longitude,
-            },
-          }))
+          handleLocationSelect(parsed)
           
-          setLocationSearchValue(parsed.formattedAddress)
-          inputElement.blur()
+          if (inputElement) inputElement.blur()
         })
 
         const pacContainerFix = () => {

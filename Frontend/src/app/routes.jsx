@@ -36,7 +36,7 @@ const RedirectToFood = () => {
   return <Navigate to={`/food${location.pathname}${location.search}`} replace />;
 };
 
-// const MasterLandingPage = lazy(() => import('./MasterLandingPage'))
+const MasterLandingPage = lazy(() => import('./MasterLandingPage'))
 const AdminRouter = lazy(() => import('../modules/Food/components/admin/AdminRouter'))
 
 const AppRoutes = () => {
@@ -76,6 +76,11 @@ const AppRoutes = () => {
       <Route path="/admin/*" element={<AdminRouter />} />
 
       {/* Handle root and other paths via FoodAppWrapper */}
+      <Route path="/" element={
+        <Suspense fallback={<PageLoader />}>
+          <MasterLandingPage />
+        </Suspense>
+      } />
       <Route path="/*" element={<FoodAppWrapper />} />
     </Routes>
   )

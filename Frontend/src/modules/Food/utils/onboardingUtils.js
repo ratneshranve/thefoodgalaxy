@@ -160,6 +160,12 @@ const buildOnboardingLikeDataFromRestaurant = (restaurant) => {
 export const isRestaurantOnboardingComplete = (restaurant) => {
   if (!restaurant) return false
 
+  // Legacy restaurants created before this feature was rolled out (May 26, 2026) are considered complete.
+  const isLegacyRestaurant = restaurant?.createdAt && new Date(restaurant.createdAt) < new Date("2026-05-26T00:00:00Z");
+  if (isLegacyRestaurant) {
+    return true
+  }
+
   // Approved restaurants should never be forced into onboarding again.
   if (restaurant?.status === "approved") {
     return true

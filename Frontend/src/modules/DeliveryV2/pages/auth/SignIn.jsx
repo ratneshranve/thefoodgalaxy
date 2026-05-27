@@ -66,128 +66,118 @@ export default function DeliverySignIn() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex flex-col relative overflow-hidden font-['Poppins']">
-      {/* Decorative Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-primary/10 via-primary/5 to-transparent pointer-events-none" />
-      <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none animate-pulse" />
-      <div className="absolute bottom-[-100px] left-[-100px] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+    <div className="min-h-screen bg-[#FFF9F2] dark:bg-[#0a0a0a] flex flex-col relative overflow-hidden font-['Poppins']">
+      {/* Soft Ambient Background Elements */}
+      <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-[#FFE4C4]/40 dark:bg-primary/5 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#E0F7FA]/50 dark:bg-blue-900/10 blur-[100px] pointer-events-none" />
+      
+      {/* Floating Decorative Elements (Approximating the reference image's background icons) */}
+      <motion.div animate={{ y: [0, -15, 0], rotate: [0, 5, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[15%] left-[8%] opacity-30 dark:opacity-10 pointer-events-none">
+        <span className="text-4xl text-orange-500">🍕</span>
+      </motion.div>
+      <motion.div animate={{ y: [0, 20, 0], rotate: [0, -10, 0] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[25%] right-[10%] opacity-30 dark:opacity-10 pointer-events-none">
+        <span className="text-4xl">🛵</span>
+      </motion.div>
+      <motion.div animate={{ y: [0, -10, 0], scale: [1, 1.1, 1] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-[20%] left-[12%] opacity-30 dark:opacity-10 pointer-events-none">
+        <span className="text-4xl">⭐</span>
+      </motion.div>
+      <motion.div animate={{ y: [0, 15, 0], rotate: [0, 15, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-[15%] right-[15%] opacity-30 dark:opacity-10 pointer-events-none">
+        <span className="text-5xl">📍</span>
+      </motion.div>
 
       {/* Main Content */}
-      <div className="absolute top-6 right-6 z-20">
-        <Link to="/delivery/auth/support">
-          <Button variant="ghost" className="text-gray-500 hover:text-primary font-semibold flex items-center gap-2">
-            <ShieldQuestion className="w-5 h-5" />
-            Support
-          </Button>
-        </Link>
-      </div>
-
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10 w-full max-w-md mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="w-full max-w-[440px]"
+          className="w-full flex flex-col items-center"
         >
-          {/* Logo & Header */}
-          <div className="text-center mb-8">
+          <div className="relative mb-6 flex justify-center">
+            <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-[40px] scale-150 pointer-events-none" />
             <motion.div
-              initial={{ scale: 0, opacity: 0 }}
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              className="relative inline-block mb-4"
+              className="relative w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden border-4 border-white"
+              style={{ borderRadius: '50%', WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
             >
               <img 
                 src={logoNew} 
-                alt="Indian Bites Logo" 
-                className="w-32 h-32 md:w-36 md:h-36 object-contain mx-auto"
+                alt="Delivery Logo" 
+                className="w-full h-full object-cover scale-[1.05]"
+                style={{ borderRadius: '50%' }}
               />
             </motion.div>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="text-gray-400 dark:text-gray-500 font-bold text-xs uppercase tracking-[0.3em]"
-            >
-              DELIVERY PARTNER
-            </motion.p>
           </div>
 
-          {/* Login Card */}
-          <div className="bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-2xl rounded-[3rem] p-8 sm:p-12 shadow-[0_40px_80px_-20px_rgba(126,56,102,0.2)] dark:shadow-none border border-white/20 dark:border-gray-800 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-
-            <div className="mb-10 text-center sm:text-left">
-              <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2 font-['Outfit'] tracking-tight">
-                Partner Sign In
-              </h2>
-              <div className="h-1 w-10 bg-primary rounded-full mb-3 hidden sm:block" />
-              <p className="text-base text-gray-500 dark:text-gray-400 font-medium">
-                Enter your registered mobile number to start earning
-              </p>
-            </div>
-
-            <form onSubmit={handleSendOTP} className="space-y-8">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1">Mobile Number</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-                    <span className="text-sm font-bold text-primary border-r border-gray-200 dark:border-gray-800 pr-3">+91</span>
-                  </div>
-                  <input
-                    type="tel"
-                    required
-                    autoFocus
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    maxLength={10}
-                    className="block w-full pl-16 pr-6 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border-2 border-transparent focus:border-primary/50 rounded-2xl outline-none transition-all placeholder:text-gray-300 font-bold text-lg shadow-sm"
-                    placeholder="00000 00000"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || phone.length < 10}
-                className="w-full py-4.5 bg-primary hover:bg-[#6a2f56] disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group overflow-hidden relative"
-              >
-                {loading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <>
-                    <span>Continue Delivery</span>
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-                <motion.div
-                  className="absolute inset-0 bg-white/20 translate-x-[-100%]"
-                  whileHover={{ translateX: "100%" }}
-                  transition={{ duration: 0.6 }}
-                />
-              </button>
-            </form>
-          </div>
-
-          <div className="mt-8 text-center">
-            <p className="text-[11px] text-gray-400 font-medium leading-relaxed max-w-[320px] mx-auto">
-              By continuing, you agree to Indian Bites's <br />
-              <Link to="/food/delivery/profile/terms" className="text-gray-900 dark:text-white font-bold hover:text-primary transition-colors">Terms of Service</Link>
-              <span className="mx-1">&</span>
-              <Link to="/food/delivery/profile/privacy" className="text-gray-900 dark:text-white font-bold hover:text-primary transition-colors">Privacy Policy</Link>
+          {/* Typography Section */}
+          <div className="text-center mb-8 px-2">
+            <h1 className="text-[28px] md:text-[32px] font-black text-[#3c2a21] dark:text-white leading-tight tracking-tight mb-2 font-['Outfit']">
+              Deliver smiles, <br/> earn on your schedule.
+            </h1>
+            <h2 className="text-[22px] text-[#5e4b3c] dark:text-gray-300 font-semibold mb-1">
+              Delivery Partner Login
+            </h2>
+            <p className="text-sm text-[#8c7a6b] dark:text-gray-400 font-medium">
+              Login with your mobile number
             </p>
           </div>
 
-          <div className="mt-12 flex justify-center items-center gap-6 opacity-30 grayscale hover:opacity-60 transition-opacity">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Safe & Secure</span>
+          <form onSubmit={handleSendOTP} className="w-full space-y-6">
+            {/* Pill-shaped Glassmorphic Input */}
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-orange-100 to-blue-100 dark:from-gray-800 dark:to-gray-800 rounded-full blur opacity-50 group-hover:opacity-100 transition duration-500"></div>
+              <div className="relative flex items-center bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-white/50 dark:border-gray-800 rounded-[2rem] p-2 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                
+                {/* Prefix Section */}
+                <div className="flex items-center pl-4 pr-3 border-r border-gray-200 dark:border-gray-700">
+                  <img src="https://flagcdn.com/w20/in.png" alt="India" className="w-5 h-auto mr-2 rounded-sm" />
+                  <span className="text-base font-bold text-gray-800 dark:text-gray-200 mr-2">+91</span>
+                </div>
+                
+                <div className="pl-3 pr-2 text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                  </svg>
+                </div>
+
+                {/* Input Field */}
+                <input
+                  type="tel"
+                  required
+                  autoFocus
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  maxLength={10}
+                  className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white font-bold text-lg placeholder:text-gray-400 placeholder:font-medium placeholder:text-sm py-2 px-1"
+                  placeholder="Enter your 10-digit registered..."
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Heart className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Earning Opportunities</span>
-            </div>
+
+            {/* Gradient CTA Button */}
+            <button
+              type="submit"
+              disabled={loading || phone.length < 10}
+              className="w-full py-4.5 bg-gradient-to-r from-[#4CB8C4] to-[#3CD3AD] hover:from-[#3BA0AB] hover:to-[#2BB896] disabled:from-gray-300 disabled:to-gray-300 dark:disabled:from-gray-800 dark:disabled:to-gray-800 disabled:text-gray-500 text-white rounded-[2rem] font-bold text-[17px] shadow-[0_15px_30px_-10px_rgba(76,184,196,0.5)] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                "Send OTP to Register/Login"
+              )}
+            </button>
+          </form>
+
+          {/* Footer Terms */}
+          <div className="mt-8 text-center">
+            <p className="text-xs text-gray-500 font-medium">
+              By continuing, you agree to our <br className="sm:hidden" />
+              <Link to="/food/delivery/profile/terms" className="text-gray-800 dark:text-gray-300 font-bold hover:text-[#4CB8C4] underline underline-offset-2 mx-1">Terms</Link>
+              &
+              <Link to="/food/delivery/profile/privacy" className="text-gray-800 dark:text-gray-300 font-bold hover:text-[#4CB8C4] underline underline-offset-2 ml-1">Privacy Policy</Link>
+            </p>
           </div>
         </motion.div>
       </div>

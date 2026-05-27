@@ -68,6 +68,7 @@ const sanitizeRestaurantForAuthResponse = (restaurantDoc = {}) => {
     email: restaurantDoc?.ownerEmail || "",
     status: restaurantDoc?.status || "",
     profileImage: toSafeImageUrl(restaurantDoc?.profileImage),
+    createdAt: restaurantDoc?.createdAt,
   };
 };
 
@@ -89,6 +90,7 @@ const sanitizeDeliveryForAuthResponse = (deliveryDoc = {}) => {
     profileImage: toSafeImageUrl(deliveryDoc?.profilePhoto),
     walletAmount: Number(deliveryDoc?.walletAmount || 0),
     refCode: deliveryDoc?.referralCode || "",
+    createdAt: deliveryDoc?.createdAt,
   };
 };
 
@@ -385,7 +387,9 @@ export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform
   }
 
   // If restaurant approval status is used, handle pending/rejected states by returning info instead of throwing errors.
-    if (restaurantDoc.status && restaurantDoc.status !== "approved") {
+  // Legacy restaurants created before this feature was rolled out (May 26, 2026) bypass this block.
+  const isLegacyRestaurant = restaurantDoc.createdAt && new Date(restaurantDoc.createdAt) < new Date("2026-05-26T00:00:00Z");
+  if (restaurantDoc.status && restaurantDoc.status !== "approved" && !isLegacyRestaurant) {
     return {
       pendingApproval: true,
       status: restaurantDoc.status,
@@ -476,7 +480,9 @@ export const verifyDeliveryOtpAndLogin = async (phone, otp, fcmToken, platform) 
     }
   }
 
-  if (deliveryPartner.status && deliveryPartner.status !== "approved") {
+  // Bypass for legacy delivery partners created before this feature was rolled out.
+  const isLegacyDelivery = deliveryPartner.createdAt && new Date(deliveryPartner.createdAt) < new Date("2026-05-26T00:00:00Z");
+  if (deliveryPartner.status && deliveryPartner.status !== "approved" && !isLegacyDelivery) {
     const isRejected = deliveryPartner.status === "rejected";
     return {
       pendingApproval: true,

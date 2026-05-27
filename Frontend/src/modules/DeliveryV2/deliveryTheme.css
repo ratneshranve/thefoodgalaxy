@@ -30,8 +30,8 @@
 }
 
 .delivery-v2-theme .font-poppins,
-.delivery-v2-theme [class*="font-['Poppins']"],
-.delivery-v2-theme [class*="font-\[\'Poppins\'\]"] {
+.delivery-v2-theme [class~="font-['Poppins']"],
+.delivery-v2-theme [class~="font-\[\'Poppins\'\]"] {
   font-family: "Nunito Sans", "Outfit", sans-serif !important;
 }
 
@@ -51,25 +51,25 @@
   padding-bottom: 6.5rem;
 }
 
-.delivery-v2-theme [class*="rounded-2xl"],
-.delivery-v2-theme [class*="rounded-3xl"] {
+.delivery-v2-theme [class~="rounded-2xl"],
+.delivery-v2-theme [class~="rounded-3xl"] {
   box-shadow: 0 10px 28px -18px rgba(17, 39, 67, 0.24);
   border-color: var(--dv-border);
 }
 
-.delivery-v2-theme [class*="bg-[#f6e9dc]"],
-.delivery-v2-theme [class*="bg-yellow-400"],
-.delivery-v2-theme [class*="bg-yellow-300"] {
+.delivery-v2-theme [class~="bg-[#f6e9dc]"],
+.delivery-v2-theme [class~="bg-yellow-400"],
+.delivery-v2-theme [class~="bg-yellow-300"] {
   background-color: var(--dv-bg) !important;
 }
 
-.delivery-v2-theme [class*="bg-[#121212]"] {
+.delivery-v2-theme [class~="bg-[#121212]"] {
   background-color: var(--dv-primary) !important;
 }
 
-.delivery-v2-theme [class*="text-primary"],
-.delivery-v2-theme [class*="text-[#EB590E]"],
-.delivery-v2-theme [class*="text-[#10B981]"],
+.delivery-v2-theme [class~="text-primary"],
+.delivery-v2-theme [class~="text-[#EB590E]"],
+.delivery-v2-theme [class~="text-[#10B981]"],
 .delivery-v2-theme .text-blue-500,
 .delivery-v2-theme .text-blue-600,
 .delivery-v2-theme .text-cyan-500,
@@ -87,9 +87,9 @@
   color: var(--dv-primary) !important;
 }
 
-.delivery-v2-theme [class*="bg-primary"],
-.delivery-v2-theme [class*="bg-[#00B761]"],
-.delivery-v2-theme [class*="bg-[#10B981]"],
+.delivery-v2-theme [class~="bg-primary"],
+.delivery-v2-theme [class~="bg-[#00B761]"],
+.delivery-v2-theme [class~="bg-[#10B981]"],
 .delivery-v2-theme .bg-blue-500,
 .delivery-v2-theme .bg-blue-600,
 .delivery-v2-theme .bg-cyan-500,
@@ -112,8 +112,8 @@
 .delivery-v2-theme .hover\:bg-blue-600:hover,
 .delivery-v2-theme .hover\:bg-cyan-600:hover,
 .delivery-v2-theme .hover\:bg-indigo-600:hover,
-.delivery-v2-theme [class*="hover:bg-[#00A055]"]:hover,
-.delivery-v2-theme [class*="hover:bg-[#6a2f56]"]:hover {
+.delivery-v2-theme [class~="hover:bg-[#00A055]"]:hover,
+.delivery-v2-theme [class~="hover:bg-[#6a2f56]"]:hover {
   background-color: var(--dv-primary-strong) !important;
 }
 
@@ -130,9 +130,9 @@
 .delivery-v2-theme .bg-blue-500\/10,
 .delivery-v2-theme .bg-cyan-500\/10,
 .delivery-v2-theme .bg-indigo-500\/10,
-.delivery-v2-theme [class*="bg-orange-50"],
-.delivery-v2-theme [class*="bg-green-50"],
-.delivery-v2-theme [class*="bg-emerald-50"] {
+.delivery-v2-theme [class~="bg-orange-50"],
+.delivery-v2-theme [class~="bg-green-50"],
+.delivery-v2-theme [class~="bg-emerald-50"] {
   background-color: var(--dv-primary-soft) !important;
 }
 
@@ -147,8 +147,8 @@
 .delivery-v2-theme .border-blue-500\/20,
 .delivery-v2-theme .border-cyan-100,
 .delivery-v2-theme .border-indigo-200,
-.delivery-v2-theme [class*="border-[#10B981]"],
-.delivery-v2-theme [class*="border-primary"] {
+.delivery-v2-theme [class~="border-[#10B981]"],
+.delivery-v2-theme [class~="border-primary"] {
   border-color: color-mix(in srgb, var(--dv-primary) 28%, #ffffff) !important;
 }
 
@@ -184,13 +184,13 @@
 }
 
 .delivery-v2-theme .delivery-online-toggle.is-online {
-  background-color: var(--dv-primary) !important;
-  --tw-shadow-color: rgb(21 73 139 / 0.32) !important;
+  background-color: #22c55e !important; /* Green 500 */
+  --tw-shadow-color: rgba(34, 197, 94, 0.32) !important;
 }
 
 .delivery-v2-theme .delivery-online-toggle.is-offline {
-  background-color: var(--dv-primary-strong) !important;
-  --tw-shadow-color: rgb(0 0 0 / 0.28) !important;
+  background-color: #ef4444 !important; /* Red 500 */
+  --tw-shadow-color: rgba(239, 68, 68, 0.32) !important;
 }
 
 .delivery-v2-theme button,
@@ -226,12 +226,12 @@
     padding-bottom: 5.75rem;
   }
 
-  .delivery-v2-theme [class*="px-6"] {
+  .delivery-v2-theme [class~="px-6"] {
     padding-left: 1.1rem !important;
     padding-right: 1.1rem !important;
   }
 
-  .delivery-v2-theme [class*="p-6"] {
+  .delivery-v2-theme [class~="p-6"] {
     padding: 1.1rem !important;
   }
 }

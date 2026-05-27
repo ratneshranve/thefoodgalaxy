@@ -143,7 +143,7 @@ export default function UnifiedOTPFastLogin() {
       const user = data.user
 
       setAuthData("user", accessToken, user, refreshToken)
-      
+
       // If user has no name, show name modal instead of immediate navigation
       if (!user.name || user.name.trim() === "") {
         setTempAuth({ accessToken, user, refreshToken })
@@ -290,7 +290,7 @@ export default function UnifiedOTPFastLogin() {
           className="w-full max-w-md lg:max-w-lg flex flex-col items-center"
         >
           {/* Central Logo */}
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, type: "spring", bounce: 0.4 }}
@@ -299,7 +299,7 @@ export default function UnifiedOTPFastLogin() {
             <img src={logoNew} alt="Indian Bite Logo" className="w-full h-full object-cover" />
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
@@ -307,7 +307,7 @@ export default function UnifiedOTPFastLogin() {
           >
             <h1 className="text-[2rem] sm:text-4xl font-bold text-[#4E342E] dark:text-white leading-[1.2] mb-3 drop-shadow-sm">
               {step === 1 ? (
-                <>Delicious food<br />delivered fast <span className="inline-block hover:scale-110 transition-transform cursor-pointer">🍕</span></>
+                <>Delicious food<br />Delivered fast <span className="inline-block hover:scale-110 transition-transform cursor-pointer">🍕</span></>
               ) : (
                 "Verify OTP"
               )}
@@ -319,132 +319,132 @@ export default function UnifiedOTPFastLogin() {
             </p>
           </motion.div>
 
-            <AnimatePresence mode="wait">
-              {step === 1 ? (
-                <motion.form
-                  key="step-1"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  onSubmit={handleSendOTP}
-                  className="w-full space-y-6"
-                >
-                  <div className="relative flex items-center bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-md rounded-full p-2 pl-4 pr-2 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-white/60 dark:border-gray-700 transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
-                    {/* Country Code & Icon */}
-                    <div className="flex items-center gap-2 pr-3 border-r border-gray-200 dark:border-gray-700">
-                      <span className="text-xl leading-none">🇮🇳</span>
-                      <span className="font-semibold text-gray-800 dark:text-gray-200">+91</span>
-                    </div>
-                    
-                    {/* Phone Input */}
-                    <div className="flex-1 flex items-center pl-3">
-                      <Smartphone className="w-5 h-5 text-gray-400 mr-2 shrink-0" />
-                      <input
-                        type="tel"
-                        required
-                        autoFocus
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                        maxLength={10}
-                        className="w-full bg-transparent border-none outline-none text-gray-800 dark:text-white font-semibold text-base placeholder:text-gray-400 placeholder:font-medium"
-                        placeholder="Enter your 10-digit number"
-                      />
-                    </div>
+          <AnimatePresence mode="wait">
+            {step === 1 ? (
+              <motion.form
+                key="step-1"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                onSubmit={handleSendOTP}
+                className="w-full space-y-6"
+              >
+                <div className="relative flex items-center bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-md rounded-full p-2 pl-4 pr-2 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-white/60 dark:border-gray-700 transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+                  {/* Country Code & Icon */}
+                  <div className="flex items-center gap-2 pr-3 border-r border-gray-200 dark:border-gray-700">
+                    <span className="text-xl leading-none">🇮🇳</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">+91</span>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={loading || phoneNumber.length < 10}
-                    className="w-full h-[56px] rounded-full bg-gradient-to-r from-[#FF5252] to-[#E53935] text-white font-bold text-lg shadow-[0_10px_25px_rgba(229,57,53,0.4)] hover:shadow-[0_15px_35px_rgba(229,57,53,0.5)] hover:-translate-y-0.5 transition-all active:scale-[0.98] flex items-center justify-center disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-[0_10px_25px_rgba(229,57,53,0.4)]"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-6 h-6 animate-spin" />
+                  {/* Phone Input */}
+                  <div className="flex-1 flex items-center pl-3">
+                    <Smartphone className="w-5 h-5 text-gray-400 mr-2 shrink-0" />
+                    <input
+                      type="tel"
+                      required
+                      autoFocus
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      maxLength={10}
+                      className="w-full bg-transparent border-none outline-none text-gray-800 dark:text-white font-semibold text-base placeholder:text-gray-400 placeholder:font-medium"
+                      placeholder="Enter your 10-digit number"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || phoneNumber.length < 10}
+                  className="w-full h-[56px] rounded-full bg-gradient-to-r from-[#FF5252] to-[#E53935] text-white font-bold text-lg shadow-[0_10px_25px_rgba(229,57,53,0.4)] hover:shadow-[0_15px_35px_rgba(229,57,53,0.5)] hover:-translate-y-0.5 transition-all active:scale-[0.98] flex items-center justify-center disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-[0_10px_25px_rgba(229,57,53,0.4)]"
+                >
+                  {loading ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    "Send OTP"
+                  )}
+                </button>
+              </motion.form>
+            ) : (
+              <motion.form
+                key="step-2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                onSubmit={handleVerifyOTP}
+                className="space-y-6"
+              >
+                <div className="flex justify-between gap-3">
+                  {[0, 1, 2, 3].map((index) => (
+                    <input
+                      key={index}
+                      id={`otp-${index}`}
+                      type="tel"
+                      inputMode="numeric"
+                      required
+                      autoFocus={index === 0}
+                      value={otp[index] || ""}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(-1);
+                        if (!val) return;
+                        const newOtp = otp.split("");
+                        newOtp[index] = val;
+                        const combined = newOtp.join("").slice(0, 4);
+                        setOtp(combined);
+                        if (index < 3 && val) {
+                          document.getElementById(`otp-${index + 1}`)?.focus();
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Backspace") {
+                          if (!otp[index] && index > 0) {
+                            document.getElementById(`otp-${index - 1}`)?.focus();
+                          } else {
+                            const newOtp = otp.split("");
+                            newOtp[index] = "";
+                            setOtp(newOtp.join(""));
+                          }
+                        }
+                      }}
+                      className="w-full h-16 text-center text-3xl font-bold bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-primary/50 rounded-2xl outline-none transition-all text-gray-900 dark:text-white shadow-sm"
+                      placeholder="•"
+                    />
+                  ))}
+                </div>
+
+                <div className="flex flex-col items-center gap-4">
+                  <div className="flex items-center gap-2 text-xs font-semibold">
+                    {resendTimer > 0 ? (
+                      <span className="text-gray-400">Resend code in <span className="text-primary">{formatResendTimer(resendTimer)}</span></span>
                     ) : (
-                      "Send OTP"
+                      <button
+                        type="button"
+                        onClick={handleResendOTP}
+                        className="text-primary hover:underline"
+                      >
+                        Didn't receive code? Resend
+                      </button>
                     )}
-                  </button>
-                </motion.form>
-              ) : (
-                <motion.form
-                  key="step-2"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  onSubmit={handleVerifyOTP}
-                  className="space-y-6"
-                >
-                  <div className="flex justify-between gap-3">
-                    {[0, 1, 2, 3].map((index) => (
-                      <input
-                        key={index}
-                        id={`otp-${index}`}
-                        type="tel"
-                        inputMode="numeric"
-                        required
-                        autoFocus={index === 0}
-                        value={otp[index] || ""}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, "").slice(-1);
-                          if (!val) return;
-                          const newOtp = otp.split("");
-                          newOtp[index] = val;
-                          const combined = newOtp.join("").slice(0, 4);
-                          setOtp(combined);
-                          if (index < 3 && val) {
-                            document.getElementById(`otp-${index + 1}`)?.focus();
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Backspace") {
-                            if (!otp[index] && index > 0) {
-                              document.getElementById(`otp-${index - 1}`)?.focus();
-                            } else {
-                              const newOtp = otp.split("");
-                              newOtp[index] = "";
-                              setOtp(newOtp.join(""));
-                            }
-                          }
-                        }}
-                        className="w-full h-16 text-center text-3xl font-bold bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-primary/50 rounded-2xl outline-none transition-all text-gray-900 dark:text-white shadow-sm"
-                        placeholder="•"
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="flex items-center gap-2 text-xs font-semibold">
-                      {resendTimer > 0 ? (
-                        <span className="text-gray-400">Resend code in <span className="text-primary">{formatResendTimer(resendTimer)}</span></span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleResendOTP}
-                          className="text-primary hover:underline"
-                        >
-                          Didn't receive code? Resend
-                        </button>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleEditNumber}
-                      className="text-xs text-gray-400 hover:text-primary transition-colors"
-                    >
-                      Edit phone number
-                    </button>
                   </div>
 
                   <button
-                    type="submit"
-                    disabled={loading || otp.length < 4}
-                    className="w-full h-[56px] mt-4 rounded-full bg-gradient-to-r from-[#FF5252] to-[#E53935] text-white font-bold text-lg shadow-[0_10px_25px_rgba(229,57,53,0.4)] hover:shadow-[0_15px_35px_rgba(229,57,53,0.5)] hover:-translate-y-0.5 transition-all active:scale-[0.98] flex items-center justify-center disabled:opacity-70 disabled:hover:translate-y-0"
+                    type="button"
+                    onClick={handleEditNumber}
+                    className="text-xs text-gray-400 hover:text-primary transition-colors"
                   >
-                    {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Verify & Continue"}
+                    Edit phone number
                   </button>
-                </motion.form>
-              )}
-            </AnimatePresence>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || otp.length < 4}
+                  className="w-full h-[56px] mt-4 rounded-full bg-gradient-to-r from-[#FF5252] to-[#E53935] text-white font-bold text-lg shadow-[0_10px_25px_rgba(229,57,53,0.4)] hover:shadow-[0_15px_35px_rgba(229,57,53,0.5)] hover:-translate-y-0.5 transition-all active:scale-[0.98] flex items-center justify-center disabled:opacity-70 disabled:hover:translate-y-0"
+                >
+                  {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Verify & Continue"}
+                </button>
+              </motion.form>
+            )}
+          </AnimatePresence>
 
           {/* Footer Info */}
           <div className="mt-8 text-center">
@@ -463,7 +463,7 @@ export default function UnifiedOTPFastLogin() {
         >
           <div className="bg-primary p-8 text-center relative">
             <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 border border-white/30"
@@ -475,7 +475,7 @@ export default function UnifiedOTPFastLogin() {
               We'd love to know your name to personalize your experience.
             </DialogDescription>
           </div>
-          
+
           <form onSubmit={handleNameSubmit} className="p-8 pt-6 space-y-6">
             <div className="space-y-4">
               <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">
@@ -494,8 +494,8 @@ export default function UnifiedOTPFastLogin() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isUpdatingName}
                 className="w-full h-14 bg-primary hover:bg-[#6b2f57] text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >

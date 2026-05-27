@@ -1,6 +1,6 @@
 import { FoodBusinessSettings } from '../models/businessSettings.model.js';
 import { sendResponse } from '../../../../utils/response.js';
-import { uploadImageBufferDetailed } from '../../../../services/cloudinary.service.js';
+import { uploadImageBufferDetailed, uploadFileBufferDetailed } from '../../../../services/cloudinary.service.js';
 
 export async function getBusinessSettings(req, res, next) {
     try {
@@ -107,6 +107,17 @@ export async function updateBusinessSettings(req, res, next) {
                 settings.favicon = {
                     url: faviconResult.secure_url,
                     publicId: faviconResult.public_id
+                };
+            }
+            if (req.files.termsAndConditionsPdf) {
+                const pdfFile = req.files.termsAndConditionsPdf[0];
+                const pdfResult = await uploadFileBufferDetailed(pdfFile.buffer, 'business/legal', {
+                    fileName: pdfFile.originalname,
+                    format: 'pdf'
+                });
+                settings.termsAndConditionsPdf = {
+                    url: pdfResult.secure_url,
+                    publicId: pdfResult.public_id
                 };
             }
         }

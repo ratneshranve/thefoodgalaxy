@@ -14,10 +14,13 @@ export default function BusinessSetup() {
   const [saving, setSaving] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
   const [faviconPreview, setFaviconPreview] = useState(null);
+  const [termsPdfUrl, setTermsPdfUrl] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
   const [faviconFile, setFaviconFile] = useState(null);
+  const [termsPdfFile, setTermsPdfFile] = useState(null);
   const logoInputRef = useRef(null);
   const faviconInputRef = useRef(null);
+  const termsPdfInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     companyName: "",
@@ -65,6 +68,9 @@ export default function BusinessSetup() {
         }
         if (settings.favicon?.url) {
           setFaviconPreview(settings.favicon.url);
+        }
+        if (settings.termsAndConditionsPdf?.url) {
+          setTermsPdfUrl(settings.termsAndConditionsPdf.url);
         }
       }
     } catch (error) {
@@ -143,6 +149,9 @@ export default function BusinessSetup() {
       if (faviconFile) {
         files.favicon = faviconFile;
       }
+      if (termsPdfFile) {
+        files.termsAndConditionsPdf = termsPdfFile;
+      }
 
       const response = await adminAPI.updateBusinessSettings(dataToSend, files);
       const updatedSettings = response?.data?.data || response?.data;
@@ -159,6 +168,10 @@ export default function BusinessSetup() {
         if (updatedSettings.favicon?.url) {
           setFaviconPreview(updatedSettings.favicon.url);
           setFaviconFile(null);
+        }
+        if (updatedSettings.termsAndConditionsPdf?.url) {
+          setTermsPdfUrl(updatedSettings.termsAndConditionsPdf.url);
+          setTermsPdfFile(null);
         }
       }
 
@@ -178,11 +191,15 @@ export default function BusinessSetup() {
     fetchBusinessSettings();
     setLogoFile(null);
     setFaviconFile(null);
+    setTermsPdfFile(null);
     if (logoInputRef.current) {
       logoInputRef.current.value = "";
     }
     if (faviconInputRef.current) {
       faviconInputRef.current.value = "";
+    }
+    if (termsPdfInputRef.current) {
+      termsPdfInputRef.current.value = "";
     }
     toast.info("Form reset to saved values");
   };
@@ -390,8 +407,8 @@ export default function BusinessSetup() {
               </div>
             </div>
 
-            {/* Logo & favicon upload */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {/* Logo, favicon & T&C PDF upload */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Logo</label>
                 <input
@@ -522,6 +539,81 @@ export default function BusinessSetup() {
                     <div className="text-center">
                       <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
                       <p className="text-xs text-slate-400">Click to upload favicon</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">T&C PDF (For Restaurant Onboarding)</label>
+                <input
+                  ref={termsPdfInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    if (file.type !== "application/pdf") {
+                      toast.error("Invalid file type. Please upload a PDF.");
+                      return;
+                    }
+
+                    const maxSize = 10 * 1024 * 1024; // 10MB
+                    if (file.size > maxSize) {
+                      toast.error("File size exceeds 10MB limit.");
+                      return;
+                    }
+
+                    setTermsPdfFile(file);
+                  }}
+                  className="hidden"
+                />
+                <div
+                  onClick={() => termsPdfInputRef.current?.click()}
+                  className="border border-dashed border-slate-300 rounded-lg bg-slate-50/60 h-28 flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors relative overflow-hidden p-2"
+                >
+                  {termsPdfFile || termsPdfUrl ? (
+                    <div className="flex flex-col items-center justify-center w-full h-full text-center px-4">
+                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mb-2">
+                        <span className="text-red-500 font-bold text-[10px]">PDF</span>
+                      </div>
+                      <p className="text-[10px] text-slate-700 font-medium truncate w-full px-2">
+                        {termsPdfFile ? termsPdfFile.name : "Current T&C Document"}
+                      </p>
+                      {termsPdfUrl && !termsPdfFile && (
+                         <a 
+                           href={termsPdfUrl} 
+                           target="_blank" 
+                           rel="noreferrer" 
+                           onClick={(e) => e.stopPropagation()}
+                           className="text-[10px] text-blue-600 hover:underline mt-1 relative z-10"
+                         >
+                           View Document
+                         </a>
+                      )}
+                      
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (termsPdfFile) {
+                            setTermsPdfFile(null);
+                            if (termsPdfInputRef.current) {
+                              termsPdfInputRef.current.value = "";
+                            }
+                          } else {
+                            termsPdfInputRef.current?.click();
+                          }
+                        }}
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
+                      <p className="text-xs text-slate-400">Click to upload T&C PDF</p>
                     </div>
                   )}
                 </div>

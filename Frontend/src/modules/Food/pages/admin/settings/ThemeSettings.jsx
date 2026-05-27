@@ -15,10 +15,20 @@ export default function ThemeSettings() {
   const [saving, setSaving] = useState(false);
   
   const [configs, setConfigs] = useState({
-    user_app: { primaryColor: '#e11d48', secondaryColor: '#be123c', logoUrl: '' },
-    delivery_app: { primaryColor: '#0ea5e9', secondaryColor: '#0284c7', logoUrl: '' },
-    restaurant_app: { primaryColor: '#B80B3D', secondaryColor: '#66001D', logoUrl: '' },
+    user_app: { primaryColor: '#e11d48', secondaryColor: '#be123c', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
+    delivery_app: { primaryColor: '#0ea5e9', secondaryColor: '#0284c7', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
+    restaurant_app: { primaryColor: '#B80B3D', secondaryColor: '#66001D', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
   });
+
+  const fontOptions = [
+    { label: 'Poppins', value: "'Poppins', sans-serif" },
+    { label: 'Outfit', value: "'Outfit', sans-serif" },
+    { label: 'Inter', value: "'Inter', sans-serif" },
+    { label: 'Roboto', value: "'Roboto', sans-serif" },
+    { label: 'Nunito Sans', value: "'Nunito Sans', sans-serif" },
+    { label: 'Sora', value: "'Sora', sans-serif" },
+    { label: 'Merriweather', value: "'Merriweather', serif" }
+  ];
 
   useEffect(() => {
     fetchConfigs();
@@ -84,7 +94,8 @@ export default function ThemeSettings() {
       await adminClient.put(`/app-config/${selectedApp}`, {
         primaryColor: currentConfig.primaryColor,
         secondaryColor: currentConfig.secondaryColor,
-        logoUrl: currentConfig.logoUrl
+        logoUrl: currentConfig.logoUrl,
+        fontFamily: currentConfig.fontFamily
       });
       toast.success(`${apps.find(a => a.id === selectedApp).label} configuration saved!`);
       
@@ -187,6 +198,22 @@ export default function ThemeSettings() {
                     />
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Typography (Font Family)</label>
+                  <select
+                    value={currentConfig.fontFamily || "'Poppins', sans-serif"}
+                    onChange={(e) => handleColorChange('fontFamily', e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    style={{ fontFamily: currentConfig.fontFamily || "'Poppins', sans-serif" }}
+                  >
+                    {fontOptions.map((font) => (
+                      <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                        {font.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Logo Upload */}
@@ -218,12 +245,11 @@ export default function ThemeSettings() {
               </div>
             </div>
 
-            {/* Live Preview (Simple Mockup) */}
             <div className="mt-12 pt-8 border-t border-slate-100">
               <h3 className="text-lg font-semibold text-slate-700 mb-6">Live Preview</h3>
               <div 
                 className="rounded-xl border border-slate-200 overflow-hidden shadow-sm"
-                style={{ backgroundColor: currentConfig.primaryColor }}
+                style={{ backgroundColor: currentConfig.primaryColor, fontFamily: currentConfig.fontFamily || "'Poppins', sans-serif" }}
               >
                 <div className="p-6 text-white flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -241,8 +267,13 @@ export default function ThemeSettings() {
                   <div className="h-4 w-2/3 bg-slate-100 rounded mb-2"></div>
                   <div className="h-4 w-1/2 bg-slate-100 rounded"></div>
                   
+                  <div className="mt-6 mb-2">
+                    <h4 className="text-lg font-bold text-slate-800">Typography Preview</h4>
+                    <p className="text-sm text-slate-500">The quick brown fox jumps over the lazy dog.</p>
+                  </div>
+                  
                   <button 
-                    className="mt-6 px-6 py-2 rounded-lg text-white font-medium w-full"
+                    className="mt-4 px-6 py-2 rounded-lg text-white font-medium w-full"
                     style={{ backgroundColor: currentConfig.primaryColor }}
                   >
                     Action Button

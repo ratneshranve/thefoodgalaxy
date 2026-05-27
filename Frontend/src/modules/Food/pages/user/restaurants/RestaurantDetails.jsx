@@ -2188,8 +2188,10 @@ function RestaurantDetailsContent() {
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`absolute -bottom-2.5 left-1/2 -translate-x-1/2 font-bold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-2 bg-primary text-white min-w-[84px] justify-between z-10 ${
-                shouldShowGrayscale ? 'bg-gray-300 text-gray-400 cursor-not-allowed opacity-50' : 'hover:bg-secondary'
+              className={`absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 rounded-full h-8 sm:h-9 md:h-10 px-3 sm:px-4 flex items-center justify-between gap-3 min-w-[90px] md:min-w-[100px] z-10 transition-all duration-300 ${
+                shouldShowGrayscale 
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50 shadow-none border border-gray-300' 
+                  : 'shadow-[0_4px_14px_0_rgba(0,183,97,0.39)] bg-[#00B761] hover:bg-[#00A055] text-white'
               }`}
             >
               <button
@@ -2200,11 +2202,11 @@ function RestaurantDetailsContent() {
                   }
                 }}
                 disabled={shouldShowGrayscale}
-                className={shouldShowGrayscale ? 'text-gray-400 cursor-not-allowed' : 'text-white hover:text-white/80'}
+                className={shouldShowGrayscale ? 'text-gray-500 cursor-not-allowed' : 'text-white hover:text-white/80 active:scale-90 transition-transform'}
               >
-                <Minus size={14} className="stroke-[3px]" />
+                <Minus size={16} className="stroke-[3px]" />
               </button>
-              <span className="text-xs font-bold text-white">{quantity}</span>
+              <span className="text-[13px] sm:text-[15px] font-black">{quantity}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -2213,9 +2215,9 @@ function RestaurantDetailsContent() {
                   }
                 }}
                 disabled={shouldShowGrayscale}
-                className={shouldShowGrayscale ? 'text-gray-400 cursor-not-allowed' : 'text-white hover:text-white/80'}
+                className={shouldShowGrayscale ? 'text-gray-500 cursor-not-allowed' : 'text-white hover:text-white/80 active:scale-90 transition-transform'}
               >
-                <Plus size={14} className="stroke-[3px]" />
+                <Plus size={16} className="stroke-[3px]" />
               </button>
             </motion.div>
           ) : (
@@ -2228,12 +2230,12 @@ function RestaurantDetailsContent() {
                 }
               }}
               disabled={shouldShowGrayscale}
-              className={`absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-primary text-white font-bold px-5 py-1.5 rounded-xl shadow-md hover:bg-secondary transition-all whitespace-nowrap min-w-[84px] text-center text-xs tracking-wider border border-white/10 z-10 ${shouldShowGrayscale
-                ? 'bg-gray-300 text-gray-400 cursor-not-allowed opacity-50'
-                : ''
+              className={`absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 rounded-full h-8 sm:h-9 md:h-10 px-5 sm:px-7 text-[12px] sm:text-[14px] md:text-[16px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap min-w-[90px] md:min-w-[100px] z-10 ${shouldShowGrayscale
+                ? 'bg-gray-200 dark:bg-gray-800 text-gray-500 cursor-not-allowed opacity-50 shadow-none border border-gray-300'
+                : 'bg-[#E23744] hover:bg-[#D12B37] text-white shadow-[0_6px_16px_0_rgba(226,55,68,0.35)] hover:shadow-[0_8px_20px_rgba(226,55,68,0.45)] border border-[#E23744]/20'
                 }`}
             >
-              ADD +
+              ADD <span className="text-[16px] sm:text-[18px] md:text-[20px] font-medium leading-none mt-[-2px]">+</span>
             </motion.button>
           )}
         </div>

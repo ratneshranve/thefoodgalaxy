@@ -477,55 +477,65 @@ export default function DeliveryOTP() {
   }
 
   return (
-    <AnimatedPage className="min-h-screen bg-white flex flex-col">
+    <AnimatedPage className="min-h-screen bg-[#FFF9F2] dark:bg-[#0a0a0a] flex flex-col relative overflow-hidden font-['Poppins']">
+      {/* Soft Ambient Background Elements */}
+      <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-[#FFE4C4]/40 dark:bg-primary/5 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#E0F7FA]/50 dark:bg-blue-900/10 blur-[100px] pointer-events-none" />
+
       {/* Header */}
-      <div className="relative flex items-center justify-center py-4 px-4 border-b border-gray-200">
+      <div className="relative flex items-center justify-center py-6 px-4 z-20">
         <button
           onClick={() => navigate("/food/delivery/login")}
-          className="absolute left-4 top-1/2 -translate-y-1/2"
+          className="absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-md flex items-center justify-center shadow-sm border border-white/50 hover:bg-white transition-all active:scale-95"
           aria-label="Go back"
         >
-          <ArrowLeft className="h-5 w-5 text-black" />
+          <ArrowLeft className="h-5 w-5 text-gray-800 dark:text-gray-200" />
         </button>
-        <h1 className="text-lg font-bold text-black">OTP Verification</h1>
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col justify-center px-6 pt-8 pb-12">
-        <div className="max-w-md mx-auto w-full space-y-8">
+      <div className="flex-1 flex flex-col justify-center px-6 pb-12 pt-4 relative z-10 w-full max-w-md mx-auto">
+        <div className="bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-2xl rounded-[3rem] p-8 sm:p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-white/50 dark:border-gray-800 relative overflow-hidden w-full space-y-8">
+          
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-[#4CB8C4]/40 to-transparent" />
+
           {/* Message */}
-          <div className="text-center space-y-2">
-            <p className="text-base text-black">
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white font-['Outfit'] tracking-tight">
+              {showNameInput ? "Almost there!" : "Verify your number"}
+            </h2>
+            <div className="h-1 w-12 bg-gradient-to-r from-[#4CB8C4] to-[#3CD3AD] rounded-full mx-auto" />
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
               {showNameInput
-                ? "You're almost done! Please tell us your name to complete registration."
+                ? "Please tell us your name to complete registration."
                 : "We have sent a verification code to"}
             </p>
             {!showNameInput && (
-              <p className="text-base text-black font-medium">
+              <p className="text-base text-gray-800 dark:text-gray-200 font-bold tracking-wide">
                 {getPhoneNumber()}
               </p>
             )}
           </div>
 
-          {/* Pending approval message – already registered, waiting for admin */}
+          {/* Pending approval message */}
           {pendingMessage && (
-            <div className={`rounded-xl border p-5 text-center space-y-4 shadow-sm ${isRejected ? "bg-red-50 border-red-100" : "bg-amber-50 border-amber-100"}`}>
+            <div className={`rounded-2xl p-5 text-center space-y-4 shadow-sm border ${isRejected ? "bg-red-50/80 border-red-100" : "bg-amber-50/80 border-amber-100"}`}>
               <div className="space-y-2">
-                <p className={`text-sm font-semibold ${isRejected ? "text-red-800" : "text-amber-800"}`}>
+                <p className={`text-sm font-black uppercase tracking-wider ${isRejected ? "text-red-700" : "text-amber-700"}`}>
                   {isRejected ? "Application Rejected" : "Pending Verification"}
                 </p>
-                <p className={`text-sm leading-relaxed ${isRejected ? "text-red-700" : "text-amber-700"}`}>
+                <p className={`text-sm font-medium leading-relaxed ${isRejected ? "text-red-600" : "text-amber-600"}`}>
                   {pendingMessage}
                 </p>
                 {isRejected && rejectionReason && (
-                  <div className="mt-2 p-3 bg-white/50 rounded-lg border border-red-200">
-                    <p className="text-xs font-medium text-red-600 uppercase tracking-wider mb-1">Reason</p>
-                    <p className="text-sm text-red-800 italic">"{rejectionReason}"</p>
+                  <div className="mt-3 p-3 bg-white/70 rounded-xl border border-red-100">
+                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Reason</p>
+                    <p className="text-sm text-red-700 font-medium italic">"{rejectionReason}"</p>
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-col gap-2 pt-2">
+              <div className="flex flex-col gap-3 pt-2">
                 {isRejected ? (
                   <button
                     type="button"
@@ -541,7 +551,7 @@ export default function DeliveryOTP() {
                       sessionStorage.setItem("deliverySignupDetails", JSON.stringify(details))
                       navigate("/food/delivery/signup/details", { replace: true })
                     }}
-                    className="w-full py-3 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-700 shadow-md transition-all active:scale-95"
+                    className="w-full py-3.5 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all active:scale-95"
                   >
                     Re-apply Now
                   </button>
@@ -550,7 +560,7 @@ export default function DeliveryOTP() {
                 <button
                   type="button"
                   onClick={() => navigate("/food/delivery/login", { replace: true })}
-                  className={`text-sm font-medium underline transition-colors ${isRejected ? "text-red-600 hover:text-red-800" : "text-amber-700 hover:text-amber-900"}`}
+                  className={`text-sm font-bold underline transition-colors ${isRejected ? "text-red-500 hover:text-red-700" : "text-amber-600 hover:text-amber-800"}`}
                 >
                   Back to login
                 </button>
@@ -560,15 +570,15 @@ export default function DeliveryOTP() {
 
           {/* Error message */}
           {error && (
-            <p className="text-sm text-red-500 text-center">
+            <div className="bg-red-50 dark:bg-red-900/20 text-red-500 text-sm font-semibold p-3 rounded-xl text-center border border-red-100 dark:border-red-900">
               {error}
-            </p>
+            </div>
           )}
 
           {/* OTP Input Fields */}
           {!showNameInput && !pendingMessage && (
-            <>
-              <div className="flex justify-center gap-2">
+            <div className="space-y-8">
+              <div className="flex justify-center gap-3 sm:gap-4">
                 {otp.map((digit, index) => (
                   <Input
                     key={index}
@@ -583,39 +593,39 @@ export default function DeliveryOTP() {
                     disabled={isLoading}
                     autoComplete="off"
                     autoFocus={false}
-                    className="w-12 h-12 text-center text-lg font-semibold p-0 border border-black rounded-md focus-visible:ring-0 focus-visible:border-black bg-white"
+                    className="w-14 h-14 sm:w-16 sm:h-16 text-center text-2xl font-black p-0 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus-visible:ring-0 focus-visible:border-[#4CB8C4] bg-white/80 dark:bg-gray-900/50 shadow-sm transition-all text-gray-900 dark:text-white"
                   />
                 ))}
               </div>
 
               {/* Resend Section */}
-              <div className="text-center space-y-1">
-                <p className="text-sm text-black">
+              <div className="text-center space-y-2">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                   Didn't get the OTP?
                 </p>
                 {resendTimer > 0 ? (
-                  <p className="text-sm text-gray-500">
-                    Resend SMS in {resendTimer}s
+                  <p className="text-sm font-bold text-gray-500 bg-gray-100/50 dark:bg-gray-800/50 py-2 px-4 rounded-full inline-block">
+                    Resend SMS in <span className="text-[#4CB8C4]">{resendTimer}s</span>
                   </p>
                 ) : (
                   <button
                     type="button"
                     onClick={handleResend}
                     disabled={isLoading}
-                    className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                    className="text-sm font-bold text-[#4CB8C4] hover:text-[#3BA0AB] transition-colors disabled:opacity-50 py-2 px-4 rounded-full bg-[#4CB8C4]/10 hover:bg-[#4CB8C4]/20 inline-block"
                   >
                     Resend SMS
                   </button>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           {/* Name Input (shown only after OTP verified and user is new) */}
           {showNameInput && (
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-black text-left">
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
                   Full name
                 </label>
                 <Input
@@ -627,35 +637,35 @@ export default function DeliveryOTP() {
                   }}
                   disabled={isLoading}
                   placeholder="Enter your name"
-                  className={`h-11 border ${nameError ? "border-red-500" : "border-gray-300"
-                    }`}
+                  className={`h-14 rounded-2xl bg-white/80 dark:bg-gray-900/50 border-2 font-semibold text-gray-900 dark:text-white px-5 shadow-sm transition-all ${
+                    nameError ? "border-red-400 focus-visible:border-red-500" : "border-gray-200 dark:border-gray-700 focus-visible:border-[#4CB8C4]"
+                  }`}
                 />
                 {nameError && (
-                  <p className="text-xs text-red-500 text-left">
+                  <p className="text-xs text-red-500 font-semibold ml-1">
                     {nameError}
                   </p>
                 )}
               </div>
 
-              <Button
+              <button
                 onClick={handleSubmitName}
                 disabled={isLoading}
-                className="w-full h-11 bg-[#00B761] hover:bg-[#00A055] text-white font-semibold"
+                className="w-full py-4 bg-gradient-to-r from-[#4CB8C4] to-[#3CD3AD] hover:from-[#3BA0AB] hover:to-[#2BB896] text-white rounded-2xl font-bold text-lg shadow-[0_15px_30px_-10px_rgba(76,184,196,0.5)] transition-all active:scale-[0.98] disabled:opacity-70 disabled:scale-100 flex justify-center items-center"
               >
                 {isLoading ? "Continuing..." : "Continue"}
-              </Button>
+              </button>
             </div>
           )}
 
           {/* Loading Spinner */}
           {isLoading && !showNameInput && (
             <div className="flex justify-center pt-4">
-              <Loader2 className="h-6 w-6 text-green-500 animate-spin" />
+              <Loader2 className="h-8 w-8 text-[#4CB8C4] animate-spin" />
             </div>
           )}
         </div>
       </div>
-
     </AnimatedPage>
   )
 }

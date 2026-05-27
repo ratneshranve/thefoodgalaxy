@@ -12,6 +12,11 @@ export const applyDynamicTheme = async () => {
     const results = await Promise.all(promises);
     const root = document.documentElement;
     
+    const path = window.location.pathname;
+    let currentAppType = 'user_app';
+    if (path.includes('/restaurant')) currentAppType = 'restaurant_app';
+    else if (path.includes('/delivery')) currentAppType = 'delivery_app';
+    
     results.forEach((response, index) => {
       const activeConfig = response?.data?.data || response?.data;
       if (!activeConfig) return;
@@ -53,6 +58,11 @@ export const applyDynamicTheme = async () => {
         if (activeConfig.logoUrl) {
           localStorage.setItem('delivery_app_logo', activeConfig.logoUrl);
         }
+      }
+      
+      // Apply font-family based on the current active app context
+      if (activeConfig.fontFamily && appType === currentAppType) {
+        root.style.setProperty('--main-font-family', activeConfig.fontFamily);
       }
     });
 

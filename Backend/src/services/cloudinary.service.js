@@ -104,6 +104,43 @@ export const uploadFileBuffer = async (buffer, folder = 'uploads', options = {})
     });
 };
 
+export const uploadFileBufferDetailed = async (buffer, folder = 'uploads', options = {}) => {
+    if (!buffer) {
+        throw new Error('File buffer is required');
+    }
+
+    const fileName = typeof options.fileName === 'string' ? options.fileName.trim() : '';
+    const rawBaseName = fileName ? fileName.replace(/\.[^/.]+$/, '') : '';
+    const baseName = rawBaseName.replace(/[.\s]+$/g, '');
+    const format = typeof options.format === 'string' && options.format.trim()
+        ? options.format.trim().toLowerCase()
+        : '';
+
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder,
+                resource_type: 'raw',
+                type: 'upload',
+                access_mode: 'public',
+                format: format || undefined,
+                use_filename: Boolean(baseName),
+                unique_filename: !baseName,
+                filename_override: baseName || undefined
+            },
+            (error, result) => {
+                if (error) {
+                    return reject(error);
+                }
+                return resolve(result);
+            }
+        );
+
+        stream.end(buffer);
+    });
+};
+
+
 const stripTrailingExtension = (value) => {
     if (!value) return '';
     return value.replace(/\.[a-z0-9]{1,10}$/i, '');

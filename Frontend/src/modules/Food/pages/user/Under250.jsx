@@ -851,17 +851,13 @@ export default function Under250() {
   const shouldShowGrayscale = isOutOfService
 
   return (
-
-    <div className={`relative min-h-screen bg-white dark:bg-[#0a0a0a] ${shouldShowGrayscale ? 'grayscale opacity-75' : ''}`}>
+    <div className={`relative min-h-screen bg-white dark:bg-[#0a0a0a] pt-[58px] md:pt-0 ${shouldShowGrayscale ? 'grayscale opacity-75' : ''}`}>
       <div
         ref={stickyHeaderRef}
-        className={`fixed top-0 left-0 right-0 z-40 w-full md:hidden transition-all duration-300 ${hasScrolledPastBanner
-          ? "bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-200"
-          : "bg-transparent"
-          }`}
+        className={`fixed top-0 left-0 right-0 z-40 w-full md:hidden transition-all duration-300 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md shadow-sm border-b border-gray-200 dark:border-gray-800`}
       >
-        <div className="relative z-50 pt-2 sm:pt-3 pb-2">
-          <PageNavbar textColor="black" zIndex={20} showProfile={true} showLogo={false} />
+        <div className="relative z-50 pt-2 sm:pt-3 pb-2 px-2">
+          <PageNavbar textColor="black" zIndex={20} showProfile={true} showLogo={true} />
         </div>
       </div>
 
@@ -1145,9 +1141,9 @@ export default function Under250() {
                                     <Button
                                       variant={"ghost"}
                                       size="sm"
-                                      className="bg-primary text-white hover:bg-secondary h-7 md:h-8 lg:h-9 px-3 md:px-4 lg:px-5 text-xs md:text-sm lg:text-base font-bold shadow-md transition-all active:scale-95"
+                                      className="rounded-full h-8 sm:h-9 md:h-10 px-4 sm:px-5 md:px-6 text-[11px] sm:text-[13px] md:text-[15px] font-black uppercase tracking-wide shadow-[0_4px_14px_0_rgba(0,183,97,0.39)] hover:shadow-[0_6px_20px_rgba(0,183,97,0.23)] transition-all duration-300 active:scale-95 flex items-center gap-1 bg-[#00B761] hover:bg-[#00A055] text-white"
                                     >
-                                      View cart
+                                      VIEW CART
                                     </Button>
                                   </Link>
                                 ) : (
@@ -1155,9 +1151,9 @@ export default function Under250() {
                                     variant={"ghost"}
                                     size="sm"
                                     disabled={shouldShowGrayscale}
-                                    className={`h-7 md:h-8 lg:h-9 px-3 md:px-4 lg:px-5 text-xs md:text-sm lg:text-base font-bold shadow-md transition-all active:scale-95 ${shouldShowGrayscale
-                                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-300 dark:border-gray-700 cursor-not-allowed opacity-50'
-                                      : 'bg-primary text-white hover:bg-secondary'
+                                    className={`rounded-full h-8 sm:h-9 md:h-10 px-4 sm:px-6 md:px-8 text-[12px] sm:text-[14px] md:text-[16px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95 flex items-center justify-center gap-1 sm:gap-1.5 ${shouldShowGrayscale
+                                      ? 'bg-gray-200 dark:bg-gray-800 text-gray-500 cursor-not-allowed opacity-50 shadow-none'
+                                      : 'bg-[#E23744] hover:bg-[#D12B37] text-white shadow-[0_6px_16px_0_rgba(226,55,68,0.35)] hover:shadow-[0_8px_20px_rgba(226,55,68,0.45)] border border-[#E23744]/20'
                                       }`}
                                     onClick={(e) => {
                                       e.stopPropagation()
@@ -1166,7 +1162,7 @@ export default function Under250() {
                                       }
                                     }}
                                   >
-                                    Add
+                                    ADD <span className="text-[16px] sm:text-[18px] md:text-[20px] font-medium leading-none mt-[-2px]">+</span>
                                   </Button>
                                 )}
                               </div>

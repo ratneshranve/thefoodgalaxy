@@ -18,6 +18,10 @@ const appConfigSchema = new mongoose.Schema({
     logoUrl: {
         type: String,
         default: ''
+    },
+    fontFamily: {
+        type: String,
+        default: "'Poppins', sans-serif"
     }
 }, { timestamps: true });
 

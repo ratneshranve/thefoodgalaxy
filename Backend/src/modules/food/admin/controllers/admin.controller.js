@@ -11,6 +11,8 @@ import { validateDeliveryEmergencyHelpUpsertDto } from '../validators/deliveryEm
 import { validateReferralSettingsUpsertDto } from '../validators/referralSettings.validator.js';
 import { topupUserWalletByAdmin } from '../../user/services/userWallet.service.js';
 import { invalidateCache } from '../../../../middleware/cache.js';
+import { FoodBusinessSettings } from '../models/businessSettings.model.js';
+import { sendRestaurantOnboardingEmail } from '../../../../utils/email.js';
 
 // ----- Customers / Users -----
 export async function getCustomers(req, res, next) {
@@ -1148,6 +1150,23 @@ export async function approveRestaurant(req, res, next) {
 export async function createRestaurant(req, res, next) {
     try {
         const restaurant = await adminService.createRestaurantByAdmin(req.body || {});
+
+        // Send onboarding email with T&C asynchronously
+        (async () => {
+            try {
+                const settings = await FoodBusinessSettings.findOne().lean();
+                const pdfUrl = settings?.termsAndConditionsPdf?.url || null;
+                const email = req.body?.ownerEmail || restaurant.ownerEmail;
+                const restaurantName = req.body?.restaurantName || restaurant.restaurantName;
+                
+                if (email) {
+                    await sendRestaurantOnboardingEmail(email, restaurantName, pdfUrl);
+                }
+            } catch (err) {
+                console.error("Error sending onboarding email from admin panel:", err);
+            }
+        })();
+
         res.status(201).json({
             success: true,
             message: 'Restaurant created successfully',
