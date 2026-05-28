@@ -12,6 +12,7 @@ import SearchOverlay from "./SearchOverlay"
 import BottomNavigation from "./BottomNavigation"
 import DesktopNavbar from "./DesktopNavbar"
 import { useUserNotifications } from "../../hooks/useUserNotifications"
+import AppIntroSplash from "./AppIntroSplash"
 
 // Create SearchOverlay context with default value
 const SearchOverlayContext = createContext({
@@ -135,8 +136,16 @@ export default function UserLayout() {
 
   const isUnder250 = normalizedPath === "/under-250" || normalizedPath === "/user/under-250"
 
+  const [introFinished, setIntroFinished] = useState(() => {
+    return !!(typeof window !== 'undefined' && sessionStorage.getItem("appIntroSeen"))
+  })
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
+      {!introFinished && (
+        <AppIntroSplash onComplete={() => setIntroFinished(true)} />
+      )}
+      
       <CartProvider>
         <ProfileProvider>
           <OrdersProvider>

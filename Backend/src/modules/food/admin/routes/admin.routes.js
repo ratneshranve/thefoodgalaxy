@@ -10,6 +10,7 @@ import * as diningAdminController from '../../dining/controllers/diningAdmin.con
 import * as orderController from '../../orders/controllers/order.controller.js';
 import { getAdminPageController, upsertAdminPageController } from '../controllers/pageContent.controller.js';
 import * as liveMonitorController from '../controllers/liveMonitor.controller.js';
+import * as appIntroAdController from '../controllers/appIntroAd.controller.js';
 import { upload } from '../../../../middleware/upload.js';
 
 const router = express.Router();
@@ -220,5 +221,13 @@ router.get('/notifications/fssai-expired', adminController.getExpiredFssaiNotifi
 
 // ----- Live Monitor -----
 router.get('/live-monitor/status', liveMonitorController.getLiveMonitorStatus);
+
+// ----- App Intro & Ads -----
+router.get('/app-intro-ads', appIntroAdController.getAppIntroAds);
+router.post('/app-intro-ads', upload.fields([{ name: 'media', maxCount: 1 }]), appIntroAdController.createAppIntroAd);
+router.patch('/app-intro-ads/order', appIntroAdController.updateAppIntroAdsOrder);
+router.patch('/app-intro-ads/:id', upload.fields([{ name: 'media', maxCount: 1 }]), appIntroAdController.updateAppIntroAd);
+router.patch('/app-intro-ads/:id/toggle', appIntroAdController.toggleAppIntroAdStatus);
+router.delete('/app-intro-ads/:id', appIntroAdController.deleteAppIntroAd);
 
 export default router;

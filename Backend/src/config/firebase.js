@@ -17,6 +17,9 @@ const getServiceAccountFromEnv = () => {
     if (rawJson) {
         try {
             cachedServiceAccount = JSON.parse(rawJson);
+            if (cachedServiceAccount.private_key) {
+                cachedServiceAccount.private_key = cachedServiceAccount.private_key.replace(/\\n/g, '\n');
+            }
             return cachedServiceAccount;
         } catch (err) {
             logger.error('Error parsing FIREBASE_SERVICE_ACCOUNT JSON:', err.message);
