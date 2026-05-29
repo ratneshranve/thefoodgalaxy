@@ -144,32 +144,37 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     if (l.includes("support tickets")) return badges.supportTickets || (l.includes("delivery") ? badges.deliverySupportTickets : badges.userSupportTickets)
     return 0
   }
-  const [logoUrl, setLogoUrl] = useState(() => getCachedSettings()?.logo?.url || null)
+  const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem('admin_app_logo') || getCachedSettings()?.logo?.url || null)
   const [companyName, setCompanyName] = useState(() => getCachedSettings()?.companyName || null)
 
   // Load business settings logo
   useEffect(() => {
     const loadLogo = async () => {
       try {
-        // First check cache
-        let cached = getCachedSettings()
-        if (cached) {
-          if (cached.logo?.url) {
-            setLogoUrl(cached.logo.url)
+        const adminLogo = localStorage.getItem('admin_app_logo');
+        if (adminLogo) {
+          setLogoUrl(adminLogo);
+        } else {
+          // First check cache
+          let cached = getCachedSettings()
+          if (cached) {
+            if (cached.logo?.url) {
+              setLogoUrl(cached.logo.url)
+            }
+            if (cached.companyName) {
+              setCompanyName(cached.companyName)
+            }
           }
-          if (cached.companyName) {
-            setCompanyName(cached.companyName)
-          }
-        }
 
-        // Always try to load fresh data to ensure we have the latest
-        const settings = await loadBusinessSettings()
-        if (settings) {
-          if (settings.logo?.url) {
-            setLogoUrl(settings.logo.url)
-          }
-          if (settings.companyName) {
-            setCompanyName(settings.companyName)
+          // Always try to load fresh data to ensure we have the latest
+          const settings = await loadBusinessSettings()
+          if (settings) {
+            if (settings.logo?.url) {
+              setLogoUrl(settings.logo.url)
+            }
+            if (settings.companyName) {
+              setCompanyName(settings.companyName)
+            }
           }
         }
       } catch (error) {
@@ -180,28 +185,36 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     // Load immediately
     loadLogo()
 
-    // Also try after a small delay to ensure DOM is ready
-    const timeoutId = setTimeout(() => {
-      loadLogo()
-    }, 100)
-
     // Listen for business settings updates
     const handleSettingsUpdate = () => {
-      const cached = getCachedSettings()
-      if (cached) {
-        if (cached.logo?.url) {
-          setLogoUrl(cached.logo.url)
-        }
-        if (cached.companyName) {
-          setCompanyName(cached.companyName)
+      const adminLogo = localStorage.getItem('admin_app_logo');
+      if (adminLogo) {
+        setLogoUrl(adminLogo);
+      } else {
+        const cached = getCachedSettings()
+        if (cached) {
+          if (cached.logo?.url) {
+            setLogoUrl(cached.logo.url)
+          }
+          if (cached.companyName) {
+            setCompanyName(cached.companyName)
+          }
         }
       }
     }
+    
+    // Listen for themeLoaded
+    const handleThemeLoaded = () => {
+       const adminLogo = localStorage.getItem('admin_app_logo');
+       if (adminLogo) setLogoUrl(adminLogo);
+    };
+
     window.addEventListener('businessSettingsUpdated', handleSettingsUpdate)
+    window.addEventListener('themeLoaded', handleThemeLoaded)
 
     return () => {
-      clearTimeout(timeoutId)
       window.removeEventListener('businessSettingsUpdated', handleSettingsUpdate)
+      window.removeEventListener('themeLoaded', handleThemeLoaded)
     }
   }, [])
 
@@ -615,15 +628,19 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       `}</style>
       <div
         className={cn(
-          "bg-neutral-950 border-r border-neutral-800/60 h-screen fixed left-0 top-0 z-50 flex flex-col overflow-hidden",
+          "border-r border-neutral-800/60 h-screen fixed left-0 top-0 z-50 flex flex-col overflow-hidden",
           "transform transition-all duration-300 ease-in-out",
           "lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
           isCollapsed ? "w-20" : "w-80"
         )}
+        style={{ backgroundColor: 'var(--ad-primary, #0a0a0a)' }}
       >
         {/* Header with Logo and Brand */}
-        <div className="shrink-0 px-3 py-3 border-b border-neutral-800/60 bg-neutral-900 animate-[fadeIn_0.4s_ease-out]">
+        <div 
+          className="shrink-0 px-3 py-3 border-b border-neutral-800/60 animate-[fadeIn_0.4s_ease-out]"
+          style={{ backgroundColor: 'var(--ad-primary-strong, #171717)' }}
+        >
           <div className="flex items-center justify-between mb-3">
             {!isCollapsed && (
               <div className="flex items-center gap-2 animate-[slideIn_0.3s_ease-out]">

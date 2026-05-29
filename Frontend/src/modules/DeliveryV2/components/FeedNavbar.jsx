@@ -270,6 +270,7 @@ export default function FeedNavbar({ className = "" }) {
     accidentHelpline: "",
     contactPolice: "",
     insurance: "",
+    teamLeader: "",
   });
 
   const [showEmergencyPopup, setShowEmergencyPopup] = useState(false);
@@ -293,6 +294,7 @@ export default function FeedNavbar({ className = "" }) {
             accidentHelpline: response.data.data.accidentHelpline || "",
             contactPolice: response.data.data.contactPolice || "",
             insurance: response.data.data.insurance || "",
+            teamLeader: response.data.data.teamLeader || "",
           });
         }
       } catch (error) {
@@ -361,6 +363,21 @@ export default function FeedNavbar({ className = "" }) {
           window.location.href = `tel:${phoneToDial}`;
         } else {
           toast.error("Insurance helpline number not configured");
+        }
+      }
+    },
+    { 
+      id: "teamLeader", 
+      title: "Team Leader", 
+      subtitle: "Contact your assigned team leader", 
+      icon: "teamLeader", 
+      phone: emergencyNumbers.teamLeader,
+      onClick: () => {
+        const phoneToDial = normalizePhoneForDial(emergencyNumbers.teamLeader);
+        if (phoneToDial.length >= 3) {
+          window.location.href = `tel:${phoneToDial}`;
+        } else {
+          toast.error("Team leader number not configured");
         }
       }
     },
@@ -569,6 +586,9 @@ export default function FeedNavbar({ className = "" }) {
                 )}
                 {option.icon === "insurance" && (
                   <ShieldCheck className="w-6 h-6 text-green-600" />
+                )}
+                {option.icon === "teamLeader" && (
+                  <User className="w-6 h-6 text-purple-600" />
                 )}
               </div>
 

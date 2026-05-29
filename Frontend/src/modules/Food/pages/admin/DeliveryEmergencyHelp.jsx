@@ -15,6 +15,7 @@ export default function DeliveryEmergencyHelp() {
     accidentHelpline: "",
     contactPolice: "",
     insurance: "",
+    teamLeader: "",
   })
   const [formErrors, setFormErrors] = useState({})
 
@@ -23,6 +24,7 @@ export default function DeliveryEmergencyHelp() {
     accidentHelpline: 3,
     contactPolice: 3,
     insurance: 10,
+    teamLeader: 10,
   }
 
   // Fetch emergency help numbers on component mount
@@ -42,6 +44,7 @@ export default function DeliveryEmergencyHelp() {
           accidentHelpline: data.accidentHelpline || "",
           contactPolice: data.contactPolice || "",
           insurance: data.insurance || "",
+          teamLeader: data.teamLeader || "",
         })
       }
     } catch (error) {
@@ -79,6 +82,12 @@ export default function DeliveryEmergencyHelp() {
       normalizeDigits(formData.insurance).length !== fieldLimits.insurance
     ) {
       errors.insurance = "Phone number must be exactly 10 digits"
+    }
+    if (
+      formData.teamLeader &&
+      normalizeDigits(formData.teamLeader).length !== fieldLimits.teamLeader
+    ) {
+      errors.teamLeader = "Phone number must be exactly 10 digits"
     }
 
     setFormErrors(errors)
@@ -118,6 +127,7 @@ export default function DeliveryEmergencyHelp() {
         accidentHelpline: formData.accidentHelpline.trim(),
         contactPolice: formData.contactPolice.trim(),
         insurance: formData.insurance.trim(),
+        teamLeader: formData.teamLeader.trim(),
       })
 
       if (response?.data?.success) {
@@ -159,6 +169,12 @@ export default function DeliveryEmergencyHelp() {
       label: "Insurance",
       placeholder: "Enter insurance helpline phone number",
       description: "Phone number for insurance claims and policy help"
+    },
+    {
+      id: "teamLeader",
+      label: "Delivery Team Leader",
+      placeholder: "Enter team leader phone number",
+      description: "Phone number of the assigned team leader for quick support"
     }
   ]
 

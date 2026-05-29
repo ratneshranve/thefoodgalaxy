@@ -2394,7 +2394,7 @@ export default function OrdersMain() {
       </AnimatePresence>
 
       {/* Top Filter Bar - Sticky below navbar */}
-      <div className="sticky top-[50px] z-40 pb-2 bg-gray-100">
+      <div className="sticky top-[80px] md:top-[85px] z-40 pb-2 bg-gray-100">
         <div
           ref={filterBarRef}
           className="flex gap-2 overflow-x-auto scrollbar-hide bg-transparent rounded-full px-3 py-2 mt-2"

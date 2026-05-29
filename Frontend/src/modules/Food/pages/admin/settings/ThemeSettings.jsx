@@ -6,7 +6,8 @@ import { adminClient } from "@food/api/axios";
 const apps = [
   { id: 'user_app', label: 'User App', icon: MonitorSmartphone },
   { id: 'delivery_app', label: 'Delivery App', icon: Truck },
-  { id: 'restaurant_app', label: 'Restaurant App', icon: Store }
+  { id: 'restaurant_app', label: 'Restaurant App', icon: Store },
+  { id: 'admin_app', label: 'Admin Panel', icon: Info }
 ];
 
 export default function ThemeSettings() {
@@ -18,6 +19,7 @@ export default function ThemeSettings() {
     user_app: { primaryColor: '#e11d48', secondaryColor: '#be123c', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
     delivery_app: { primaryColor: '#0ea5e9', secondaryColor: '#0284c7', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
     restaurant_app: { primaryColor: '#B80B3D', secondaryColor: '#66001D', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
+    admin_app: { primaryColor: '#2563eb', secondaryColor: '#1d4ed8', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
   });
 
   const fontOptions = [

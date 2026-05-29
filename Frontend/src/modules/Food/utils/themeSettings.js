@@ -2,7 +2,7 @@ import { publicGetOnce } from "@food/api";
 
 export const applyDynamicTheme = async () => {
   try {
-    const apps = ['user_app', 'restaurant_app', 'delivery_app'];
+    const apps = ['user_app', 'restaurant_app', 'delivery_app', 'admin_app'];
     
     // Fetch all configurations simultaneously using the public endpoint
     const promises = apps.map(appType => 
@@ -16,6 +16,7 @@ export const applyDynamicTheme = async () => {
     let currentAppType = 'user_app';
     if (path.includes('/restaurant')) currentAppType = 'restaurant_app';
     else if (path.includes('/delivery')) currentAppType = 'delivery_app';
+    else if (path.includes('/admin')) currentAppType = 'admin_app';
     
     results.forEach((response, index) => {
       const activeConfig = response?.data?.data || response?.data;
@@ -57,6 +58,17 @@ export const applyDynamicTheme = async () => {
         }
         if (activeConfig.logoUrl) {
           localStorage.setItem('delivery_app_logo', activeConfig.logoUrl);
+        }
+      }
+      else if (appType === 'admin_app') {
+        if (activeConfig.primaryColor) {
+          root.style.setProperty('--ad-primary', activeConfig.primaryColor);
+        }
+        if (activeConfig.secondaryColor) {
+          root.style.setProperty('--ad-primary-strong', activeConfig.secondaryColor);
+        }
+        if (activeConfig.logoUrl) {
+          localStorage.setItem('admin_app_logo', activeConfig.logoUrl);
         }
       }
       

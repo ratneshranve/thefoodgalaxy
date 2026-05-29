@@ -6,6 +6,7 @@ const deliveryEmergencyHelpSchema = new mongoose.Schema(
         accidentHelpline: { type: String, trim: true, default: '' },
         contactPolice: { type: String, trim: true, default: '' },
         insurance: { type: String, trim: true, default: '' },
+        teamLeader: { type: String, trim: true, default: '' },
         isActive: { type: Boolean, default: true, index: true }
     },
     { collection: 'food_delivery_emergency_help', timestamps: true }

@@ -15,7 +15,8 @@ const upsertSchema = z.object({
     medicalEmergency: phoneString,
     accidentHelpline: phoneString,
     contactPolice: phoneString,
-    insurance: phoneString
+    insurance: phoneString,
+    teamLeader: phoneString
 });
 
 export const validateDeliveryEmergencyHelpUpsertDto = (body) => {
@@ -23,7 +24,8 @@ export const validateDeliveryEmergencyHelpUpsertDto = (body) => {
         medicalEmergency: body?.medicalEmergency,
         accidentHelpline: body?.accidentHelpline,
         contactPolice: body?.contactPolice,
-        insurance: body?.insurance
+        insurance: body?.insurance,
+        teamLeader: body?.teamLeader
     };
     const result = upsertSchema.safeParse(normalized);
     if (!result.success) {

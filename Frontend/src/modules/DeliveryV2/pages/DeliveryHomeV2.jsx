@@ -93,6 +93,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     accidentHelpline: "",
     contactPolice: "",
     insurance: "",
+    teamLeader: "",
   });
   
   const [isModalMinimized, setIsModalMinimized] = useState(false);
@@ -237,6 +238,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     { title: "Accident Helpline", subtitle: "Report an accident", icon: <AlertTriangle className="text-orange-600" />, phone: emergencyNumbers.accidentHelpline },
     { title: "Contact Police", subtitle: "Nearest police support", icon: <AlertTriangle className="text-blue-600" />, phone: emergencyNumbers.contactPolice },
     { title: "Insurance", subtitle: "Policy & claim help", icon: <AlertTriangle className="text-green-600" />, phone: emergencyNumbers.insurance },
+    { title: "Team Leader", subtitle: "Contact your assigned team leader", icon: <UserIcon className="text-purple-600" />, phone: emergencyNumbers.teamLeader },
   ];
 
   // Reset simulation when trip phase/order/mode changes.
@@ -804,16 +806,30 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white/5 rounded-2xl p-4 flex items-center border border-white/5 shadow-sm backdrop-blur-md">
+                <div className="bg-white/5 rounded-2xl p-4 flex items-center justify-between border border-white/5 shadow-sm backdrop-blur-md">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center shrink-0">
                       <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className="text-white font-black text-[11px] uppercase tracking-widest leading-none mb-1">{isOnline ? 'System Online' : 'System Offline'}</h3>
                       <p className="text-gray-400 text-[10px] font-bold uppercase tracking-tight">{isOnline ? 'Waiting for order requests' : 'Go online to receive orders'}</p>
                     </div>
                   </div>
+                  {emergencyNumbers.teamLeader && (
+                    <div className="flex flex-col items-center justify-center ml-3 shrink-0">
+                      <button 
+                        onClick={() => window.location.href = `tel:${emergencyNumbers.teamLeader.replace(/\D/g, '')}`}
+                        className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 active:scale-95 transition-all shadow-lg"
+                        title="Call Team Leader"
+                      >
+                        <Phone className="w-4 h-4" />
+                      </button>
+                      <span className="text-[8px] font-bold text-blue-300/80 uppercase mt-1 tracking-wider text-center">
+                        Team Leader
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 

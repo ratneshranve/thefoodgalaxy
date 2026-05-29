@@ -2051,13 +2051,15 @@ export async function getDeliveryEmergencyHelp() {
         accidentHelpline: '',
         contactPolice: '',
         insurance: '',
+        teamLeader: '',
         isActive: true
     };
     return {
         medicalEmergency: data.medicalEmergency || '',
         accidentHelpline: data.accidentHelpline || '',
         contactPolice: data.contactPolice || '',
-        insurance: data.insurance || ''
+        insurance: data.insurance || '',
+        teamLeader: data.teamLeader || ''
     };
 }
 
@@ -2068,12 +2070,14 @@ export async function upsertDeliveryEmergencyHelp(body = {}) {
         if (body.accidentHelpline !== undefined) existing.accidentHelpline = String(body.accidentHelpline || '').trim();
         if (body.contactPolice !== undefined) existing.contactPolice = String(body.contactPolice || '').trim();
         if (body.insurance !== undefined) existing.insurance = String(body.insurance || '').trim();
+        if (body.teamLeader !== undefined) existing.teamLeader = String(body.teamLeader || '').trim();
         await existing.save();
         return {
             medicalEmergency: existing.medicalEmergency || '',
             accidentHelpline: existing.accidentHelpline || '',
             contactPolice: existing.contactPolice || '',
-            insurance: existing.insurance || ''
+            insurance: existing.insurance || '',
+            teamLeader: existing.teamLeader || ''
         };
     }
     const created = await FoodDeliveryEmergencyHelp.create({
@@ -2081,13 +2085,15 @@ export async function upsertDeliveryEmergencyHelp(body = {}) {
         accidentHelpline: String(body.accidentHelpline || '').trim(),
         contactPolice: String(body.contactPolice || '').trim(),
         insurance: String(body.insurance || '').trim(),
+        teamLeader: String(body.teamLeader || '').trim(),
         isActive: true
     });
     return {
         medicalEmergency: created.medicalEmergency || '',
         accidentHelpline: created.accidentHelpline || '',
         contactPolice: created.contactPolice || '',
-        insurance: created.insurance || ''
+        insurance: created.insurance || '',
+        teamLeader: created.teamLeader || ''
     };
 }
 

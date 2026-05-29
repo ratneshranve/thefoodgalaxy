@@ -4,7 +4,7 @@ const appConfigSchema = new mongoose.Schema({
     appName: {
         type: String,
         required: true,
-        enum: ['user_app', 'delivery_app', 'restaurant_app'],
+        enum: ['user_app', 'delivery_app', 'restaurant_app', 'admin_app'],
         unique: true
     },
     primaryColor: {
