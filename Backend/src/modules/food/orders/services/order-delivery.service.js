@@ -787,6 +787,13 @@ export async function requestPickupOtp(orderId, deliveryPartnerId) {
     throw new ValidationError('Pickup OTP not generated yet. Please confirm arrival at restaurant first.');
   }
 
+  // Update DB to register the request so fallback polling can catch it
+  if (!order.deliveryVerification) order.deliveryVerification = {};
+  if (!order.deliveryVerification.pickupOtp) order.deliveryVerification.pickupOtp = {};
+  order.deliveryVerification.pickupOtp.requestedAt = new Date();
+  order.markModified('deliveryVerification');
+  await order.save();
+
   const io = getIO();
   if (io) {
     io.to(rooms.restaurant(order.restaurantId)).emit('pickup_otp_reveal', {

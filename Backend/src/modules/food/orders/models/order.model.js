@@ -188,7 +188,8 @@ const deliveryVerificationSchema = new mongoose.Schema(
         },
         pickupOtp: {
             required: { type: Boolean, default: true },
-            verified: { type: Boolean, default: false }
+            verified: { type: Boolean, default: false },
+            requestedAt: { type: Date, default: null }
         }
     },
     { _id: false }
