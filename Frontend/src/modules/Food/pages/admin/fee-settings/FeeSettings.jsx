@@ -19,6 +19,7 @@ export default function FeeSettings() {
     packagingFee: "",
     gstRate: "",
     deliveryBonusAmount: "",
+    dispatchRadiusTiers: "2, 4, 6, 8, 10",
   })
   const [loadingFeeSettings, setLoadingFeeSettings] = useState(false)
   const [savingFeeSettings, setSavingFeeSettings] = useState(false)
@@ -40,6 +41,7 @@ export default function FeeSettings() {
           packagingFee: response.data.data.feeSettings.packagingFee ?? "",
           gstRate: response.data.data.feeSettings.gstRate ?? "",
           deliveryBonusAmount: response.data.data.feeSettings.deliveryBonusAmount ?? "",
+          dispatchRadiusTiers: response.data.data.feeSettings.dispatchRadiusTiers?.join(", ") ?? "2, 4, 6, 8, 10",
         })
       } else if (response.data.success && response.data.data.feeSettings === null) {
         // Not configured yet - keep empty fields (no defaults).
@@ -52,6 +54,7 @@ export default function FeeSettings() {
           packagingFee: "",
           gstRate: "",
           deliveryBonusAmount: "",
+          dispatchRadiusTiers: "2, 4, 6, 8, 10",
         })
       }
     } catch (error) {
@@ -80,6 +83,7 @@ export default function FeeSettings() {
         packagingFee: feeSettings.packagingFee === "" ? undefined : Number(feeSettings.packagingFee),
         gstRate: feeSettings.gstRate === "" ? undefined : Number(feeSettings.gstRate),
         deliveryBonusAmount: feeSettings.deliveryBonusAmount === "" ? undefined : Number(feeSettings.deliveryBonusAmount),
+        dispatchRadiusTiers: feeSettings.dispatchRadiusTiers ? feeSettings.dispatchRadiusTiers.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n)) : undefined,
         isActive: true,
       })
 
@@ -97,6 +101,7 @@ export default function FeeSettings() {
             packagingFee: saved.packagingFee ?? "",
             gstRate: saved.gstRate ?? "",
             deliveryBonusAmount: saved.deliveryBonusAmount ?? "",
+            dispatchRadiusTiers: saved.dispatchRadiusTiers?.join(", ") ?? "2, 4, 6, 8, 10",
           })
         }
       } else {
@@ -540,6 +545,23 @@ export default function FeeSettings() {
                   />
                   <p className="text-xs text-slate-500">
                     Fixed bonus added to rider earnings per order
+                  </p>
+                </div>
+
+                {/* Dispatch Radius Tiers */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Dispatch Radius Steps (km)
+                  </label>
+                  <input
+                    type="text"
+                    value={feeSettings.dispatchRadiusTiers}
+                    onChange={(e) => setFeeSettings({ ...feeSettings, dispatchRadiusTiers: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                    placeholder="2, 4, 6, 8, 10"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Comma-separated list of distance ranges for rider dispatch
                   </p>
                 </div>
               </div>

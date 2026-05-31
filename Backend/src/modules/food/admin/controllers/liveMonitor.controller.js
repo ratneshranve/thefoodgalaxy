@@ -63,8 +63,8 @@ export async function getLiveMonitorStatus(req, res, next) {
             stats: rOrdersMap[r._id.toString()] || { totalOrders: 0, deliveredOrders: 0, activeOrders: 0, cancelledOrders: 0, revenue: 0 }
         }));
 
-        // Fetch Online Delivery Partners
-        const deliveryPartners = await FoodDeliveryPartner.find({ availabilityStatus: 'online', status: 'approved' })
+        // Fetch ALL Delivery Partners (approved)
+        const deliveryPartners = await FoodDeliveryPartner.find({ status: 'approved' })
             .select('name phone profilePhoto lastLat lastLng lastLocationAt vehicleType vehicleNumber availabilityStatus shiftStartPic shiftStartTime shiftStartAddress')
             .lean();
 

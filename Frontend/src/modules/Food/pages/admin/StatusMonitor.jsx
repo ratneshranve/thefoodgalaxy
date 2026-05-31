@@ -11,6 +11,7 @@ export default function StatusMonitor() {
     return localStorage.getItem('statusMonitorTab') || 'restaurants';
   }); // 'restaurants' or 'delivery'
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [data, setData] = useState({ restaurants: [], deliveryPartners: [] });
   const [selectedItem, setSelectedItem] = useState(null);
 
@@ -47,6 +48,18 @@ export default function StatusMonitor() {
 
   const getList = () => {
     let list = activeTab === 'restaurants' ? data.restaurants : data.deliveryPartners;
+
+    if (searchTerm.trim()) {
+      const lowerQuery = searchTerm.toLowerCase();
+      list = list.filter(item => {
+        if (activeTab === 'restaurants') {
+          return item.restaurantName?.toLowerCase().includes(lowerQuery) || item.ownerName?.toLowerCase().includes(lowerQuery);
+        } else {
+          return item.name?.toLowerCase().includes(lowerQuery) || item.phone?.includes(lowerQuery);
+        }
+      });
+    }
+
     // Sort online to the top
     if (activeTab === 'restaurants') {
       list = [...list].sort((a, b) => {
@@ -59,8 +72,16 @@ export default function StatusMonitor() {
       list = [...list].sort((a, b) => {
         const aOnline = a.availabilityStatus === 'online';
         const bOnline = b.availabilityStatus === 'online';
-        if (aOnline === bOnline) return 0;
-        return aOnline ? -1 : 1;
+        const aFree = aOnline && !a.currentOrder;
+        const bFree = bOnline && !b.currentOrder;
+
+        if (aFree && !bFree) return -1;
+        if (!aFree && bFree) return 1;
+
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+
+        return 0;
       });
     }
     return list;
@@ -96,7 +117,14 @@ export default function StatusMonitor() {
         {/* Left Panel: List */}
         <div className="w-1/3 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden">
           <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-            <h2 className="font-semibold text-gray-700">All {activeTab === 'restaurants' ? 'Restaurants' : 'Partners'}</h2>
+            <h2 className="font-semibold text-gray-700 mb-2">All {activeTab === 'restaurants' ? 'Restaurants' : 'Partners'}</h2>
+            <input 
+              type="text" 
+              placeholder={`Search ${activeTab === 'restaurants' ? 'restaurants' : 'partners'}...`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            />
           </div>
           <div className="flex-1 overflow-y-auto p-2">
             {loading && list.length === 0 ? (
@@ -162,7 +190,7 @@ export default function StatusMonitor() {
           ) : activeTab === 'restaurants' ? (
             <RestaurantDetails restaurant={selectedItem} />
           ) : (
-            <DeliveryPartnerDetails partner={selectedItem} />
+            <DeliveryPartnerDetails partner={selectedItem} onRefresh={fetchStatus} />
           )}
         </div>
       </div>
@@ -264,12 +292,51 @@ function RestaurantDetails({ restaurant }) {
 
 
 
-function DeliveryPartnerDetails({ partner }) {
+function DeliveryPartnerDetails({ partner, onRefresh }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const [mapLoading, setMapLoading] = useState(true);
   const [showMap, setShowMap] = useState(false);
+  const [assignOrderId, setAssignOrderId] = useState('');
+  const [assigning, setAssigning] = useState(false);
+  const [togglingStatus, setTogglingStatus] = useState(false);
+
+  const handleToggleStatus = async () => {
+    try {
+      setTogglingStatus(true);
+      const newStatus = partner.availabilityStatus === 'online' ? 'offline' : 'online';
+      const res = await api.patch(`/food/admin/delivery/${partner._id}/availability`, { status: newStatus });
+      if (res.data?.success) {
+        toast.success(`Partner marked ${newStatus}`);
+        onRefresh();
+      }
+    } catch (err) {
+      toast.error('Failed to update status');
+    } finally {
+      setTogglingStatus(false);
+    }
+  };
+
+  const handleAssignOrder = async () => {
+    if (!assignOrderId.trim()) {
+      toast.error('Please enter an Order ID');
+      return;
+    }
+    try {
+      setAssigning(true);
+      const res = await api.post(`/food/admin/orders/${assignOrderId.trim()}/assign-delivery`, { deliveryPartnerId: partner._id });
+      if (res.data?.success) {
+        toast.success('Order assigned successfully');
+        setAssignOrderId('');
+        onRefresh();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to assign order');
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   useEffect(() => {
     setShowMap(false);
@@ -343,10 +410,47 @@ function DeliveryPartnerDetails({ partner }) {
         <div className="w-16 h-16 rounded-full bg-gray-100 overflow-hidden shadow-sm">
           {partner.profilePhoto ? <img src={partner.profilePhoto} className="w-full h-full object-cover" alt="" /> : <Truck className="w-8 h-8 m-auto text-gray-400 mt-4" />}
         </div>
-        <div>
-          <h2 className="text-xl font-bold text-gray-800">{partner.name}</h2>
-          <p className="text-gray-500">{partner.phone}</p>
-          <p className="text-sm text-gray-400">Vehicle: {partner.vehicleType} ({partner.vehicleNumber})</p>
+        <div className="flex-1">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                {partner.name}
+                <span className={`w-2.5 h-2.5 rounded-full ${partner.availabilityStatus === 'online' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'}`}></span>
+              </h2>
+              <p className="text-gray-500">{partner.phone}</p>
+              <p className="text-sm text-gray-400">Vehicle: {partner.vehicleType} ({partner.vehicleNumber})</p>
+            </div>
+            <button 
+              onClick={handleToggleStatus}
+              disabled={togglingStatus}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border ${partner.availabilityStatus === 'online' ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}
+            >
+              {togglingStatus ? 'Updating...' : `Mark ${partner.availabilityStatus === 'online' ? 'Offline' : 'Online'}`}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex-shrink-0">
+        <h3 className="font-semibold text-blue-800 mb-2 flex items-center gap-2 text-sm">
+          <Package className="w-4 h-4" />
+          Manual Assign Order
+        </h3>
+        <div className="flex gap-2">
+          <input 
+            type="text" 
+            placeholder="Order ID (e.g. 10001)"
+            value={assignOrderId}
+            onChange={(e) => setAssignOrderId(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm border border-blue-200 rounded-lg focus:outline-none focus:border-blue-400"
+          />
+          <button 
+            onClick={handleAssignOrder}
+            disabled={assigning}
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {assigning ? 'Assigning...' : 'Assign'}
+          </button>
         </div>
       </div>
 

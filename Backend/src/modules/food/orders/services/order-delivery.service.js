@@ -311,10 +311,8 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
   const { page, limit, skip } = buildPaginationOptions(query);
   const partnerCapacity = await getPartnerCashCapacity(deliveryPartnerId);
   const cashLimit = {
-    blocked: !partnerCapacity.hasCapacity,
-    message: !partnerCapacity.hasCapacity
-      ? 'Please deposit your amount to get new orders.'
-      : '',
+    blocked: false,
+    message: '',
     totalCashLimit: Number(partnerCapacity.totalCashLimit || 0),
     cashInHand: Number(partnerCapacity.cashInHand || 0),
     availableCashLimit: Number(partnerCapacity.availableCashLimit || 0),
@@ -332,17 +330,15 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
     },
   };
 
-  const filter = partnerCapacity.hasCapacity
-    ? {
-        $or: [
-          {
-            'dispatch.status': 'unassigned',
-            orderStatus: { $in: ['confirmed', 'preparing', 'ready_for_pickup'] },
-          },
-          activeOwnOrderFilter,
-        ],
-      }
-    : activeOwnOrderFilter;
+  const filter = {
+    $or: [
+      {
+        'dispatch.status': 'unassigned',
+        orderStatus: { $in: ['confirmed', 'preparing', 'ready_for_pickup'] },
+      },
+      activeOwnOrderFilter,
+    ],
+  };
 
   const [docs, total] = await Promise.all([
     FoodOrder.find(filter)
@@ -405,13 +401,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
   const partnerCapacity = await getPartnerCashCapacity(deliveryPartnerId);
   const hasAmountCapacity = Number(partnerCapacity.availableCashLimit || 0) >= orderAmount;
 
-  if (isCashOrder && !hasAmountCapacity && !canBypassCashLimit) {
-    throw new ValidationError('Cash limit is not enough for this order amount. Please deposit your amount to get orders.');
-  }
-
-  if (!partnerCapacity.hasCapacity && !canBypassCashLimit) {
-    throw new ValidationError('Cash limit reached. Please deposit your amount to get orders.');
-  }
+  // Cash limit restriction removed. All riders can accept orders.
 
   const now = new Date();
   const acceptedStatuses = ['confirmed', 'preparing', 'ready_for_pickup', 'picked_up'];

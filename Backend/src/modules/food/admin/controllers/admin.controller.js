@@ -1421,6 +1421,28 @@ export async function getAvailableDeliveryPartners(req, res, next) {
     }
 }
 
+export async function updateDeliveryPartnerAvailabilityAdmin(req, res, next) {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const { FoodDeliveryPartner } = await import('../../delivery/models/deliveryPartner.model.js');
+        const partner = await FoodDeliveryPartner.findById(id);
+        if (!partner) {
+            return res.status(404).json({ success: false, message: 'Delivery partner not found' });
+        }
+        partner.availabilityStatus = status;
+        if (status === 'offline') {
+            partner.shiftStartPic = undefined;
+            partner.shiftStartTime = undefined;
+            partner.shiftStartAddress = undefined;
+        }
+        await partner.save();
+        res.status(200).json({ success: true, message: 'Delivery partner availability updated', data: partner });
+    } catch (error) {
+        next(error);
+    }
+}
+
 // ----- Zones -----
 export async function getZones(req, res, next) {
     try {
