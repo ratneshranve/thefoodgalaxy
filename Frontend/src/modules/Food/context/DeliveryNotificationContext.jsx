@@ -8,7 +8,7 @@ export const useDeliveryNotificationContext = () => {
   if (!context) {
     // Fallback to calling the hook directly if provider is missing (e.g. in tests or isolated components)
     // However, the goal is to use the provider to avoid duplicate connections.
-    return null;
+    return useDeliveryNotifications();
   }
   return context;
 };

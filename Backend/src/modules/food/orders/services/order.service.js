@@ -1074,6 +1074,16 @@ export async function updateOrderStatusRestaurant(
           const riderRoom = rooms.delivery(assignedRiderId);
           console.log(`[DEBUG] Emitting order_status_update to rider room: ${riderRoom}`);
           io.to(riderRoom).emit("order_status_update", payload);
+      } else if (String(orderStatus).includes('cancel') && Array.isArray(order.dispatch?.offeredTo)) {
+          // If order is cancelled BEFORE a rider accepts it, dismiss the popup for everyone it was offered to
+          const claimedPayload = {
+            orderId: order._id.toString(),
+            orderMongoId: order._id?.toString?.(),
+            claimedBy: 'cancelled',
+          };
+          for (const offer of order.dispatch.offeredTo) {
+            io.to(rooms.delivery(offer.partnerId)).emit('order_claimed', claimedPayload);
+          }
       }
     }
 

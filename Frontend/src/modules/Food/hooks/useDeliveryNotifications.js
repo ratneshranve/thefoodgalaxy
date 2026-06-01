@@ -925,6 +925,13 @@ export const useDeliveryNotifications = () => {
 
     socketRef.current.on('order_cancelled', (statusData) => {
       debugLog('?? Delivery order cancelled event received via socket:', statusData);
+      stopAlertLoop();
+      activeOrderRef.current = null;
+      setNewOrder(null);
+      
+      const cancelledId = statusData?.orderId || statusData?.orderMongoId || statusData?._id;
+      if (cancelledId) setClaimedOrderId({ orderId: cancelledId, claimedBy: 'cancelled' });
+      
       setOrderStatusUpdate({
         ...(statusData || {}),
         status: 'cancelled'

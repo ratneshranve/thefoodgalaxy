@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
 import { useProximityCheck } from '@/modules/DeliveryV2/hooks/useProximityCheck';
 import { useOrderManager } from '@/modules/DeliveryV2/hooks/useOrderManager';
-import { useDeliveryNotifications } from '@food/hooks/useDeliveryNotifications';
+import { useDeliveryNotificationContext } from '@food/context/DeliveryNotificationContext';
 import { writeOrderTracking } from '@food/realtimeTracking';
 import { deliveryAPI } from '@food/api';
 import { toast } from 'sonner';
@@ -70,7 +70,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   const { isOnline, toggleOnline, riderLocation, activeOrder, tripStatus, setRiderLocation, setActiveOrder, updateTripStatus, clearActiveOrder } = useDeliveryStore();
   const { isWithinRange, distanceToTarget } = useProximityCheck();
   const { acceptOrder, reachPickup, pickUpOrder, reachDrop, completeDelivery, resetTrip } = useOrderManager();
-  const { newOrder, clearNewOrder, orderStatusUpdate, clearOrderStatusUpdate, claimedOrderId, clearClaimedOrderId, adminNotification, clearAdminNotification, isConnected: isSocketConnected, emitLocation } = useDeliveryNotifications();
+  const { newOrder, clearNewOrder, orderStatusUpdate, clearOrderStatusUpdate, claimedOrderId, clearClaimedOrderId, adminNotification, clearAdminNotification, isConnected: isSocketConnected, emitLocation } = useDeliveryNotificationContext();
   const companyName = useCompanyName();
   const { items: broadcastItems, unreadCount: notificationUnreadCount, markAsRead: markBroadcastAsRead, dismissAll: dismissAllBroadcast } = useNotificationInbox("delivery", { limit: 20 });
 
@@ -555,9 +555,17 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
     const incomingId = incomingOrder?.orderId || incomingOrder?._id || incomingOrder?.orderMongoId;
     if (incomingId && String(incomingId) === String(claimedOrderId.orderId)) {
-      toast.info('Order was taken by another delivery partner.', { duration: 4000 });
+      if (claimedOrderId.claimedBy === 'cancelled') {
+        toast.error('Order was cancelled.', { duration: 4000 });
+      } else {
+        toast.info('Order was taken by another delivery partner.', { duration: 4000 });
+      }
       setIncomingOrder(null);
       clearNewOrder();
+    } else if (!incomingId) {
+       // Failsafe: if incoming is null but we got a claim event, ensure we are clear
+       setIncomingOrder(null);
+       clearNewOrder();
     }
     clearClaimedOrderId();
   }, [claimedOrderId, incomingOrder, clearNewOrder, clearClaimedOrderId]);
