@@ -1137,10 +1137,27 @@ export async function updateOrderStatusRestaurant(
         (String(from) !== "preparing" && String(from) !== "confirmed")
       ) {
         console.log(
-          `[DEBUG] Order ${order._id.toString()} status changed to '${orderStatus}'. Triggering central delivery dispatch.`,
+          `[DEBUG] Order ${order._id.toString()} status changed to '${orderStatus}'. Triggering FRESH delivery dispatch.`,
         );
         
         try {
+            // CRITICAL: Reset dispatch state so tryAutoAssign is NOT blocked by stale locks
+            // from any previous dispatch attempt (e.g. from createOrder flow).
+            // This ensures restaurant accept ALWAYS triggers an immediate, fresh dispatch.
+            const currentDispatchStatus = order.dispatch?.status;
+            const isAlreadyAccepted = currentDispatchStatus === 'accepted' && order.dispatch?.acceptedAt;
+            
+            if (!isAlreadyAccepted) {
+              await FoodOrder.findByIdAndUpdate(order._id, {
+                $set: { 'dispatch.status': 'unassigned' },
+                $unset: { 'dispatch.dispatchingAt': '', 'dispatch.deliveryPartnerId': '' },
+              });
+              // Clear offeredTo to restart the hunt fresh
+              await FoodOrder.findByIdAndUpdate(order._id, {
+                $set: { 'dispatch.offeredTo': [] },
+              });
+            }
+            
             await dispatchService.tryAutoAssign(order._id);
             // Refresh local order state after assignment search
             order = await FoodOrder.findById(order._id); 

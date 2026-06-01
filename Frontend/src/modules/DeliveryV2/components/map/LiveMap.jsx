@@ -188,12 +188,16 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
     if (now - lastBoundsUpdateRef.current < 12000) return;
     lastBoundsUpdateRef.current = now;
 
-    const bounds = new window.google.maps.LatLngBounds();
-    if (restaurantPoint) bounds.extend(restaurantPoint);
-    if (customerPoint) bounds.extend(customerPoint);
-    if (parsedRiderLocation) bounds.extend(parsedRiderLocation);
+    if (!hasAnchors && parsedRiderLocation) {
+      map.panTo(parsedRiderLocation);
+    } else {
+      const bounds = new window.google.maps.LatLngBounds();
+      if (restaurantPoint) bounds.extend(restaurantPoint);
+      if (customerPoint) bounds.extend(customerPoint);
+      if (parsedRiderLocation) bounds.extend(parsedRiderLocation);
 
-    map.fitBounds(bounds, { top: 70, right: 70, bottom: 120, left: 70 });
+      map.fitBounds(bounds, { top: 70, right: 70, bottom: 120, left: 70 });
+    }
 
     if (parsedRiderLocation) {
       lastCenteredPosRef.current = parsedRiderLocation;

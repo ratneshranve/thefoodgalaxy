@@ -231,6 +231,24 @@ export async function tryAutoAssign(orderId, options = {}) {
           const roomName = rooms.delivery(p.partnerId);
           io.to(roomName).emit('new_order_available', { ...payload, pickupDistanceKm: p.distanceKm });
         }
+        
+        // Also send FCM push for riders with app in background/closed
+        const reNotifyList = partners.map(p => ({
+          ownerType: 'DELIVERY_PARTNER',
+          ownerId: p.partnerId,
+        }));
+        try {
+          await notifyOwnersSafely(
+            reNotifyList,
+            {
+              title: '🚴 Order Still Waiting!',
+              body: `Order #${order.order_id || order._id} needs a delivery partner. Accept now!`,
+              data: { type: 'new_order', orderId: order._id.toString() },
+            },
+          );
+        } catch (err) {
+          logger.warn(`Re-broadcast push notifications failed: ${err.message}`);
+        }
       }
 
       // Re-queue itself to keep trying
@@ -258,6 +276,24 @@ export async function tryAutoAssign(orderId, options = {}) {
           const eventPayload = { ...payload, pickupDistanceKm: p.distanceKm };
           io.to(roomName).emit('new_order_available', eventPayload);
         }
+      }
+      
+      // Phase 2 also needs FCM push for riders with app in background/closed
+      const phase2NotifyList = eligible.map(p => ({
+        ownerType: 'DELIVERY_PARTNER',
+        ownerId: p.partnerId,
+      }));
+      try {
+        await notifyOwnersSafely(
+          phase2NotifyList,
+          {
+            title: '🚴 New Order Nearby!',
+            body: `Order #${order.order_id || order._id} is waiting. Be the first to accept!`,
+            data: { type: 'new_order', orderId: order._id.toString() },
+          },
+        );
+      } catch (err) {
+        logger.warn(`Phase 2 push notifications failed: ${err.message}`);
       }
     } else {
       // PHASE 1: Offer to top few nearby riders (avoid single-partner bottleneck).
@@ -325,7 +361,7 @@ export async function tryAutoAssign(orderId, options = {}) {
 }
 
 
-export async function processDispatchTimeout(orderId, partnerId) {
+export async function processDispatchTimeout(orderId, partnerId, options = {}) {
   const order = await FoodOrder.findById(orderId);
   if (!order) return;
 
@@ -344,11 +380,11 @@ export async function processDispatchTimeout(orderId, partnerId) {
     order.dispatch.deliveryPartnerId = null;
     await order.save();
     
-    const attempt = (order.dispatch?.offeredTo?.length || 0) + 1;
+    const attempt = options.attempt || (order.dispatch?.offeredTo?.length || 0) + 1;
     await tryAutoAssign(orderId, { attempt });
   } else if (order.dispatch?.status === 'unassigned') {
     // If it's already unassigned (e.g. from a previous timeout), just keep hunting
-    const attempt = (order.dispatch?.offeredTo?.length || 0) + 1;
+    const attempt = options.attempt || (order.dispatch?.offeredTo?.length || 0) + 1;
     await tryAutoAssign(orderId, { attempt });
   }
 }
