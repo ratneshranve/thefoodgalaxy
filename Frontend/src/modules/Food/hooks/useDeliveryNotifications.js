@@ -55,6 +55,17 @@ const safeReadJson = (key) => {
   }
 };
 
+const isRiderOnline = () => {
+  try {
+    const raw = localStorage.getItem('delivery-v2-online-pref');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return !!parsed?.state?.isOnline;
+    }
+  } catch (e) {}
+  return false;
+};
+
 const decodeJwtPayload = (token) => {
   try {
     const parts = String(token || '').split('.');
@@ -524,7 +535,10 @@ export const useDeliveryNotifications = () => {
   useEffect(() => {
     const onVisibilityChange = () => {
       if (typeof document === 'undefined') return;
-      if (document.visibilityState !== 'hidden') return;
+      if (document.visibilityState !== 'hidden') {
+        void recoverDeliveryState();
+        return;
+      }
       if (!activeOrderRef.current) return;
 
       playNotificationSound(activeOrderRef.current);
@@ -535,7 +549,7 @@ export const useDeliveryNotifications = () => {
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [playNotificationSound, showBackgroundOrderNotification]);
+  }, [playNotificationSound, showBackgroundOrderNotification, recoverDeliveryState]);
 
   // Track user interaction for autoplay policy
   useEffect(() => {
@@ -849,6 +863,10 @@ export const useDeliveryNotifications = () => {
         orderId: orderData?.orderId || orderData?.orderMongoId || orderData?._id,
         dispatchStatus: orderData?.dispatch?.status,
       });
+      if (!isRiderOnline()) {
+        debugLog('?? Ignored new_order - rider is offline');
+        return;
+      }
       setNewOrder(orderData);
       handleIncomingOrderAlert(orderData);
     });
@@ -860,6 +878,10 @@ export const useDeliveryNotifications = () => {
         phase: orderData?.phase || 'unknown',
         dispatchStatus: orderData?.dispatch?.status,
       });
+      if (!isRiderOnline()) {
+        debugLog('?? Ignored new_order_available - rider is offline');
+        return;
+      }
       // Treat it the same as new_order for now - delivery boy can accept it
       setNewOrder(orderData);
       handleIncomingOrderAlert(orderData);
@@ -869,6 +891,10 @@ export const useDeliveryNotifications = () => {
       debugLog('play_notification_sound received', {
         orderId: data?.orderId || data?.orderMongoId || data?.order_id,
       });
+      if (!isRiderOnline()) {
+        debugLog('?? Ignored play_notification_sound - rider is offline');
+        return;
+      }
       const normalizedData = {
         orderId: data?.orderId || data?.order_id,
         orderMongoId: data?.orderMongoId || data?.order_mongo_id,
@@ -928,7 +954,7 @@ export const useDeliveryNotifications = () => {
       activeOrderRef.current = null;
       setNewOrder(null);
       const claimedId = data?.orderId || data?.orderMongoId || data?.order_id;
-      if (claimedId) setClaimedOrderId(claimedId);
+      if (claimedId) setClaimedOrderId({ orderId: claimedId, claimedBy: data?.claimedBy });
     });
 
     socketRef.current.on('admin_notification', (payload) => {

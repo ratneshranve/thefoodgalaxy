@@ -68,7 +68,7 @@ async function listNearbyOnlineDeliveryPartners(
     .lean();
 
   const scored = [];
-  const allowedStatuses = process.env.NODE_ENV === 'production' ? ['approved'] : ['approved', 'pending'];
+  const allowedStatuses = ['approved'];
   const STALE_GPS_MS = 10 * 60 * 1000;
 
   for (const p of allOnline) {
@@ -107,9 +107,7 @@ async function listNearbyOnlineDeliveryPartners(
     };
   }
 
-  const final = (config.env === 'production')
-    ? picked.filter(p => p.status === 'approved')
-    : picked;
+  const final = picked.filter(p => p.status === 'approved');
 
   const cashEligibleFinal = await filterPartnersByCashLimit(final, {
     requiredAmount,

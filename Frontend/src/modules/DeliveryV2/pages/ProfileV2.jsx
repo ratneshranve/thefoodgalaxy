@@ -92,7 +92,24 @@ export const ProfileV2 = () => {
     setShowLogoutConfirm(false)
     try {
       setLogoutSubmitting(true)
-      await deliveryAPI.logout()
+      let fcmToken = null;
+      let platform = "web";
+      try {
+        if (typeof window !== "undefined" && window.flutter_inappwebview) {
+          platform = "mobile";
+          const handlerNames = ["getFcmToken", "getFCMToken", "getPushToken", "getFirebaseToken"];
+          for (const handlerName of handlerNames) {
+            try {
+              const t = await window.flutter_inappwebview.callHandler(handlerName, { module: "delivery" });
+              if (t && typeof t === "string" && t.length > 20) {
+                fcmToken = t.trim();
+                break;
+              }
+            } catch (e) {}
+          }
+        }
+      } catch (e) {}
+      await deliveryAPI.logout(null, fcmToken, platform)
     } catch (error) {}
     clearModuleAuth("delivery")
     localStorage.removeItem("app:isOnline")

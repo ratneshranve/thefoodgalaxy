@@ -191,14 +191,14 @@ export const adminAPI = {
       "/auth/admin/change-password",
       { currentPassword, newPassword }
     ),
-  logout: (refreshToken) => {
+  logout: (refreshToken, fcmToken = null, platform = "web") => {
     const token =
       refreshToken ||
       (typeof localStorage !== "undefined"
         ? localStorage.getItem("admin_refreshToken")
         : null);
-    const fcmToken = typeof localStorage !== "undefined" ? localStorage.getItem("fcm_web_registered_token_admin") : null;
-    return authService.logout(token, fcmToken, "web");
+    const resolvedFcmToken = fcmToken || (typeof localStorage !== "undefined" ? localStorage.getItem("fcm_web_registered_token_admin") : null);
+    return authService.logout(token, resolvedFcmToken, platform);
   },
   // Restaurant approvals and join requests
   getPendingRestaurants: () =>
@@ -973,7 +973,7 @@ export const restaurantAPI = {
     restaurantClient.patch(`/food/restaurant/addons/${String(id)}`, body ?? {}),
   deleteAddon: (id) =>
     restaurantClient.delete(`/food/restaurant/addons/${String(id)}`),
-  logout: (refreshToken) => {
+  logout: (refreshToken, fcmToken = null, platform = "web") => {
     restaurantCurrentInFlight = null;
     restaurantCurrentCached = null;
     restaurantCurrentCacheTime = 0;
@@ -982,8 +982,8 @@ export const restaurantAPI = {
       (typeof localStorage !== "undefined"
         ? localStorage.getItem("restaurant_refreshToken")
         : null);
-    const fcmToken = typeof localStorage !== "undefined" ? localStorage.getItem("fcm_web_registered_token_restaurant") : null;
-    return authService.logout(token, fcmToken, "web");
+    const resolvedFcmToken = fcmToken || (typeof localStorage !== "undefined" ? localStorage.getItem("fcm_web_registered_token_restaurant") : null);
+    return authService.logout(token, resolvedFcmToken, platform);
   },
   /** Backend has no email/password login; use phone OTP only. */
   login: (_email, _password) =>
@@ -1255,7 +1255,7 @@ export const deliveryAPI = {
     })),
   getReferralStats: () =>
     deliveryClient.get("/food/delivery/referrals/stats"),
-  logout: (refreshToken) => {
+  logout: (refreshToken, fcmToken = null, platform = "web") => {
     deliveryMeCached = null;
     deliveryMeCacheTime = 0;
     try {
@@ -1266,8 +1266,8 @@ export const deliveryAPI = {
       (typeof localStorage !== "undefined"
         ? localStorage.getItem("delivery_refreshToken")
         : null);
-    const fcmToken = typeof localStorage !== "undefined" ? localStorage.getItem("fcm_web_registered_token_delivery") : null;
-    return authService.logout(token, fcmToken, "web");
+    const resolvedFcmToken = fcmToken || (typeof localStorage !== "undefined" ? localStorage.getItem("fcm_web_registered_token_delivery") : null);
+    return authService.logout(token, resolvedFcmToken, platform);
   },
   /** POST /food/delivery/register - multipart FormData (new partner, no token). */
   register: (formData) => {

@@ -535,15 +535,32 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   // When another delivery partner claims the incoming order (via socket 'order_claimed'),
   // dismiss the NewOrderModal and inform this delivery boy.
   useEffect(() => {
-    if (!claimedOrderId) return;
+    if (!claimedOrderId || !claimedOrderId.orderId) return;
+    
+    // Check if WE were the ones who claimed it
+    const token = localStorage.getItem('delivery_accessToken') || '';
+    let myUserId = null;
+    try {
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        myUserId = payload.userId;
+      }
+    } catch(e) {}
+    
+    if (claimedOrderId.claimedBy && String(claimedOrderId.claimedBy) === String(myUserId)) {
+      // We claimed it, do nothing here (activeOrder will handle it)
+      clearClaimedOrderId();
+      return;
+    }
+
     const incomingId = incomingOrder?.orderId || incomingOrder?._id || incomingOrder?.orderMongoId;
-    if (incomingId && String(incomingId) === String(claimedOrderId)) {
+    if (incomingId && String(incomingId) === String(claimedOrderId.orderId)) {
       toast.info('Order was taken by another delivery partner.', { duration: 4000 });
       setIncomingOrder(null);
       clearNewOrder();
     }
     clearClaimedOrderId();
-  }, [claimedOrderId]);
+  }, [claimedOrderId, incomingOrder, clearNewOrder, clearClaimedOrderId]);
 
   useEffect(() => {
     if (!isOnline) return;

@@ -113,7 +113,31 @@ export default function RestaurantOTP() {
       const email = authData.method === "email" ? authData.email : null
       const purpose = authData.isSignUp ? "register" : "login"
 
-      const response = await restaurantAPI.verifyOTP(phone, code, purpose, null, email)
+      let fcmToken = null;
+      let platform = "web";
+      try {
+        if (typeof window !== "undefined") {
+          if (window.flutter_inappwebview) {
+            platform = "mobile";
+            const handlerNames = ["getFcmToken", "getFCMToken", "getPushToken", "getFirebaseToken"];
+            for (const handlerName of handlerNames) {
+              try {
+                const t = await window.flutter_inappwebview.callHandler(handlerName, { module: "restaurant" });
+                if (t && typeof t === "string" && t.length > 20) {
+                  fcmToken = t.trim();
+                  break;
+                }
+              } catch (e) {}
+            }
+          } else {
+            fcmToken = localStorage.getItem("fcm_web_registered_token_restaurant") || null;
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to get FCM token during login", e);
+      }
+
+      const response = await restaurantAPI.verifyOTP(phone, code, purpose, null, email, fcmToken, platform)
       const data = response?.data?.data || response?.data
 
       if (data?.needsRegistration) {

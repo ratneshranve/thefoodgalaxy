@@ -336,6 +336,8 @@ export const useRestaurantNotifications = () => {
 
         if (confirmed.length > 0) {
           // Trigger alerts for newest confirmed orders (dedupe prevents spam).
+          const newest = confirmed[0];
+          setNewOrder(newest);
           confirmed.slice(0, 5).forEach((o) => handleIncomingOrderAlert(o, 'poll'));
         }
 
@@ -427,6 +429,21 @@ export const useRestaurantNotifications = () => {
       if (document.visibilityState === 'visible') {
         // Stop any repeating alert loops once the user "sees" the page
         stopAlertLoop();
+        
+        // Force a REST fetch on foreground to catch any orders missed while in background
+        if (restaurantId) {
+          restaurantAPI.getOrders({ page: 1, limit: 10 }).then(response => {
+             const rows = response?.data?.data?.orders || response?.data?.data?.data?.orders || [];
+             const confirmed = (rows || []).filter(o => {
+                const status = String(o?.status || "").toLowerCase();
+                return status === "confirmed" && (!o.scheduledAt || new Date(o.scheduledAt).getTime() <= Date.now() + 30 * 60000);
+             }).sort((a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime());
+             
+             if (confirmed.length > 0) {
+                setNewOrder(confirmed[0]);
+             }
+          }).catch(() => {});
+        }
       } else if (document.visibilityState === 'hidden' && activeOrderRef.current) {
         // Trigger one-shot alert when tab is hidden to ensure user didn't miss it
         playNotificationSound(activeOrderRef.current);
@@ -438,7 +455,7 @@ export const useRestaurantNotifications = () => {
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, []);
+  }, [restaurantId]);
 
   useEffect(() => {
     if (!API_BASE_URL || !String(API_BASE_URL).trim()) {

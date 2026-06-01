@@ -164,14 +164,40 @@ export default function MenuOverlay({ showMenu, setShowMenu }) {
                         } else if (option.isLogout) {
                           // Handle logout
                           if (window.confirm("Are you sure you want to logout?")) {
-                            // Clear authentication state
-                            localStorage.removeItem("restaurant_authenticated")
-                            localStorage.removeItem("restaurant_user")
-                            setIsAuthenticated(false)
-                            // Dispatch custom event for same-tab updates
-                            window.dispatchEvent(new Event('restaurantAuthChanged'))
-                            // Redirect to login
-                            navigate("/restaurant/login")
+                            const doLogout = async () => {
+                              try {
+                                let fcmToken = null;
+                                let platform = "web";
+                                try {
+                                  if (typeof window !== "undefined") {
+                                    if (window.flutter_inappwebview) {
+                                      platform = "mobile";
+                                      const handlerNames = ["getFcmToken", "getFCMToken", "getPushToken", "getFirebaseToken"];
+                                      for (const handlerName of handlerNames) {
+                                        try {
+                                          const t = await window.flutter_inappwebview.callHandler(handlerName, { module: "restaurant" });
+                                          if (t && typeof t === "string" && t.length > 20) {
+                                            fcmToken = t.trim();
+                                            break;
+                                          }
+                                        } catch (e) {}
+                                      }
+                                    }
+                                  }
+                                } catch (e) {}
+                                await restaurantAPI.logout(null, fcmToken, platform);
+                              } catch (e) {}
+                              
+                              // Clear authentication state
+                              localStorage.removeItem("restaurant_authenticated")
+                              localStorage.removeItem("restaurant_user")
+                              setIsAuthenticated(false)
+                              // Dispatch custom event for same-tab updates
+                              window.dispatchEvent(new Event('restaurantAuthChanged'))
+                              // Redirect to login
+                              navigate("/restaurant/login")
+                            };
+                            doLogout();
                           }
                         } else {
                           navigate(option.route)
