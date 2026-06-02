@@ -44,7 +44,8 @@ export const PocketDetailsV2 = () => {
         setLoading(true);
         const response = await deliveryAPI.getPocketDetails({
           date: weekRange.start.toISOString(),
-          limit: 2000
+          limit: 2000,
+          _t: Date.now()
         });
 
         const payload = response?.data?.data || {};
