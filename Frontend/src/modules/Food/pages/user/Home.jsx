@@ -92,7 +92,7 @@ import quickSpicyLogo from "@food/assets/quicky-spicy-logo.png";
 import offerImage from "@food/assets/offerimage.png";
 import api, { publicGetOnce, restaurantAPI, adminAPI } from "@food/api";
 import { API_BASE_URL } from "@food/api/config";
-import OptimizedImage from "@food/components/OptimizedImage";
+import OptimizedImage, { ShopPlaceholder } from "@food/components/OptimizedImage";
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability";
 import HomeHeader from "@food/components/user/home/HomeHeader";
 import QuickSection from "@food/components/user/home/QuickSection";
@@ -2850,9 +2850,9 @@ export default function Home() {
                       </div>
 
                       {/* Integrated Filters Row */}
-                      <div className="px-4 pb-3">
+                      <div className="px-4 pb-2">
                         <div
-                          className="flex items-center gap-2 overflow-x-auto scrollbar-hide"
+                          className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1"
                           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                         >
                           <button
@@ -2896,9 +2896,9 @@ export default function Home() {
                 {HeroBannerSection}
 
                 {/* Filters Sticky Sidebar Header */}
-                <section className="py-2.5 px-4 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md sticky top-0 z-[40] -mx-4 w-[calc(100%+2rem)] border-b border-gray-100 dark:border-white/5 shadow-sm transition-colors duration-300">
+                <section className="bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md sticky top-0 z-[40] -mx-4 w-[calc(100%+2rem)] border-b border-gray-100 dark:border-white/5 shadow-sm transition-colors duration-300">
                   <div
-                    className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4"
+                    className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 py-2.5"
                     style={{
                       scrollbarWidth: "none",
                       msOverflowStyle: "none",
@@ -3229,7 +3229,29 @@ export default function Home() {
               <>
                 <div
                   className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-4 lg:gap-5 xl:gap-6 px-4 pt-1 sm:pt-1.5 lg:pt-2 items-stretch ${isLoadingFilterResults || loadingRestaurants ? "opacity-50" : "opacity-100"} transition-opacity duration-300`}>
-                  {visibleRestaurants.map((restaurant, index) => {
+                  {showRestaurantSkeleton && visibleRestaurants.length === 0 ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                      <div key={`skel-card-${i}`} className="h-full">
+                        <div className="overflow-hidden gap-0 border-0 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] rounded-[28px] flex flex-col h-full w-full relative shadow-sm border border-orange-50 dark:border-orange-900/10 shadow-[0_4px_20px_rgba(249,115,22,0.04)]">
+                          {/* Image Skeleton */}
+                          <div className="relative h-48 sm:h-56 md:h-60 lg:h-64 xl:h-72 bg-[#f7f5f2] dark:bg-zinc-800 animate-pulse flex flex-col items-center justify-center">
+                             <ShopPlaceholder />
+                          </div>
+                          {/* Content Skeleton */}
+                          <div className="p-3 sm:p-4 lg:p-5 pt-3 sm:pt-4 lg:pt-5 flex flex-col flex-grow">
+                             <div className="flex items-start justify-between gap-2 mb-2 lg:mb-3">
+                               <div className="h-6 lg:h-8 w-48 lg:w-64 bg-orange-100 dark:bg-orange-900/30 rounded-md animate-pulse"></div>
+                               <div className="h-6 lg:h-8 w-16 bg-orange-200 dark:bg-orange-800/40 rounded-3xl animate-pulse"></div>
+                             </div>
+                             <div className="flex items-center gap-2 mb-2 lg:mb-3">
+                                <div className="h-4 lg:h-5 w-24 bg-orange-50 dark:bg-orange-900/20 rounded animate-pulse"></div>
+                             </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    visibleRestaurants.map((restaurant, index) => {
                     const nameStr =
                       typeof restaurant?.name === "string"
                         ? restaurant.name.trim()
@@ -3426,7 +3448,7 @@ export default function Home() {
                         </div>
                       </div>
                     );
-                  })}
+                  }))}
                 </div>
 
                 <div className="flex flex-col items-center pt-2 sm:pt-3 gap-2 px-4">

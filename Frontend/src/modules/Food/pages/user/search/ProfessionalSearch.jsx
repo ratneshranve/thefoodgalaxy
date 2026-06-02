@@ -356,6 +356,7 @@ export default function ProfessionalSearch() {
                          <OptimizedImage 
                           src={getMediaUrl(r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          placeholderType="shop"
                           fallback="/placeholder-restaurant.jpg"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80" />

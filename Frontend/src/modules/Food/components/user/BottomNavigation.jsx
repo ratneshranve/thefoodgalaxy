@@ -7,20 +7,29 @@ export default function BottomNavigation() {
   const location = useLocation()
   const pathname = location.pathname
   const [under250PriceLimit, setUnder250PriceLimit] = useState(250)
+  const [showDining, setShowDining] = useState(true)
 
-  // Fetch landing settings to get dynamic price limit
+  // Fetch landing settings to get dynamic price limit and features
   useEffect(() => {
     let cancelled = false
     api.get('/food/landing/settings/public')
       .then((res) => {
         if (cancelled) return
         const settings = res?.data?.data
-        if (settings && typeof settings.under250PriceLimit === 'number') {
-          setUnder250PriceLimit(settings.under250PriceLimit)
+        if (settings) {
+          if (typeof settings.under250PriceLimit === 'number') {
+            setUnder250PriceLimit(settings.under250PriceLimit)
+          }
+          if (typeof settings.showDining === 'boolean') {
+            setShowDining(settings.showDining)
+          }
         }
       })
       .catch(() => {
-        if (!cancelled) setUnder250PriceLimit(250)
+        if (!cancelled) {
+          setUnder250PriceLimit(250)
+          setShowDining(true)
+        }
       })
     return () => { cancelled = true }
   }, [])
@@ -67,24 +76,28 @@ export default function BottomNavigation() {
         <div className="h-8 w-px bg-gray-300 dark:bg-gray-700" />
 
         {/* Dining Tab */}
-        <Link
-          to="/food/user/dining"
-          className={`flex flex-1 flex-col items-center gap-1.5 px-2 sm:px-3 py-2 transition-all duration-200 relative ${isDining
-              ? "text-primary"
-              : "text-gray-600 dark:text-gray-400"
-            }`}
-        >
-          <UtensilsCrossed className={`h-5 w-5 ${isDining ? "text-primary" : "text-gray-600 dark:text-gray-400"}`} strokeWidth={2} />
-          <span className={`text-xs sm:text-sm font-medium ${isDining ? "text-primary font-bold" : "text-gray-600 dark:text-gray-400"}`}>
-            Dining
-          </span>
-          {isDining && (
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary rounded-b-full" />
-          )}
-        </Link>
+        {showDining && (
+          <>
+            <Link
+              to="/food/user/dining"
+              className={`flex flex-1 flex-col items-center gap-1.5 px-2 sm:px-3 py-2 transition-all duration-200 relative ${isDining
+                  ? "text-primary"
+                  : "text-gray-600 dark:text-gray-400"
+                }`}
+            >
+              <UtensilsCrossed className={`h-5 w-5 ${isDining ? "text-primary" : "text-gray-600 dark:text-gray-400"}`} strokeWidth={2} />
+              <span className={`text-xs sm:text-sm font-medium ${isDining ? "text-primary font-bold" : "text-gray-600 dark:text-gray-400"}`}>
+                Dining
+              </span>
+              {isDining && (
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary rounded-b-full" />
+              )}
+            </Link>
 
-        {/* Divider */}
-        <div className="h-8 w-px bg-gray-300 dark:bg-gray-700" />
+            {/* Divider */}
+            <div className="h-8 w-px bg-gray-300 dark:bg-gray-700" />
+          </>
+        )}
 
         {/* Under 250 Tab */}
         <Link

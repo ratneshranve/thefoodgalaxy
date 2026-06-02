@@ -11,8 +11,12 @@ import { responseTimeLogger } from './middleware/responseTimeLogger.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { healthCheck } from './config/health.js';
 import { config } from './config/env.js';
+import compression from 'compression';
 
 const app = express();
+
+// Add compression middleware to compress JSON payloads (Gzip)
+app.use(compression());
 
 // Trust first proxy (essential for express-rate-limit if behind a proxy)
 app.set('trust proxy', 1);

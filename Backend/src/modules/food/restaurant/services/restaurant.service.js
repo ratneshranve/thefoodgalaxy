@@ -1311,7 +1311,9 @@ export const listApprovedRestaurants = async (query = {}) => {
         openingTime: 1,
         closingTime: 1,
         openDays: 1,
-        zoneRank: 1
+        zoneRank: 1,
+        outletTimings: 1,
+        deliveryTimings: 1
     };
 
     // Use $geoNear only when geo is explicitly needed (radius filter or nearest sorting).

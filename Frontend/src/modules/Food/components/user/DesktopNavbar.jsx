@@ -31,6 +31,7 @@ export default function DesktopNavbar({ showLogo = true }) {
     const [companyName, setCompanyName] = useState(null)
     const [hasScrolledPastBanner, setHasScrolledPastBanner] = useState(false)
     const [under250PriceLimit, setUnder250PriceLimit] = useState(250)
+    const [showDining, setShowDining] = useState(true)
     const navRef = useRef(null)
     const cartCount = getCartCount()
 
@@ -170,12 +171,20 @@ export default function DesktopNavbar({ showLogo = true }) {
             .then((res) => {
                 if (cancelled) return
                 const settings = res?.data?.data
-                if (settings && typeof settings.under250PriceLimit === 'number') {
-                    setUnder250PriceLimit(settings.under250PriceLimit)
+                if (settings) {
+                    if (typeof settings.under250PriceLimit === 'number') {
+                        setUnder250PriceLimit(settings.under250PriceLimit)
+                    }
+                    if (typeof settings.showDining === 'boolean') {
+                        setShowDining(settings.showDining)
+                    }
                 }
             })
             .catch(() => {
-                if (!cancelled) setUnder250PriceLimit(250)
+                if (!cancelled) {
+                    setUnder250PriceLimit(250)
+                    setShowDining(true)
+                }
             })
         return () => { cancelled = true }
     }, [])
@@ -382,24 +391,26 @@ export default function DesktopNavbar({ showLogo = true }) {
                             </Link>
 
                             {/* Dining Tab */}
-                            <Link
-                                to="/food/user/dining"
-                                className={`flex flex-col items-center gap-1 px-2 py-1 transition-colors relative group ${isDining
-                                    ? "text-primary"
-                                    : "text-gray-600 dark:text-gray-400 hover:text-primary"
-                                    }`}
-                            >
-                                <span className="text-sm font-bold tracking-wide uppercase">Dining</span>
-                                {isDining && (
-                                    <motion.div
-                                        layoutId="navIndicator"
-                                        className="absolute -bottom-3 left-0 right-0 h-0.5 bg-primary"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 0.3 }}
-                                    />
-                                )}
-                            </Link>
+                            {showDining && (
+                                <Link
+                                    to="/food/user/dining"
+                                    className={`flex flex-col items-center gap-1 px-2 py-1 transition-colors relative group ${isDining
+                                        ? "text-primary"
+                                        : "text-gray-600 dark:text-gray-400 hover:text-primary"
+                                        }`}
+                                >
+                                    <span className="text-sm font-bold tracking-wide uppercase">Dining</span>
+                                    {isDining && (
+                                        <motion.div
+                                            layoutId="navIndicator"
+                                            className="absolute -bottom-3 left-0 right-0 h-0.5 bg-primary"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ duration: 0.3 }}
+                                        />
+                                    )}
+                                </Link>
+                            )}
 
                             {/* Profile Tab */}
                             <Link

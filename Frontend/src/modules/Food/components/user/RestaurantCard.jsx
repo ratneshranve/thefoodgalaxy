@@ -132,6 +132,7 @@ const RestaurantImageCarousel = React.memo(({ restaurant, priority = false, back
         ref={imageElementRef}
         src={renderSrc}
         alt={restaurant.name}
+        placeholderType="shop"
         priority={priority}
         className={`w-full h-full object-cover transform scale-100 group-hover:scale-110 transition-transform duration-700 ${
           loadedBySrc[renderSrc] ? 'opacity-100' : 'opacity-0'

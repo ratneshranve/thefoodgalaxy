@@ -1077,10 +1077,10 @@ function createInFlightCache({ ttlMs }) {
 
 // Public user-app endpoints can be called by multiple components/effects on refresh (and React StrictMode in dev).
 // A small in-flight + short TTL cache collapses duplicate requests without changing functionality.
-const publicRestaurantsCache = createInFlightCache({ ttlMs: 3000 });
-const publicRestaurantMenuCache = createInFlightCache({ ttlMs: 3000 });
-const publicRestaurantOutletTimingsCache = createInFlightCache({ ttlMs: 3000 });
-const publicGenericGetCache = createInFlightCache({ ttlMs: 3000 });
+const publicRestaurantsCache = createInFlightCache({ ttlMs: 300000 }); // 5 minutes
+const publicRestaurantMenuCache = createInFlightCache({ ttlMs: 300000 });
+const publicRestaurantOutletTimingsCache = createInFlightCache({ ttlMs: 300000 });
+const publicGenericGetCache = createInFlightCache({ ttlMs: 300000 });
 
 export const publicGetOnce = (url, config = {}) => {
   const safeUrl = typeof url === "string" ? url.trim() : "";

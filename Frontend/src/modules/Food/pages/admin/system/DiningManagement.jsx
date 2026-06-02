@@ -5,6 +5,7 @@ import { getModuleToken } from "@food/utils/auth"
 import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
 import { Button } from "@food/components/ui/button"
+import { Switch } from "@food/components/ui/switch"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -38,6 +39,10 @@ export default function DiningManagement() {
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(null)
 
+    // Global Settings
+    const [isDiningEnabled, setIsDiningEnabled] = useState(true)
+    const [isSettingsUpdating, setIsSettingsUpdating] = useState(false)
+
     const getAuthConfig = (additionalConfig = {}) => {
         const adminToken = getModuleToken('admin')
         if (!adminToken) return additionalConfig
@@ -52,6 +57,7 @@ export default function DiningManagement() {
 
     useEffect(() => {
         fetchCategories()
+        fetchSettings()
     }, [])
 
     useEffect(() => {
@@ -62,6 +68,33 @@ export default function DiningManagement() {
             fetchBanners()
         }
     }, [activeTab])
+
+    // ==================== SETTINGS ====================
+    const fetchSettings = async () => {
+        try {
+            const response = await api.get('/food/hero-banners/landing/settings', getAuthConfig())
+            if (response.data.success) {
+                const settings = response.data.data
+                setIsDiningEnabled(settings.showDining !== false) // default to true if missing
+            }
+        } catch (err) { debugError("Failed to fetch settings", err) }
+    }
+
+    const handleToggleDining = async (checked) => {
+        try {
+            setIsSettingsUpdating(true)
+            setError(null)
+            const response = await api.patch('/food/hero-banners/landing/settings', { showDining: checked }, getAuthConfig())
+            if (response.data.success) {
+                setIsDiningEnabled(checked)
+                setSuccess(`Dining section ${checked ? 'enabled' : 'disabled'} successfully.`)
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to update dining status")
+        } finally {
+            setIsSettingsUpdating(false)
+        }
+    }
 
     // ==================== CATEGORIES ====================
     const fetchCategories = async () => {
@@ -206,7 +239,7 @@ export default function DiningManagement() {
         <div className="p-4 lg:p-6 bg-slate-50 min-h-screen">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
                             <UtensilsCrossed className="w-5 h-5 text-white" />
@@ -214,6 +247,21 @@ export default function DiningManagement() {
                         <div>
                             <h1 className="text-2xl font-bold text-slate-900">Dining Management</h1>
                             <p className="text-sm text-slate-600 mt-1">Manage dining categories, restaurant links, banners, and stories</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-900">Enable Dining Section</span>
+                            <span className="text-xs text-slate-500">Toggle visibility for all users</span>
+                        </div>
+                        <div className="flex items-center">
+                            {isSettingsUpdating && <Loader2 className="w-4 h-4 mr-2 animate-spin text-blue-500" />}
+                            <Switch
+                                checked={isDiningEnabled}
+                                onCheckedChange={handleToggleDining}
+                                disabled={isSettingsUpdating}
+                                className="data-[state=checked]:bg-blue-600"
+                            />
                         </div>
                     </div>
                 </div>

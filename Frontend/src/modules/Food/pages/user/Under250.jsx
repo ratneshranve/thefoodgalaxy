@@ -68,6 +68,7 @@ export default function Under250() {
   const navigate = useNavigate()
   const { addToCart, updateQuantity, removeFromCart, getCartItem, cart } = useCart()
   const [activeCategory, setActiveCategory] = useState(initialFiltersRef.current.activeCategory)
+  const [isSwitchingCategory, setIsSwitchingCategory] = useState(false)
   const [showSortPopup, setShowSortPopup] = useState(false)
   const [selectedSort, setSelectedSort] = useState(initialFiltersRef.current.selectedSort)
   const [draftSelectedSort, setDraftSelectedSort] = useState(initialFiltersRef.current.selectedSort)
@@ -87,6 +88,7 @@ export default function Under250() {
     dragging: false,
   })
   const [categories, setCategories] = useState([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
   const [bannerImages, setBannerImages] = useState([])
   const [loadingBanner, setLoadingBanner] = useState(true)
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
@@ -140,6 +142,15 @@ export default function Under250() {
     }
     return 999
   }
+
+  const handleCategorySwitch = useCallback((categoryId) => {
+    setIsSwitchingCategory(true)
+    setActiveCategory(categoryId)
+    // Small artificial delay to show skeleton and allow images to load gracefully
+    setTimeout(() => {
+      setIsSwitchingCategory(false)
+    }, 400)
+  }, [])
 
   // Helper function to parse distance (e.g., "0.4 km" -> 0.4)
   const parseDistance = (distance) => {
@@ -466,6 +477,7 @@ export default function Under250() {
 
     const fetchCategories = async () => {
       try {
+        setLoadingCategories(true)
         const response = await adminAPI.getPublicCategories(zoneId ? { zoneId } : {})
         const categoriesRaw = Array.isArray(response?.data?.data?.categories)
           ? response.data.data.categories
@@ -495,6 +507,8 @@ export default function Under250() {
       } catch (error) {
         debugError("Error fetching under-250 categories:", error)
         if (!cancelled) setCategories([])
+      } finally {
+        if (!cancelled) setLoadingCategories(false)
       }
     }
 
@@ -794,7 +808,7 @@ export default function Under250() {
 
     const itemId = selectedItem.id || selectedItem._id
     const restaurantSlug = selectedItem.restaurantSlug || selectedItem.slug || ""
-    const shareUrl = restaurantSlug
+    const shareUrl = selectedItem.restaurantSlug
       ? `${window.location.origin}/user/restaurants/${restaurantSlug}${itemId ? `?dish=${encodeURIComponent(itemId)}` : ""}`
       : window.location.href
     const shareText = `Check out ${selectedItem.name || "this dish"} from ${selectedItem.restaurant || "Under 250"}`
@@ -935,7 +949,7 @@ export default function Under250() {
             }}
           >
             {/* All Button */}
-            <div className="flex-shrink-0 cursor-pointer" onClick={() => setActiveCategory(null)}>
+            <div className="flex-shrink-0 cursor-pointer" onClick={() => handleCategorySwitch(null)}>
               <motion.div
                 className="flex flex-col items-center gap-2 w-[62px] sm:w-24 md:w-28"
                 whileHover={{ scale: 1.1, y: -4 }}
@@ -952,33 +966,44 @@ export default function Under250() {
                 </span>
               </motion.div>
             </div>
-            {categories.map((category, index) => {
-              const isActive = activeCategory === category.id
-              return (
-                <div key={category.id} className="flex-shrink-0 cursor-pointer" onClick={() => setActiveCategory(isActive ? null : category.id)}>
-                    <motion.div
-                      className="flex flex-col items-center gap-2 w-[62px] sm:w-24 md:w-28"
-                      whileHover={{ scale: 1.1, y: -4 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    >
-                      <div className={`w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-md transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
-                        <OptimizedImage
-                          src={category.image}
-                          alt={category.name}
-                          className="w-full h-full bg-white rounded-full"
-                          objectFit="cover"
-                          sizes="(max-width: 640px) 62px, (max-width: 768px) 96px, 112px"
-                          placeholder="blur"
-                        />
-                      </div>
-                      <span className={`text-xs sm:text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 text-center pb-1 ${isActive ? 'text-primary' : ''}`}>
-                        {category.name.length > 7 ? `${category.name.slice(0, 7)}...` : category.name}
-                      </span>
-                    </motion.div>
+            {loadingCategories ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={`skel-cat-${i}`} className="flex-shrink-0">
+                  <div className="flex flex-col items-center gap-2 w-[62px] sm:w-24 md:w-28">
+                    <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full shadow-md bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+                    <div className="h-3 sm:h-4 w-12 sm:w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse pb-1"></div>
+                  </div>
                 </div>
-              )
-            })}
+              ))
+            ) : (
+              categories.map((category, index) => {
+                const isActive = activeCategory === category.id
+                return (
+                  <div key={category.id} className="flex-shrink-0 cursor-pointer" onClick={() => handleCategorySwitch(isActive ? null : category.id)}>
+                      <motion.div
+                        className="flex flex-col items-center gap-2 w-[62px] sm:w-24 md:w-28"
+                        whileHover={{ scale: 1.1, y: -4 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      >
+                        <div className={`w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-md transition-all ${isActive ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
+                          <OptimizedImage
+                            src={category.image}
+                            alt={category.name}
+                            className="w-full h-full bg-white rounded-full"
+                            objectFit="cover"
+                            sizes="(max-width: 640px) 62px, (max-width: 768px) 96px, 112px"
+                            placeholder="blur"
+                          />
+                        </div>
+                        <span className={`text-xs sm:text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 text-center pb-1 ${isActive ? 'text-primary' : ''}`}>
+                          {category.name.length > 7 ? `${category.name.slice(0, 7)}...` : category.name}
+                        </span>
+                      </motion.div>
+                  </div>
+                )
+              })
+            )}
           </div>
         </section>
 
@@ -1011,9 +1036,39 @@ export default function Under250() {
 
 
         {/* Restaurant Menu Sections */}
-        {loadingRestaurants ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="text-gray-500 dark:text-gray-400">Loading restaurants...</div>
+        {loadingRestaurants || isSwitchingCategory ? (
+          <div className="space-y-8 sm:space-y-10 md:space-y-12">
+            {Array.from({ length: 3 }).map((_, rIndex) => (
+              <section key={`skel-rest-${rIndex}`} className="pt-4 sm:pt-6 md:pt-8 lg:pt-10">
+                {/* Skeleton Restaurant Header */}
+                <div className="flex items-start justify-between mb-3 md:mb-4 lg:mb-6">
+                  <div className="flex-1 space-y-3">
+                    <div className="h-6 sm:h-8 w-48 sm:w-64 bg-orange-100 dark:bg-orange-900/30 rounded-md animate-pulse shadow-[0_0_15px_rgba(249,115,22,0.15)]"></div>
+                    <div className="flex items-center gap-3">
+                      <div className="h-4 w-20 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.1)]"></div>
+                      <div className="h-4 w-24 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.1)]"></div>
+                      <div className="h-4 w-16 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.1)]"></div>
+                    </div>
+                  </div>
+                </div>
+                {/* Skeleton Menu Items Horizontal Scroll */}
+                <div className="flex md:grid gap-3 sm:gap-4 md:gap-5 lg:gap-6 overflow-hidden md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {Array.from({ length: 4 }).map((_, iIndex) => (
+                    <div key={`skel-item-${rIndex}-${iIndex}`} className="flex-shrink-0 w-[200px] sm:w-[220px] md:w-full bg-white dark:bg-[#1a1a1a] rounded-lg md:rounded-xl border border-orange-100 dark:border-orange-900/20 overflow-hidden relative shadow-[0_4px_20px_rgba(249,115,22,0.08)]">
+                      <div className="w-full h-32 sm:h-36 md:h-40 lg:h-48 xl:h-52 bg-orange-50 dark:bg-orange-900/20 animate-pulse"></div>
+                      <div className="p-3 md:p-4 space-y-3">
+                        <div className="h-5 w-3/4 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse"></div>
+                        <div className="h-5 w-1/4 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse mt-2"></div>
+                        <div className="flex justify-between items-center mt-4">
+                          <div className="h-6 w-1/3 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse"></div>
+                          <div className="h-8 w-20 bg-orange-200 dark:bg-orange-800/40 rounded-full animate-pulse"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         ) : sortedAndFilteredRestaurants.length === 0 ? (
           <div className="flex justify-center items-center py-12">
@@ -1078,10 +1133,6 @@ export default function Under250() {
                             key={item.id}
                             className="flex-shrink-0 w-[200px] sm:w-[220px] md:w-full bg-white dark:bg-[#1a1a1a] rounded-lg md:rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden cursor-pointer relative"
                             onClick={() => !isClosed && handleItemClick(item, restaurant)}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true, margin: "-50px" }}
-                            transition={{ duration: 0.4, delay: itemIndex * 0.05 }}
                             whileHover={{ y: -8, scale: 1.02 }}
                             style={{ boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" }}
                           >
