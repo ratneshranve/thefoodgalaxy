@@ -58,6 +58,11 @@ const USER_SESSION_PREFERENCE_KEYS = ["userVegMode", "food-under-250-filters"];
 
 import { registerWebPushForCurrentModule } from "@food/utils/firebaseMessaging";
 
+const profilePageCache = {
+  referralReward: null,
+  walletBalance: null
+};
+
 export default function Profile() {
   const { userProfile, vegMode, setVegMode, getDefaultAddress, addresses } =
     useProfile();
@@ -82,8 +87,8 @@ export default function Profile() {
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [referralReward, setReferralReward] = useState(0);
-  const [walletBalance, setWalletBalance] = useState(0);
+  const [referralReward, setReferralReward] = useState(() => profilePageCache.referralReward || 0);
+  const [walletBalance, setWalletBalance] = useState(() => profilePageCache.walletBalance || 0);
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
   const [deleteStep, setDeleteStep] = useState(1);
   const [deleteCaptcha, setDeleteCaptcha] = useState("");
@@ -249,12 +254,17 @@ export default function Profile() {
   const profileCompletion = calculateProfileCompletion();
   const isComplete = profileCompletion === 100;
   useEffect(() => {
+    if (profilePageCache.referralReward !== null) {
+      return;
+    }
     let mounted = true;
     userAPI
       .getReferralStats()
       .then((res) => {
         const reward = res?.data?.data?.stats?.rewardAmount;
-        if (mounted) setReferralReward(Number(reward) || 0);
+        const finalReward = Number(reward) || 0;
+        if (mounted) setReferralReward(finalReward);
+        profilePageCache.referralReward = finalReward;
       })
       .catch(() => { });
     return () => {
@@ -263,13 +273,18 @@ export default function Profile() {
   }, []);
 
   useEffect(() => {
+    if (profilePageCache.walletBalance !== null) {
+      return;
+    }
     let mounted = true;
     userAPI
       .getWallet()
       .then((res) => {
         const w = res?.data?.data?.wallet || res?.data?.wallet;
         const bal = Number(w?.balance);
-        if (mounted) setWalletBalance(Number.isFinite(bal) ? bal : 0);
+        const finalBal = Number.isFinite(bal) ? bal : 0;
+        if (mounted) setWalletBalance(finalBal);
+        profilePageCache.walletBalance = finalBal;
       })
       .catch(() => { });
     return () => {

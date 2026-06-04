@@ -390,6 +390,18 @@ const RestaurantImageCarousel = React.memo(
   },
 );
 
+const homePageCache = {
+  effectiveZoneId: null,
+  landingExploreMore: null,
+  exploreMoreHeading: null,
+  recommendedRestaurantIds: null,
+  under250PriceLimit: null,
+  recommendedRestaurantsFromSettings: null,
+  festBannerVideoUrl: null,
+  heroBannerImages: null,
+  heroBannersData: null,
+};
+
 export default function Home() {
   const HERO_BANNER_AUTO_SLIDE_MS = 3500;
   const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -452,23 +464,23 @@ export default function Home() {
   }, []);
 
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const [heroBannerImages, setHeroBannerImages] = useState([]);
-  const [heroBannersData, setHeroBannersData] = useState([]); // Store full banner data with linked restaurants
-  const [loadingBanners, setLoadingBanners] = useState(true);
+  const [heroBannerImages, setHeroBannerImages] = useState(() => homePageCache.heroBannerImages || []);
+  const [heroBannersData, setHeroBannersData] = useState(() => homePageCache.heroBannersData || []); 
+  const [loadingBanners, setLoadingBanners] = useState(() => !homePageCache.heroBannerImages);
   const [hasScrolledPastBanner, setHasScrolledPastBanner] = useState(false);
   const [landingCategories, setLandingCategories] = useState([]);
-  const [landingExploreMore, setLandingExploreMore] = useState([]);
-  const [exploreMoreHeading, setExploreMoreHeading] = useState("Explore More");
-  const [festBannerVideoUrl, setFestBannerVideoUrl] = useState("");
-  const [recommendedRestaurantIds, setRecommendedRestaurantIds] = useState([]);
-  const [under250PriceLimit, setUnder250PriceLimit] = useState(250);
+  const [landingExploreMore, setLandingExploreMore] = useState(() => homePageCache.landingExploreMore || []);
+  const [exploreMoreHeading, setExploreMoreHeading] = useState(() => homePageCache.exploreMoreHeading || "Explore More");
+  const [festBannerVideoUrl, setFestBannerVideoUrl] = useState(() => homePageCache.festBannerVideoUrl || "");
+  const [recommendedRestaurantIds, setRecommendedRestaurantIds] = useState(() => homePageCache.recommendedRestaurantIds || []);
+  const [under250PriceLimit, setUnder250PriceLimit] = useState(() => homePageCache.under250PriceLimit || 250);
   const [
     recommendedRestaurantsFromSettings,
     setRecommendedRestaurantsFromSettings,
-  ] = useState([]);
-  const [loadingLandingConfig, setLoadingLandingConfig] = useState(true);
-  const [restaurantsData, setRestaurantsData] = useState([]);
-  const [loadingRestaurants, setLoadingRestaurants] = useState(true);
+  ] = useState(() => homePageCache.recommendedRestaurantsFromSettings || []);
+  const [loadingLandingConfig, setLoadingLandingConfig] = useState(() => !homePageCache.landingExploreMore);
+  const [restaurantsData, setRestaurantsData] = useState(() => homePageCache.restaurantsData || []);
+  const [loadingRestaurants, setLoadingRestaurants] = useState(() => !homePageCache.restaurantsData);
   const [realCategories, setRealCategories] = useState([]);
   const [loadingRealCategories, setLoadingRealCategories] = useState(true);
   const [menuCategories, setMenuCategories] = useState([]);
@@ -1285,6 +1297,10 @@ export default function Home() {
 
   // Fetch explore icons and landing settings from public APIs
   useEffect(() => {
+    if (homePageCache.landingExploreMore && homePageCache.effectiveZoneId === effectiveZoneId) {
+      setLoadingLandingConfig(false);
+      return;
+    }
     let cancelled = false;
     setLoadingLandingConfig(true);
     Promise.all([
@@ -1301,21 +1317,33 @@ export default function Home() {
           : Array.isArray(exploreData)
             ? exploreData
             : [];
-        setLandingExploreMore(
-          items.map((it) => ({
-            ...it,
-            imageUrl: it.imageUrl || it.iconUrl,
-            label: it.label || it.name,
-          })),
-        );
+        const exploreMoreData = items.map((it) => ({
+          ...it,
+          imageUrl: it.imageUrl || it.iconUrl,
+          label: it.label || it.name,
+        }));
+        setLandingExploreMore(exploreMoreData);
+        
         const settings = settingsRes?.data?.data || {};
-        setExploreMoreHeading(settings.exploreMoreHeading || "Explore More");
+        const heading = settings.exploreMoreHeading || "Explore More";
+        setExploreMoreHeading(heading);
         setRecommendedRestaurantIds(settings.recommendedRestaurantIds || []);
         setUnder250PriceLimit(Number(settings.under250PriceLimit) || 250);
-        setRecommendedRestaurantsFromSettings(
-          settings.recommendedRestaurants || [],
-        );
-        setFestBannerVideoUrl(typeof settings.festBannerVideoUrl === "string" ? settings.festBannerVideoUrl : "");
+        
+        const recRest = settings.recommendedRestaurants || [];
+        setRecommendedRestaurantsFromSettings(recRest);
+        
+        const video = typeof settings.festBannerVideoUrl === "string" ? settings.festBannerVideoUrl : "";
+        setFestBannerVideoUrl(video);
+        
+        // Update cache
+        homePageCache.landingExploreMore = exploreMoreData;
+        homePageCache.exploreMoreHeading = heading;
+        homePageCache.recommendedRestaurantIds = settings.recommendedRestaurantIds || [];
+        homePageCache.under250PriceLimit = Number(settings.under250PriceLimit) || 250;
+        homePageCache.recommendedRestaurantsFromSettings = recRest;
+        homePageCache.festBannerVideoUrl = video;
+        homePageCache.effectiveZoneId = effectiveZoneId;
       })
       .catch(() => {
         if (!cancelled) {
@@ -1335,6 +1363,10 @@ export default function Home() {
 
   // Fetch hero banners from public API (no auth required)
   useEffect(() => {
+    if (homePageCache.heroBannerImages && homePageCache.effectiveZoneId === effectiveZoneId) {
+      setLoadingBanners(false);
+      return;
+    }
     let cancelled = false;
     setLoadingBanners(true);
     publicGetOnce("/food/hero-banners/public", { params: { zoneId: effectiveZoneId } })
@@ -1352,6 +1384,10 @@ export default function Home() {
         setHeroBannerImages(images);
         setHeroBannersData(list);
         setCurrentBannerIndex(0);
+        
+        homePageCache.heroBannerImages = images;
+        homePageCache.heroBannersData = list;
+        homePageCache.effectiveZoneId = effectiveZoneId;
       })
       .catch((err) => {
         if (cancelled) return;
@@ -1433,6 +1469,14 @@ export default function Home() {
   // Fetch restaurants from API with filters
   const fetchRestaurants = useCallback(
     async (filters = {}) => {
+      const isDefaultFetch = Object.keys(filters).length === 0 || 
+        (!filters.sortBy && !filters.selectedCuisine && (!filters.activeFilters || filters.activeFilters.size === 0));
+        
+      if (isDefaultFetch && homePageCache.restaurantsData && homePageCache.effectiveZoneId === effectiveZoneId) {
+        setLoadingRestaurants(false);
+        return;
+      }
+      
       const requestSeq = ++restaurantsRequestSeqRef.current;
       try {
         setLoadingRestaurants(true);
@@ -1786,7 +1830,16 @@ export default function Home() {
             transformedRestaurants,
           );
           startTransition(() => {
-            setRestaurantsData(sortRestaurantsForDisplay(transformedRestaurants));
+            const finalSorted = sortRestaurantsForDisplay(transformedRestaurants);
+            setRestaurantsData(finalSorted);
+            
+            const isDefaultFetch = Object.keys(filters).length === 0 || 
+              (!filters.sortBy && !filters.selectedCuisine && (!filters.activeFilters || filters.activeFilters.size === 0));
+            
+            if (isDefaultFetch) {
+              homePageCache.restaurantsData = finalSorted;
+              homePageCache.effectiveZoneId = effectiveZoneId;
+            }
           });
 
           const restaurantsNeedingOutletTimings = transformedRestaurants.filter(
