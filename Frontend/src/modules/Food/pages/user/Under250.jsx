@@ -488,7 +488,8 @@ export default function Under250() {
 
   // Fetch under-50 banner from public API
   useEffect(() => {
-    if (bannerImages.length > 0 && isCacheValid) {
+    if (pageCache.zoneId === zoneId && pageCache.bannerImages?.length > 0) {
+      setBannerImages(pageCache.bannerImages);
       setLoadingBanner(false);
       return;
     }
@@ -618,7 +619,12 @@ export default function Under250() {
 
   // 1. Fetch initial raw restaurant list
   useEffect(() => {
-    if (allRawRestaurants.length > 0 && isCacheValid) {
+    if (pageCache.zoneId === zoneId && pageCache.allRawRestaurants?.length > 0) {
+      setAllRawRestaurants(pageCache.allRawRestaurants);
+      setVisibleRestaurantCount(pageCache.visibleRestaurantCount || 5);
+      setUnder250Restaurants(pageCache.under250Restaurants || []);
+      fetchedIdsRef.current = new Set(pageCache.fetchedIds);
+      setHasMore(pageCache.hasMore !== undefined ? pageCache.hasMore : true);
       setLoadingRestaurants(false);
       return;
     }
@@ -766,6 +772,13 @@ export default function Under250() {
                 distance: distanceInKm !== null ? formatDistance(distanceInKm) : fallbackDistance,
                 distanceInKm,
                 discount: restaurant?.discount || 0,
+                isActive: restaurant?.isActive !== false,
+                isAcceptingOrders: restaurant?.isAcceptingOrders !== false,
+                openDays: Array.isArray(restaurant?.openDays) ? restaurant.openDays : [],
+                outletTimings: restaurant?.outletTimings || null,
+                deliveryTimings: restaurant?.deliveryTimings || null,
+                openingTime: restaurant?.openingTime || restaurant?.deliveryTimings?.openingTime || null,
+                closingTime: restaurant?.closingTime || restaurant?.deliveryTimings?.closingTime || null,
                 originalIndex: allRawRestaurants.findIndex(r => String(r?.restaurantId || r?._id) === String(restaurantId)),
                 menuItems,
               }
@@ -830,7 +843,8 @@ export default function Under250() {
 
   // Fetch categories from backend (no static fallback list)
   useEffect(() => {
-    if (categories.length > 0 && isCacheValid) {
+    if (pageCache.zoneId === zoneId && pageCache.categories?.length > 0) {
+      setCategories(pageCache.categories);
       setLoadingCategories(false);
       return;
     }

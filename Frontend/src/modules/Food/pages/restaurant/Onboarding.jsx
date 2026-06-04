@@ -41,7 +41,7 @@ const IFSC_CODE_REGEX = /^[A-Z0-9]{11}$/
 const OWNER_NAME_REGEX = /^[A-Za-z ]+$/
 const ACCOUNT_HOLDER_NAME_REGEX = /^[A-Za-z ]+$/
 const GST_LEGAL_NAME_REGEX = /^[A-Za-z ]+$/
-const LOCAL_IMAGE_FILE_ACCEPT = ".jpg,.jpeg,.png,.webp,.heic,.heif"
+const LOCAL_IMAGE_FILE_ACCEPT = "image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
 const LOCAL_PDF_FILE_ACCEPT = ".pdf,application/pdf"
 const GALLERY_IMAGE_ACCEPT =
   ".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif"
@@ -333,6 +333,7 @@ const saveOnboardingToLocalStorage = (step1, step2, step3, currentStep) => {
       step3: serializableStep3,
       currentStep,
       timestamp: Date.now(),
+      loginPhone: getVerifiedPhoneFromStoredRestaurant(),
     }
     localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(dataToSave))
   } catch (error) {
@@ -1091,11 +1092,13 @@ export default function RestaurantOnboarding() {
         // 3. APPLY LOCAL OVERRIDES (The "Persistence" fix)
         // If localStorage has unsaved changes for this user, apply them over the API/Initial state.
         if (localData) {
-          const savedPhone = normalizePhoneDigits(localData.step1?.ownerPhone || "")
+          const savedLoginPhone = normalizePhoneDigits(localData.loginPhone || "")
+          const savedOwnerPhone = normalizePhoneDigits(localData.step1?.ownerPhone || "")
+          const checkPhone = savedLoginPhone || savedOwnerPhone
           const normalizedCurrent = normalizePhoneDigits(currentPhone)
           
           // Only use local data if it belongs to the same user or if the phone was not saved yet
-          if (!savedPhone || !normalizedCurrent || savedPhone === normalizedCurrent) {
+          if (!checkPhone || !normalizedCurrent || checkPhone === normalizedCurrent) {
             debugLog("? Matching local session found. Resuming with unsaved changes.")
             
             if (localData.step1) {
@@ -2564,18 +2567,6 @@ export default function RestaurantOnboarding() {
               value={step2.openingTime || ""}
               onChange={(val) => {
                 const nextOpening = normalizeTimeValue(val) || ""
-                const openingMinutes = timeStringToMinutes(nextOpening)
-                const closingMinutes = timeStringToMinutes(step2.closingTime)
-                if (openingMinutes !== null && closingMinutes !== null) {
-                  if (openingMinutes === closingMinutes) {
-                    toast.error("Opening time and closing time cannot be same")
-                    return
-                  }
-                  if (closingMinutes < openingMinutes) {
-                    toast.error("Closing time cannot be less than opening time")
-                    return
-                  }
-                }
                 setStep2((prev) => ({ ...prev, openingTime: nextOpening }))
               }}
             />
@@ -2584,18 +2575,6 @@ export default function RestaurantOnboarding() {
               value={step2.closingTime || ""}
               onChange={(val) => {
                 const nextClosing = normalizeTimeValue(val) || ""
-                const openingMinutes = timeStringToMinutes(step2.openingTime)
-                const closingMinutes = timeStringToMinutes(nextClosing)
-                if (openingMinutes !== null && closingMinutes !== null) {
-                  if (openingMinutes === closingMinutes) {
-                    toast.error("Opening time and closing time cannot be same")
-                    return
-                  }
-                  if (closingMinutes < openingMinutes) {
-                    toast.error("Closing time cannot be less than opening time")
-                    return
-                  }
-                }
                 setStep2((prev) => ({ ...prev, closingTime: nextClosing }))
               }}
             />

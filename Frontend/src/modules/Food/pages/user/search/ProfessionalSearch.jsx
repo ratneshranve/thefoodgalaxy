@@ -140,6 +140,24 @@ export default function ProfessionalSearch() {
     }
   }, [debouncedQuery, selectedCategoryId, performSearch, setSearchParams])
 
+  // Auto-scroll to selected category on load or when category changes
+  useEffect(() => {
+    if (selectedCategoryId && categories.length > 0) {
+      setTimeout(() => {
+        const el = document.getElementById(`cat-${selectedCategoryId}`);
+        if (el && el.parentElement) {
+          const container = el.parentElement;
+          const containerCenter = container.offsetWidth / 2;
+          const elementCenter = el.offsetLeft + (el.offsetWidth / 2);
+          container.scrollTo({
+            left: elementCenter - containerCenter,
+            behavior: 'smooth'
+          });
+        }
+      }, 150);
+    }
+  }, [selectedCategoryId, categories]);
+
   // Speech Recognition Implementation
   const handleVoiceSearch = () => {
     if (isListening) {
@@ -156,7 +174,20 @@ export default function ProfessionalSearch() {
     setResults({ restaurants: [], dishes: [] })
   }
 
-  const handleCategoryClick = (id) => {
+  const handleCategoryClick = (id, e) => {
+    // Scroll the clicked element to center reliably
+    if (e && e.currentTarget && e.currentTarget.parentElement) {
+        const el = e.currentTarget;
+        const container = el.parentElement;
+        const containerCenter = container.offsetWidth / 2;
+        const elementCenter = el.offsetLeft + (el.offsetWidth / 2);
+        
+        container.scrollTo({
+          left: elementCenter - containerCenter,
+          behavior: 'smooth'
+        });
+    }
+
     const newCat = selectedCategoryId === id ? null : id
     setSelectedCategoryId(newCat)
     if (newCat) {
@@ -245,8 +276,9 @@ export default function ProfessionalSearch() {
                 .slice(0, 15) // Limit to top 15 to keep it clean
                 .map((cat) => (
                 <button 
+                  id={`cat-${cat._id}`}
                   key={cat._id} 
-                  onClick={() => handleCategoryClick(cat._id)}
+                  onClick={(e) => handleCategoryClick(cat._id, e)}
                   className="flex flex-col items-center group transition-all active:scale-95 snap-start shrink-0 w-16 sm:w-20"
                 >
                   <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full mb-2 transition-all duration-300 shrink-0 ${selectedCategoryId === cat._id ? 'border-[3px] border-primary shadow-md shadow-primary/20 bg-white p-[2px]' : 'border border-gray-200/80 shadow-sm bg-gray-50 dark:bg-zinc-900 group-hover:border-primary/40 p-[2px]'}`}>

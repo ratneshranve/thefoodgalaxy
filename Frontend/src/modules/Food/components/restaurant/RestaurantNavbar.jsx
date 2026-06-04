@@ -453,24 +453,6 @@ export default function RestaurantNavbar({
               )}
             </button>
           )}
-
-        {/* Support/Help Icon */}
-        <button
-          onClick={() => navigate("/food/restaurant/help-centre/support")}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          aria-label="Support"
-        >
-          <HelpCircle className="w-5 h-5 text-white" />
-        </button>
-
-        {/* Hamburger Menu Icon */}
-        <button
-          onClick={handleMenuClick}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          aria-label="Menu"
-        >
-          <Menu className="w-5 h-5 text-white" />
-        </button>
       </div>
       
       {/* Real-time Dining Booking Popup */}

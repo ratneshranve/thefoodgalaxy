@@ -804,6 +804,40 @@ export default function Inventory() {
   const isSwiping = useRef(false)
   const mouseStartX = useRef(0)
 
+  // Handle browser back button for all popups
+  const anyPopupOpen = filterOpen || togglePopupOpen || isAddPopupOpen || showBulkUpload || showCalendar || showTimePicker || isMenuOpen;
+  const popupStatePushed = useRef(false);
+
+  useEffect(() => {
+    if (anyPopupOpen && !popupStatePushed.current) {
+      window.history.pushState({ popupOpen: true }, '');
+      popupStatePushed.current = true;
+    } else if (!anyPopupOpen && popupStatePushed.current) {
+      popupStatePushed.current = false;
+      if (window.history.state?.popupOpen) {
+        window.history.back();
+      }
+    }
+  }, [anyPopupOpen]);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (popupStatePushed.current) {
+        popupStatePushed.current = false;
+        
+        if (showCalendar) setShowCalendar(false);
+        else if (showTimePicker) setShowTimePicker(false);
+        else if (togglePopupOpen) setTogglePopupOpen(false);
+        else if (filterOpen) setFilterOpen(false);
+        else if (isAddPopupOpen) setIsAddPopupOpen(false);
+        else if (showBulkUpload) setShowBulkUpload(false);
+        else if (isMenuOpen) setIsMenuOpen(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [showCalendar, showTimePicker, togglePopupOpen, filterOpen, isAddPopupOpen, showBulkUpload, isMenuOpen]);
+
   // XLSX Helper: Loads the library dynamically from CDN
   const loadXlsx = () => {
     return new Promise((resolve, reject) => {

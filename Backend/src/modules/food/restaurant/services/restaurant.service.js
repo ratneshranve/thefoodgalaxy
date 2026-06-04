@@ -6,6 +6,7 @@ import { FoodZone } from '../../admin/models/zone.model.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodDiningRestaurant } from '../../dining/models/diningRestaurant.model.js';
 import Promocode from '../../../../models/Promocode.js';
+import { upsertOutletTimingsForRestaurant } from './outletTimings.service.js';
 
 const normalizeName = (value) =>
     String(value || '')
@@ -413,6 +414,24 @@ export const registerRestaurant = async (payload, files) => {
             pendingUpdateReason: 'New Registration',
             ...images
         });
+
+        try {
+            const outletTimingsToSave = {};
+            const daysArr = Array.isArray(openDays) ? openDays : [];
+            const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            
+            for (const day of DAY_NAMES) {
+                const isOpen = daysArr.includes(day);
+                outletTimingsToSave[day] = {
+                    isOpen,
+                    openingTime: isOpen ? (normalizedOpeningTime || '09:00') : '',
+                    closingTime: isOpen ? (normalizedClosingTime || '22:00') : ''
+                };
+            }
+            await upsertOutletTimingsForRestaurant(restaurant._id, outletTimingsToSave);
+        } catch (e) {
+            console.error('Failed to create outlet timings for new restaurant:', e);
+        }
 
         try {
             const { notifyAdminsSafely } = await import('../../../../core/notifications/firebase.service.js');
@@ -1347,8 +1366,30 @@ export const listApprovedRestaurants = async (query = {}) => {
             return { $sort: { computedZoneRank: 1, distanceMeters: 1 } };
         })();
 
+        const lookupStages = [
+            {
+                $lookup: {
+                    from: 'food_restaurant_outlet_timings',
+                    localField: '_id',
+                    foreignField: 'restaurantId',
+                    as: 'outletTimingsDoc'
+                }
+            },
+            {
+                $addFields: {
+                    outletTimings: { 
+                        $ifNull: [
+                            { $arrayElemAt: ['$outletTimingsDoc.timings', 0] }, 
+                            []
+                        ] 
+                    }
+                }
+            }
+        ];
+
         const basePipeline = [
             geoNear,
+            ...lookupStages,
             {
                 $addFields: {
                     distanceInKm: { $round: [{ $divide: ['$distanceMeters', 1000] }, 2] },
@@ -1382,8 +1423,30 @@ export const listApprovedRestaurants = async (query = {}) => {
         return { $sort: { computedZoneRank: 1, createdAt: -1 } };
     })();
 
+    const lookupStages = [
+        {
+            $lookup: {
+                from: 'food_restaurant_outlet_timings',
+                localField: '_id',
+                foreignField: 'restaurantId',
+                as: 'outletTimingsDoc'
+            }
+        },
+        {
+            $addFields: {
+                outletTimings: { 
+                    $ifNull: [
+                        { $arrayElemAt: ['$outletTimingsDoc.timings', 0] }, 
+                        []
+                    ] 
+                }
+            }
+        }
+    ];
+
     const basePipeline = [
         { $match: filter },
+        ...lookupStages,
         { $addFields: { computedZoneRank: { $ifNull: ['$zoneRank', 999] } } },
         sort
     ];

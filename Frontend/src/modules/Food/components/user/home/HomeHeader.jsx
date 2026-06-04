@@ -183,13 +183,13 @@ export default function HomeHeader({
           <div className="flex items-center gap-2.5">
             {/* Pure Veg Toggle */}
             <div 
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all duration-300 ${vegMode ? 'border-white/40 bg-white/10' : 'border-white/10 bg-white/5'}`}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full shadow-lg backdrop-blur-md transition-all duration-300 cursor-pointer active:scale-95 border ${vegMode ? 'bg-white border-green-500 shadow-green-500/30' : 'bg-white/90 border-white/50 hover:bg-white'}`}
               onClick={() => handleVegModeChange?.(!vegMode)}
             >
-              <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${vegMode ? 'border-white bg-white' : 'border-white/30'}`}>
-                {vegMode && <div className="w-1 h-1 rounded-full bg-[#00b09b]" />}
+              <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-all ${vegMode ? 'border-green-500 bg-green-500' : 'border-gray-400 bg-gray-100'}`}>
+                {vegMode && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
               </div>
-              <span className={`text-[8px] font-black uppercase tracking-tight ${vegMode ? 'text-white' : 'text-white/60'}`}>Veg</span>
+              <span className={`text-[10px] font-black uppercase tracking-wider ${vegMode ? 'text-green-600' : 'text-gray-700'}`}>Veg</span>
             </div>
  
             <Popover>
