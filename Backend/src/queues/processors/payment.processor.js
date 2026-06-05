@@ -2,6 +2,7 @@ import { logger } from '../../utils/logger.js';
 import { creditWallet } from '../../core/payments/wallet.service.js';
 import { createPayment, markPaymentSuccess } from '../../core/payments/payment.service.js';
 import { initiateRefund } from '../../core/payments/refund.service.js';
+import { checkEarningAddonCompletions } from '../../modules/food/admin/services/admin.service.js';
 
 /**
  * Post-delivery financial settlement processor.
@@ -98,6 +99,14 @@ async function handleDeliveryCompleted(data) {
             );
 
             logger.info(`[PaymentProcessor] Delivery partner ${deliveryPartnerId} credited ${riderEarning} for order ${orderId}`);
+
+            // Automatically check and credit any completed earning addons
+            try {
+                await checkEarningAddonCompletions(deliveryPartnerId, false, true);
+            } catch (addonErr) {
+                logger.error(`[PaymentProcessor] Error checking earning addons for ${deliveryPartnerId}: ${addonErr.message}`);
+            }
+
         } catch (err) {
             logger.error(`[PaymentProcessor] Failed to credit delivery partner: ${err.message}`);
         }

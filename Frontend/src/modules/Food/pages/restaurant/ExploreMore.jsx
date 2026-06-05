@@ -743,7 +743,7 @@ export default function ExploreMore() {
   const manageOutletItems = [
     { id: 1, label: "Outlet info", icon: Info, route: "/food/restaurant/outlet-info" },
     { id: 2, label: "Outlet timings", icon: Clock, route: "/food/restaurant/outlet-timings" },
-    { id: 3, label: "Dining Reservations", icon: Calendar, route: "/food/restaurant/reservations" },
+    // { id: 3, label: "Dining Reservations", icon: Calendar, route: "/food/restaurant/reservations" },
     { id: 4, label: "Menu categories", icon: Settings, route: "/food/restaurant/menu-categories" },
     { id: 6, label: "Promo Codes", icon: Ticket, route: "/food/restaurant/promocodes" },
   ]

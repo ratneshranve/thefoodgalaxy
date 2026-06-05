@@ -183,7 +183,7 @@ export default function EditProfile() {
   }, [formData, initialData])
 
   const validateEmail = (value) => {
-    if (!value) return ""
+    if (!value) return "Email is required"
     return EMAIL_REGEX.test(value) ? "" : "Please enter a valid email"
   }
 
@@ -517,7 +517,7 @@ export default function EditProfile() {
             </div>
 
             {/* Date of Birth Field */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 text-gray-900 dark:text-white [&_input]:dark:!text-white [&_input::placeholder]:dark:!text-white [&_.MuiSvgIcon-root]:dark:!text-white">
               <Label htmlFor="dateOfBirth" className="text-sm font-medium text-gray-700 dark:text-white">
                 Date of birth
               </Label>
@@ -533,6 +533,7 @@ export default function EditProfile() {
                         '& .MuiOutlinedInput-root': {
                           height: '48px',
                           borderRadius: '8px',
+                          color: 'inherit',
                           '& fieldset': {
                             borderColor: '#d1d5db',
                           },
@@ -543,10 +544,18 @@ export default function EditProfile() {
                             borderColor: '#7e3866',
                             borderWidth: '1px',
                           },
+                          '& .MuiSvgIcon-root': {
+                            color: 'inherit',
+                          },
                         },
                         '& .MuiInputBase-input': {
                           padding: '12px 14px',
                           fontSize: '16px',
+                          color: 'inherit',
+                          '&::placeholder': {
+                            color: 'inherit',
+                            opacity: 0.5,
+                          }
                         },
                       },
                     },
@@ -559,7 +568,7 @@ export default function EditProfile() {
             </div>
 
             {/* Anniversary Field */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 text-gray-900 dark:text-white [&_input]:dark:!text-white [&_input::placeholder]:dark:!text-white [&_.MuiSvgIcon-root]:dark:!text-white">
               <Label htmlFor="anniversary" className="text-sm font-medium text-gray-700 dark:text-white">
                 Anniversary <span className="text-gray-400 dark:text-gray-500 font-normal">(Optional)</span>
               </Label>
@@ -574,6 +583,7 @@ export default function EditProfile() {
                         '& .MuiOutlinedInput-root': {
                           height: '48px',
                           borderRadius: '8px',
+                          color: 'inherit',
                           '& fieldset': {
                             borderColor: '#d1d5db',
                           },
@@ -584,10 +594,18 @@ export default function EditProfile() {
                             borderColor: '#7e3866',
                             borderWidth: '1px',
                           },
+                          '& .MuiSvgIcon-root': {
+                            color: 'inherit',
+                          },
                         },
                         '& .MuiInputBase-input': {
                           padding: '12px 14px',
                           fontSize: '16px',
+                          color: 'inherit',
+                          '&::placeholder': {
+                            color: 'inherit',
+                            opacity: 0.5,
+                          }
                         },
                       },
                     },

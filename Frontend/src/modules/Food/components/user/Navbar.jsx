@@ -3,12 +3,7 @@ import { useState, useEffect } from "react"
 import { MapPin, ShoppingCart, Trophy } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import { Avatar, AvatarFallback } from "@food/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@food/components/ui/dropdown-menu"
+
 import { useLocation } from "@food/hooks/useLocation"
 import { useCart } from "@food/context/CartContext"
 import { useLocationSelector } from "./UserLayout"
@@ -168,37 +163,15 @@ export default function Navbar() {
             </Link>
 
             {/* Profile */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 hover:bg-gray-100">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-white text-xs">
-                      A
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <Link to="/food/user/cart">
-                  <DropdownMenuItem>YOUR CART</DropdownMenuItem>
-                </Link>
-                <Link to="/food/user/profile">
-                  <DropdownMenuItem>Profile</DropdownMenuItem>
-                </Link>
-                <Link to="/food/user/orders">
-                  <DropdownMenuItem>My Orders</DropdownMenuItem>
-                </Link>
-                <Link to="/food/user/offers">
-                  <DropdownMenuItem>Offers</DropdownMenuItem>
-                </Link>
-                <Link to="/food/user/help">
-                  <DropdownMenuItem>Help</DropdownMenuItem>
-                </Link>
-                <Link to="/user/auth/login">
-                  <DropdownMenuItem>Sign Out</DropdownMenuItem>
-                </Link>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link to="/food/user/profile">
+              <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 hover:bg-gray-100">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary text-white text-xs">
+                    A
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

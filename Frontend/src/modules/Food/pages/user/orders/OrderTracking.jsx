@@ -1513,17 +1513,7 @@ export default function OrderTracking() {
                 <p className="text-sm text-gray-500 mt-3">Loading order details...</p>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 2.0 }}
-                className="mt-12 pt-8 border-t border-gray-100 dark:border-gray-800"
-              >
-                <div className="flex items-center justify-center gap-2 text-primary dark:text-orange-400 font-medium cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/user/profile/report-safety-emergency', { state: { returnTo: location.pathname } })}>
-                  <Shield className="w-4 h-4" />
-                  <span className="text-sm">Learn about delivery partner safety</span>
-                </div>
-              </motion.div>
+
             </motion.div>
           </motion.div>
         )}
@@ -1870,23 +1860,7 @@ export default function OrderTracking() {
           </motion.div>
         )}
 
-        {/* Delivery Partner Safety */}
-        {orderStatus !== 'delivered' && orderStatus !== 'cancelled' && (
-          <motion.button
-            className="w-full bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm flex items-center gap-3"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            whileTap={{ scale: 0.99 }}
-            onClick={() => navigate('/user/profile/report-safety-emergency', { state: { returnTo: location.pathname } })}
-          >
-            <Shield className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-            <span className="flex-1 text-left font-medium text-gray-900 dark:text-gray-100">
-              Learn about delivery partner safety
-            </span>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </motion.button>
-        )}
+
 
         {/* Delivery Details Banner */}
         {orderStatus !== 'delivered' && orderStatus !== 'cancelled' && (

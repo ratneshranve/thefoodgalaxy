@@ -235,7 +235,7 @@ export const adminSidebarMenu = [
       { type: "link", label: "Landing Page Management", path: "/admin/food/hero-banner-management", icon: "Image" },
     ],
   },
-  {
+  /* {
     type: "section",
     label: "DINING MANAGEMENT",
     items: [
@@ -243,7 +243,7 @@ export const adminSidebarMenu = [
       { type: "link", label: "Dining List", path: "/admin/food/dining-list", icon: "FileText" },
       { type: "link", label: "Dining Category Request", path: "/admin/food/dining-requests", icon: "CheckCircle" },
     ],
-  },
+  }, */
   {
     type: "section",
     label: "SYSTEM SETTINGS",

@@ -1063,7 +1063,12 @@ export default function Cart() {
     : null
   const platformFee = pricing != null ? (pricing.platformFee ?? 0) : (feeSettings.platformFee ?? 0)
   const packagingFee = pricing != null ? (pricing.packagingFee ?? 0) : (feeSettings.packagingFee ?? 0)
-  const gstCharges = pricing != null ? (pricing.tax ?? 0) : Math.round(subtotal * ((feeSettings.gstRate ?? 0) / 100))
+  const gstCharges = pricing != null ? (pricing.tax ?? 0) : Math.round(
+    subtotal * ((feeSettings.gstRate ?? 0) / 100) +
+    fallbackDeliveryFee * ((feeSettings.gstOnDeliveryFee ?? 0) / 100) +
+    (feeSettings.platformFee ?? 0) * ((feeSettings.gstOnPlatformFee ?? 0) / 100) +
+    (feeSettings.packagingFee ?? 0) * ((feeSettings.gstOnPackagingFee ?? 0) / 100)
+  )
   const itemDiscount = pricing?.itemDiscount || 0;
   const couponDiscount = pricing?.couponDiscount || (appliedCoupon ? Math.min(appliedCoupon.discount, subtotal * 0.5) : 0);
   const discount = pricing?.discount || couponDiscount;

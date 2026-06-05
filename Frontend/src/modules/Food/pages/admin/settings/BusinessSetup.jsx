@@ -119,7 +119,16 @@ export default function BusinessSetup() {
         return;
       }
 
-      if (formData.pincode.trim() && !/^\d{4,10}$/.test(formData.pincode.trim())) {
+      if (!formData.state.trim()) {
+        toast.error("State is required");
+        return;
+      }
+
+      if (!formData.pincode.trim()) {
+        toast.error("Pincode is required");
+        return;
+      }
+      if (!/^\d{4,10}$/.test(formData.pincode.trim())) {
         toast.error("Please enter a valid pincode (4-10 digits)");
         return;
       }
@@ -335,7 +344,7 @@ export default function BusinessSetup() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  State
+                  State <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -349,7 +358,7 @@ export default function BusinessSetup() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Pincode
+                  Pincode <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"

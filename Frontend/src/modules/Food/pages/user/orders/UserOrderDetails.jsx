@@ -123,7 +123,12 @@ export default function UserOrderDetails() {
   // Use fetched restaurant data if available, otherwise use order.restaurantId or order.restaurant
   const restaurantObj = restaurant || order.restaurantId || order.restaurant || {}
   const restaurantName =
-    order.restaurantName || restaurantObj.name || "Restaurant"
+    order.restaurantId?.restaurantName ||
+    order.restaurantId?.name ||
+    order.restaurantName ||
+    restaurantObj.restaurantName ||
+    restaurantObj.name ||
+    "Restaurant"
 
   // Build restaurant address (try restaurant fields first, then fall back)
   const restaurantLocation = (() => {
@@ -184,9 +189,19 @@ export default function UserOrderDetails() {
     })
     : ""
 
+  const deliveryAddressObj = order.deliveryAddress || order.address || {}
   const addressText =
-    order.address?.formattedAddress ||
-    [order.address?.street, order.address?.city, order.address?.state, order.address?.zipCode]
+    deliveryAddressObj.formattedAddress ||
+    deliveryAddressObj.address ||
+    [
+      deliveryAddressObj.addressLine1,
+      deliveryAddressObj.addressLine2,
+      deliveryAddressObj.street,
+      deliveryAddressObj.area,
+      deliveryAddressObj.city,
+      deliveryAddressObj.state,
+      deliveryAddressObj.zipCode || deliveryAddressObj.pincode || deliveryAddressObj.postalCode
+    ]
       .filter(Boolean)
       .join(", ")
 

@@ -1812,6 +1812,15 @@ export async function upsertFeeSettings(body) {
         if (body.gstRate === null) $unset.gstRate = 1;
         else if (body.gstRate !== undefined) $set.gstRate = body.gstRate;
 
+        if (body.gstOnDeliveryFee === null) $unset.gstOnDeliveryFee = 1;
+        else if (body.gstOnDeliveryFee !== undefined) $set.gstOnDeliveryFee = body.gstOnDeliveryFee;
+
+        if (body.gstOnPlatformFee === null) $unset.gstOnPlatformFee = 1;
+        else if (body.gstOnPlatformFee !== undefined) $set.gstOnPlatformFee = body.gstOnPlatformFee;
+
+        if (body.gstOnPackagingFee === null) $unset.gstOnPackagingFee = 1;
+        else if (body.gstOnPackagingFee !== undefined) $set.gstOnPackagingFee = body.gstOnPackagingFee;
+
         if (body.deliveryBonusAmount === null) $unset.deliveryBonusAmount = 1;
         else if (body.deliveryBonusAmount !== undefined) $set.deliveryBonusAmount = body.deliveryBonusAmount;
 
@@ -1836,6 +1845,9 @@ export async function upsertFeeSettings(body) {
     if (body.platformFee !== undefined && body.platformFee !== null) payload.platformFee = body.platformFee;
     if (body.packagingFee !== undefined && body.packagingFee !== null) payload.packagingFee = body.packagingFee;
     if (body.gstRate !== undefined && body.gstRate !== null) payload.gstRate = body.gstRate;
+    if (body.gstOnDeliveryFee !== undefined && body.gstOnDeliveryFee !== null) payload.gstOnDeliveryFee = body.gstOnDeliveryFee;
+    if (body.gstOnPlatformFee !== undefined && body.gstOnPlatformFee !== null) payload.gstOnPlatformFee = body.gstOnPlatformFee;
+    if (body.gstOnPackagingFee !== undefined && body.gstOnPackagingFee !== null) payload.gstOnPackagingFee = body.gstOnPackagingFee;
     if (body.deliveryBonusAmount !== undefined && body.deliveryBonusAmount !== null) payload.deliveryBonusAmount = body.deliveryBonusAmount;
 
     const created = await FoodFeeSettings.create(payload);
@@ -4335,7 +4347,7 @@ export async function cancelEarningAddonHistory(historyId, reason) {
     return doc.toObject();
 }
 
-export async function checkEarningAddonCompletions(deliveryPartnerId, _force = false) {
+export async function checkEarningAddonCompletions(deliveryPartnerId, _force = false, autoCredit = false) {
     const now = new Date();
     
     // Only search for active offers that are currently running.
@@ -4379,7 +4391,7 @@ export async function checkEarningAddonCompletions(deliveryPartnerId, _force = f
 
             if (orderCount >= (offer.requiredOrders || 1)) {
                 // Requirement met!
-                await FoodEarningAddonHistory.create({
+                const historyDoc = await FoodEarningAddonHistory.create({
                     offerId: offer._id,
                     deliveryPartnerId: pId,
                     ordersCompleted: orderCount,
@@ -4393,6 +4405,10 @@ export async function checkEarningAddonCompletions(deliveryPartnerId, _force = f
                 // Update current redemptions in addon
                 await FoodEarningAddon.findByIdAndUpdate(offer._id, { $inc: { currentRedemptions: 1 } });
                 
+                if (autoCredit) {
+                    await creditEarningAddonHistory(historyDoc._id, "Auto-credited upon completion");
+                }
+
                 globalCompletions++;
             }
         }

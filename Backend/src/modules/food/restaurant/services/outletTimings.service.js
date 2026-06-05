@@ -54,7 +54,29 @@ export async function getOutletTimingsForRestaurant(restaurantId) {
         throw new ValidationError('Invalid restaurant id');
     }
     const doc = await FoodRestaurantOutletTimings.findOne({ restaurantId }).select('timings updatedAt').lean();
-    if (!doc) return { outletTimings: toClientShape({ timings: defaultTimings() }) };
+    if (!doc || !doc.timings || doc.timings.length === 0) {
+        // Fallback to onboarding details
+        const { FoodRestaurant } = await import('../models/restaurant.model.js');
+        const restaurant = await FoodRestaurant.findById(restaurantId).lean();
+        
+        if (restaurant) {
+            const { openDays, openingTime, closingTime } = restaurant;
+            const hasOpenDays = Array.isArray(openDays) && openDays.length > 0;
+            
+            const timings = DAY_NAMES.map((day) => {
+                const isOpen = hasOpenDays ? openDays.includes(day) : true;
+                return {
+                    day,
+                    isOpen,
+                    openingTime: isOpen ? normalizeTime(openingTime, '09:00') : '',
+                    closingTime: isOpen ? normalizeTime(closingTime, '22:00') : ''
+                };
+            });
+            return { outletTimings: toClientShape({ timings }) };
+        }
+        
+        return { outletTimings: toClientShape({ timings: defaultTimings() }) };
+    }
     return { outletTimings: toClientShape(doc) };
 }
 

@@ -85,6 +85,8 @@ export default function OutletTimings() {
   // Save to backend whenever days change (debounced).
   useEffect(() => {
     if (loading) return
+    if (!isInternalUpdate.current) return // Only save if the user made a change
+    
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
       try {

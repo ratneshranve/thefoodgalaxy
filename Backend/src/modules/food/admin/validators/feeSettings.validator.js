@@ -15,6 +15,9 @@ const feeSettingsUpsertSchema = z.object({
     platformFee: z.number().min(0).nullable().optional(),
     packagingFee: z.number().min(0).nullable().optional(),
     gstRate: z.number().min(0).max(100).nullable().optional(),
+    gstOnDeliveryFee: z.number().min(0).max(100).nullable().optional(),
+    gstOnPlatformFee: z.number().min(0).max(100).nullable().optional(),
+    gstOnPackagingFee: z.number().min(0).max(100).nullable().optional(),
     deliveryBonusAmount: z.number().min(0).nullable().optional(),
     dispatchRadiusTiers: z.array(z.number().min(0)).optional(),
     isActive: z.boolean().optional()
@@ -53,6 +56,12 @@ export const validateFeeSettingsUpsertDto = (body) => {
             body?.packagingFee === null ? null : body?.packagingFee !== undefined ? Number(body.packagingFee) : undefined,
         gstRate:
             body?.gstRate === null ? null : body?.gstRate !== undefined ? Number(body.gstRate) : undefined,
+        gstOnDeliveryFee:
+            body?.gstOnDeliveryFee === null ? null : body?.gstOnDeliveryFee !== undefined ? Number(body.gstOnDeliveryFee) : undefined,
+        gstOnPlatformFee:
+            body?.gstOnPlatformFee === null ? null : body?.gstOnPlatformFee !== undefined ? Number(body.gstOnPlatformFee) : undefined,
+        gstOnPackagingFee:
+            body?.gstOnPackagingFee === null ? null : body?.gstOnPackagingFee !== undefined ? Number(body.gstOnPackagingFee) : undefined,
         deliveryBonusAmount:
             body?.deliveryBonusAmount === null ? null : body?.deliveryBonusAmount !== undefined ? Number(body.deliveryBonusAmount) : undefined,
         dispatchRadiusTiers: Array.isArray(body?.dispatchRadiusTiers) ? body.dispatchRadiusTiers.map(Number) : undefined,

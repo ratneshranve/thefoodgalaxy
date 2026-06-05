@@ -128,10 +128,16 @@ export async function calculateOrderPricing(userId, dto) {
   }
 
   const gstRate = feeSettings.gstRate != null ? Number(feeSettings.gstRate) : 0;
-  const tax =
-    Number.isFinite(gstRate) && gstRate > 0
-      ? Math.round(subtotal * (gstRate / 100))
-      : 0;
+  const gstOnDeliveryFee = feeSettings.gstOnDeliveryFee != null ? Number(feeSettings.gstOnDeliveryFee) : 0;
+  const gstOnPlatformFee = feeSettings.gstOnPlatformFee != null ? Number(feeSettings.gstOnPlatformFee) : 0;
+  const gstOnPackagingFee = feeSettings.gstOnPackagingFee != null ? Number(feeSettings.gstOnPackagingFee) : 0;
+
+  const itemTax = (Number.isFinite(gstRate) && gstRate > 0) ? (subtotal * (gstRate / 100)) : 0;
+  const deliveryTax = (Number.isFinite(gstOnDeliveryFee) && gstOnDeliveryFee > 0) ? (deliveryFee * (gstOnDeliveryFee / 100)) : 0;
+  const platformTax = (Number.isFinite(gstOnPlatformFee) && gstOnPlatformFee > 0) ? (platformFee * (gstOnPlatformFee / 100)) : 0;
+  const packagingTax = (Number.isFinite(gstOnPackagingFee) && gstOnPackagingFee > 0) ? (packagingFee * (gstOnPackagingFee / 100)) : 0;
+
+  const tax = Math.round(itemTax + deliveryTax + platformTax + packagingTax);
 
   let discount = 0;
   let appliedCoupon = null;

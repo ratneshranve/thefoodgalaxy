@@ -852,7 +852,7 @@ export default function Profile() {
           </Link>
         </div>
 
-        {/* Dining Section */}
+        {/* Dining Section 
         <div className="mb-3">
           <div className="flex items-center gap-2 mb-2 px-1">
             <div className="w-1 h-4 bg-primary rounded"></div>
@@ -890,6 +890,7 @@ export default function Profile() {
             </motion.div>
           </Link>
         </div>
+        */}
 
         {/* Food Orders Section */}
         <div className="mb-3">

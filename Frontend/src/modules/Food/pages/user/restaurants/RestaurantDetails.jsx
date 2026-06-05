@@ -149,45 +149,12 @@ function RestaurantDetailsContent() {
     return quantities[lineItemId] || 0
   }
 
-  // Initialize filters from localStorage if available
-  const [filters, setFilters] = useState(() => {
-    if (typeof window === "undefined" || !slug) {
-      return {
-        sortBy: null,
-        vegNonVeg: null,
-        highlyReordered: false,
-        spicy: false,
-      }
-    }
-    try {
-      const raw = window.localStorage.getItem(RESTAURANT_DETAILS_FILTERS_STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        const savedFilters = parsed?.[slug]
-        if (savedFilters && typeof savedFilters === "object") {
-          return {
-            sortBy:
-              savedFilters.sortBy === "low-to-high" || savedFilters.sortBy === "high-to-low"
-                ? savedFilters.sortBy
-                : null,
-            vegNonVeg:
-              savedFilters.vegNonVeg === "veg" || savedFilters.vegNonVeg === "non-veg"
-                ? savedFilters.vegNonVeg
-                : null,
-            highlyReordered: savedFilters.highlyReordered === true,
-            spicy: savedFilters.spicy === true,
-          }
-        }
-      }
-    } catch (error) {
-      debugWarn("Failed to initialize restaurant filters from localStorage:", error)
-    }
-    return {
-      sortBy: null,
-      vegNonVeg: null,
-      highlyReordered: false,
-      spicy: false,
-    }
+  // Initialize default filters
+  const [filters, setFilters] = useState({
+    sortBy: null,
+    vegNonVeg: null,
+    highlyReordered: false,
+    spicy: false,
   })
 
   // Restaurant data state
@@ -1463,19 +1430,7 @@ function RestaurantDetailsContent() {
 
   const activeFilterCount = getActiveFilterCount()
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !slug) return
 
-    try {
-      const raw = window.localStorage.getItem(RESTAURANT_DETAILS_FILTERS_STORAGE_KEY)
-      const parsed = raw ? JSON.parse(raw) : {}
-      const nextState = parsed && typeof parsed === "object" ? parsed : {}
-      nextState[slug] = filters
-      window.localStorage.setItem(RESTAURANT_DETAILS_FILTERS_STORAGE_KEY, JSON.stringify(nextState))
-    } catch (error) {
-      debugWarn("Failed to persist restaurant filters:", error)
-    }
-  }, [filters, slug])
 
   useEffect(() => {
     if (selectedMenuCategory === "all") return
@@ -3016,6 +2971,16 @@ function RestaurantDetailsContent() {
           <motion.div
             drag
             dragMomentum={false}
+            dragConstraints={
+              typeof window !== "undefined" 
+                ? { 
+                    top: -(window.innerHeight - 150),
+                    left: -(window.innerWidth - 150),
+                    right: 20,
+                    bottom: 50,
+                  }
+                : undefined
+            }
             whileDrag={{ scale: 1.1, zIndex: 100 }}
             whileHover={{ scale: 1.05 }}
             className="fixed bottom-24 right-6 z-[60] pointer-events-auto sm:bottom-8 cursor-grab active:cursor-grabbing"
@@ -3143,7 +3108,7 @@ function RestaurantDetailsContent() {
 
                 {/* Bottom Sheet */}
                 <motion.div
-                  className="fixed left-0 right-0 bottom-0 md:left-1/2 md:right-auto md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-[10000] bg-white dark:bg-[#1a1a1a] rounded-t-3xl md:rounded-3xl shadow-2xl h-[80vh] md:h-auto md:max-h-[90vh] md:max-w-lg w-full md:w-auto flex flex-col"
+                  className="fixed left-0 right-0 bottom-0 md:left-1/2 md:right-auto md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-[10000] bg-white dark:bg-[#1a1a1a] rounded-t-3xl md:rounded-3xl shadow-2xl max-h-[80vh] md:max-h-[90vh] md:max-w-lg w-full md:w-auto flex flex-col"
                   initial={{ y: "100%" }}
                   animate={{ y: 0 }}
                   exit={{ y: "100%" }}
@@ -3239,45 +3204,7 @@ function RestaurantDetailsContent() {
                       </div>
                     )}
 
-                    {/* Top picks */}
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Top picks:</h3>
-                      <button
-                        onClick={() =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            highlyReordered: !prev.highlyReordered,
-                          }))
-                        }
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all w-full ${filters.highlyReordered
-                          ? "border-primary dark:border-primary bg-[#F9F9FB] dark:bg-primary/20 text-primary dark:text-primary"
-                          : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
-                          }`}
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                        <span className="font-medium">Highly reordered</span>
-                      </button>
-                    </div>
 
-                    {/* Dietary preference */}
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Dietary preference:</h3>
-                      <button
-                        onClick={() =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            spicy: !prev.spicy,
-                          }))
-                        }
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all w-full ${filters.spicy
-                          ? "border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                          : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
-                          }`}
-                      >
-                        <Flame className="h-4 w-4" />
-                        <span className="font-medium">Spicy</span>
-                      </button>
-                    </div>
                   </div>
 
                   {/* Bottom Action Bar */}

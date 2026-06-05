@@ -1,60 +1,23 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import useRestaurantBackNavigation from "@food/hooks/useRestaurantBackNavigation"
-import { motion, AnimatePresence } from "framer-motion"
-import Lenis from "lenis"
-import {
-  ArrowLeft,
-  Edit,
-  Pencil,
-  Plus,
-  MapPin,
-  Clock,
-  Star,
-  ChevronRight,
-  X,
-  Trash2,
-  Phone,
-  CreditCard,
-  Calendar,
-} from "lucide-react"
+import { ArrowLeft, Star, ChevronRight } from "lucide-react"
+import { restaurantAPI } from "@food/api"
+import { toast } from "sonner"
+import { Input } from "@food/components/ui/input"
+import { Button } from "@food/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@food/components/ui/dialog"
-import { Button } from "@food/components/ui/button"
-import { Input } from "@food/components/ui/input"
-import { restaurantAPI } from "@food/api"
-import { toast } from "sonner"
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
-import { isFlutterBridgeAvailable, convertBase64ToFile } from "@food/utils/imageUploadUtils"
+import { isFlutterBridgeAvailable } from "@food/utils/imageUploadUtils"
 
 const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
 const debugError = (...args) => {}
-
-
-const CUISINES_STORAGE_KEY = "restaurant_cuisines"
-
-// Helper component for reusable action buttons
-const ActionButton = ({ icon: Icon, label, onClick }) => (
-  <button 
-    onClick={onClick}
-    className="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 hover:border-primary/30 hover:bg-primary/5 transition-all active:scale-[0.98] shadow-sm"
-  >
-    <div className="flex items-center gap-4">
-      <div className="bg-primary/5 p-2.5 rounded-xl">
-        <Icon className="w-5 h-5 text-primary" />
-      </div>
-      <span className="text-[15px] font-bold text-gray-800 tracking-tight">{label}</span>
-    </div>
-    <ChevronRight className="w-5 h-5 text-gray-300" />
-  </button>
-)
 
 export default function OutletInfo() {
   const navigate = useNavigate()
@@ -64,42 +27,22 @@ export default function OutletInfo() {
   const [restaurantData, setRestaurantData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [restaurantName, setRestaurantName] = useState("")
-  const [cuisineTags, setCuisineTags] = useState("")
-  const [address, setAddress] = useState("")
   const [mainImage, setMainImage] = useState("https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop")
   const [thumbnailImage, setThumbnailImage] = useState("https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=200&fit=crop")
-  const [coverImages, setCoverImages] = useState([]) // Array of cover images (separate from menu images)
-  const [showEditNameDialog, setShowEditNameDialog] = useState(false)
-  const [editNameValue, setEditNameValue] = useState("")
+  const [coverImages, setCoverImages] = useState([])
   const [restaurantId, setRestaurantId] = useState("")
   const [restaurantMongoId, setRestaurantMongoId] = useState("")
   const [uploadingImage, setUploadingImage] = useState(false)
-  const [imageType, setImageType] = useState(null) // 'profile' or 'menu'
-  const [uploadingCount, setUploadingCount] = useState(0) // Track how many images are being uploaded
+  const [imageType, setImageType] = useState(null)
+  const [uploadingCount, setUploadingCount] = useState(0)
   
   const profileImageInputRef = useRef(null)
   const menuImageInputRef = useRef(null)
-  const [activePicker, setActivePicker] = useState(null) // { type: 'profile' | 'cover', ref: any, title: string, multiple: boolean }
-
-  // Format address from location object
-  const formatAddress = (location) => {
-    if (!location) return ""
-    
-    const parts = []
-    if (location.addressLine1) parts.push(location.addressLine1.trim())
-    if (location.addressLine2) parts.push(location.addressLine2.trim())
-    if (location.area) parts.push(location.area.trim())
-    if (location.city) {
-      const city = location.city.trim()
-      // Only add city if it's not already included in area
-      if (!location.area || !location.area.includes(city)) {
-        parts.push(city)
-      }
-    }
-    if (location.landmark) parts.push(location.landmark.trim())
-    
-    return parts.join(", ") || ""
-  }
+  const [activePicker, setActivePicker] = useState(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editSection, setEditSection] = useState(null)
+  const [editFormData, setEditFormData] = useState({})
+  const [savingEdit, setSavingEdit] = useState(false)
 
   // Fetch restaurant data on mount
   useEffect(() => {
@@ -110,30 +53,14 @@ export default function OutletInfo() {
         const data = response?.data?.data?.restaurant || response?.data?.restaurant
         if (data) {
           setRestaurantData(data)
-          
-          // Set restaurant name
-          setRestaurantName(data.name || "")
-          
-          // Set restaurant ID
+          setRestaurantName(data.name || data.restaurantName || "")
           setRestaurantId(data.restaurantId || data.id || "")
-          // Set MongoDB _id for last 5 digits display
           const mongoId = String(data.id || data._id || "")
           setRestaurantMongoId(mongoId)
           
-          // Format and set address
-          const formattedAddress = formatAddress(data.location)
-          setAddress(formattedAddress)
-          
-          // Format cuisines
-          if (data.cuisines && Array.isArray(data.cuisines) && data.cuisines.length > 0) {
-            setCuisineTags(data.cuisines.join(", "))
-          }
-          
-          // Set images
           if (data.profileImage?.url) {
             setThumbnailImage(data.profileImage.url)
           }
-          // Use coverImages if available, otherwise fallback to menuImages for backward compatibility
           if (data.coverImages && Array.isArray(data.coverImages) && data.coverImages.length > 0) {
             setCoverImages(data.coverImages.map(img => ({
               url: img.url || img,
@@ -161,69 +88,31 @@ export default function OutletInfo() {
 
     fetchRestaurantData()
 
-    // Listen for updates from edit pages
-    const handleCuisinesUpdate = () => {
-      fetchRestaurantData()
-    }
-    const handleAddressUpdate = () => {
-      fetchRestaurantData()
-    }
-
-    window.addEventListener("cuisinesUpdated", handleCuisinesUpdate)
-    window.addEventListener("addressUpdated", handleAddressUpdate)
+    const handleUpdate = () => fetchRestaurantData()
+    window.addEventListener("ownerDataUpdated", handleUpdate)
+    window.addEventListener("cuisinesUpdated", handleUpdate)
+    window.addEventListener("addressUpdated", handleUpdate)
     
     return () => {
-      window.removeEventListener("cuisinesUpdated", handleCuisinesUpdate)
-      window.removeEventListener("addressUpdated", handleAddressUpdate)
-    }
-  }, [])
-
-  // Lenis smooth scrolling
-  useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    })
-
-    function raf(time) {
-      lenis.raf(time)
-      requestAnimationFrame(raf)
-    }
-
-    requestAnimationFrame(raf)
-
-    return () => {
-      lenis.destroy()
+      window.removeEventListener("ownerDataUpdated", handleUpdate)
+      window.removeEventListener("cuisinesUpdated", handleUpdate)
+      window.removeEventListener("addressUpdated", handleUpdate)
     }
   }, [])
 
   // Handle profile image replacement
   const handleProfileImageReplace = async (file) => {
     if (!file) return
-
     try {
       setUploadingImage(true)
       setImageType('profile')
-
-      // Upload image to Cloudinary
       const uploadResponse = await restaurantAPI.uploadProfileImage(file)
-      const uploadedImage = uploadResponse?.data?.data?.profileImage
-
-      if (uploadedImage) {
-        if (uploadedImage.url) {
-          setThumbnailImage(uploadedImage.url)
-        }
-        
-        // Refresh restaurant data
+      const uploadedImage = uploadResponse?.data?.data?.profileImage || uploadResponse?.data?.profileImage
+      if (uploadedImage?.url) {
+        setThumbnailImage(uploadedImage.url)
         const response = await restaurantAPI.getCurrentRestaurant()
         const data = response?.data?.data?.restaurant || response?.data?.restaurant
-        if (data) {
-          setRestaurantData(data)
-          if (data.profileImage?.url) {
-            setThumbnailImage(data.profileImage.url)
-          }
-        }
+        if (data) setRestaurantData(data)
       }
     } catch (error) {
       debugError("Error uploading profile image:", error)
@@ -238,46 +127,34 @@ export default function OutletInfo() {
   const handleCoverImageAdd = async (files) => {
     if (!files || (Array.isArray(files) && files.length === 0)) return
     const fileArray = Array.isArray(files) ? files : [files]
-
     try {
       setUploadingImage(true)
       setImageType('menu')
       setUploadingCount(fileArray.length)
 
-      // Get current images
       const currentResponse = await restaurantAPI.getCurrentRestaurant()
       const currentData = currentResponse?.data?.data?.restaurant || currentResponse?.data?.restaurant
       const existingImages = currentData?.menuImages && Array.isArray(currentData.menuImages)
-        ? currentData.menuImages.map(img => ({
-            url: img.url,
-            publicId: img.publicId
-          }))
+        ? currentData.menuImages.map(img => ({ url: img.url, publicId: img.publicId }))
         : []
 
       const uploadedImageData = []
-      const failedUploads = []
-      
       for (let i = 0; i < fileArray.length; i++) {
         try {
           const uploadResponse = await restaurantAPI.uploadMenuImage(fileArray[i])
-          const uploadedImage = uploadResponse?.data?.data?.menuImage
+          const uploadedImage = uploadResponse?.data?.data?.menuImage || uploadResponse?.data?.menuImage
           if (uploadedImage?.url) {
-            uploadedImageData.push({
-              url: uploadedImage.url,
-              publicId: uploadedImage.publicId || null
-            })
+            uploadedImageData.push({ url: uploadedImage.url, publicId: uploadedImage.publicId || null })
           }
         } catch (error) {
-          failedUploads.push({ fileName: fileArray[i]?.name || "image", error: error.message })
+          debugError("Upload failed", error)
         }
       }
 
       if (uploadedImageData.length > 0) {
         const allImages = [...existingImages]
         uploadedImageData.forEach(uploaded => {
-          if (!allImages.find(img => img.url === uploaded.url)) {
-            allImages.push(uploaded)
-          }
+          if (!allImages.find(img => img.url === uploaded.url)) allImages.push(uploaded)
         })
 
         try {
@@ -286,7 +163,6 @@ export default function OutletInfo() {
         } catch (updateError) {
           toast.error("Images uploaded but failed to save.")
         }
-
         setCoverImages(allImages)
         if (allImages.length > 0) setMainImage(allImages[0].url)
       }
@@ -307,20 +183,62 @@ export default function OutletInfo() {
     }
   }
 
-  // Handle cover image deletion
+  const handleEditClick = (section) => {
+    setEditSection(section)
+    setEditFormData({...restaurantData})
+    setEditModalOpen(true)
+  }
+
+  const handleEditSave = async () => {
+    try {
+      setSavingEdit(true)
+      const payload = {}
+      if (editSection === 'restaurantName') {
+        payload.restaurantName = editFormData.restaurantName || editFormData.name
+      } else if (editSection === 'basic') {
+        payload.ownerName = editFormData.ownerName
+        payload.primaryContactNumber = editFormData.primaryContactNumber
+        payload.ownerEmail = editFormData.ownerEmail || editFormData.email
+        payload.pureVegRestaurant = editFormData.pureVegRestaurant
+      } else if (editSection === 'compliance') {
+        payload.panNumber = editFormData.panNumber
+        payload.gstNumber = editFormData.gstNumber
+        payload.fssaiNumber = editFormData.fssaiNumber
+        payload.fssaiExpiry = editFormData.fssaiExpiry
+      } else if (editSection === 'bank') {
+        payload.accountHolderName = editFormData.accountHolderName
+        payload.accountNumber = editFormData.accountNumber
+        payload.ifscCode = editFormData.ifscCode
+        payload.upiId = editFormData.upiId
+      }
+      
+      await restaurantAPI.updateProfile(payload)
+      toast.success('Details updated successfully!')
+      
+      // refresh data
+      const response = await restaurantAPI.getCurrentRestaurant()
+      const data = response?.data?.data?.restaurant || response?.data?.restaurant
+      if (data) {
+        setRestaurantData(data)
+        if (data.name || data.restaurantName) setRestaurantName(data.name || data.restaurantName)
+      }
+      
+      setEditModalOpen(false)
+      window.dispatchEvent(new Event('ownerDataUpdated'))
+    } catch (error) {
+      toast.error('Failed to update details.')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
   const handleCoverImageDelete = async (indexToDelete) => {
     if (!window.confirm("Are you sure you want to delete this cover image?")) return
-
     try {
       setUploadingImage(true)
       setImageType('menu')
-
       const updatedImages = coverImages.filter((_, index) => index !== indexToDelete)
-      const menuImagesForBackend = updatedImages.map(img => ({
-        url: img.url,
-        publicId: img.publicId || null
-      }))
-
+      const menuImagesForBackend = updatedImages.map(img => ({ url: img.url, publicId: img.publicId || null }))
       await restaurantAPI.updateProfile({ menuImages: menuImagesForBackend })
       setCoverImages(updatedImages)
       if (indexToDelete === 0 && updatedImages.length > 0) {
@@ -337,63 +255,55 @@ export default function OutletInfo() {
     }
   }
 
-  // Handle edit name dialog
-  const handleOpenEditDialog = () => {
-    setEditNameValue(restaurantName)
-    setShowEditNameDialog(true)
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A"
+    const d = new Date(dateString)
+    return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
   }
 
-  const handleSaveName = async () => {
-    const newName = editNameValue.trim()
-    if (!newName) return
-    try {
-      await restaurantAPI.updateProfile({ name: newName })
-      setRestaurantName(newName)
-      setShowEditNameDialog(false)
-      toast.success("Name updated successfully")
-    } catch (error) {
-      toast.error("Failed to update name")
-    }
+  const capitalize = (str) => {
+    if (!str) return ""
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-white overflow-x-hidden">
-        {/* Header */}
-        {/* Header */}
-        <div className="bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 sticky top-0 z-50 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 flex-1">
-              <button 
-                onClick={goBack} 
-                className="p-2 hover:bg-primary/5 rounded-xl transition-all active:scale-95"
-              >
-                <ArrowLeft className="w-5 h-5 text-primary" />
-              </button>
-              <h1 className="text-[17px] font-bold text-gray-900 tracking-tight">Outlet Information</h1>
-            </div>
-            <div className="bg-primary/5 px-3 py-1.5 rounded-full border border-primary/10">
-              <p className="text-[11px] font-bold text-primary uppercase tracking-wider">
-                ID: {loading ? "..." : (restaurantMongoId && restaurantMongoId.length >= 5 ? restaurantMongoId.slice(-5) : (restaurantId || "N/A"))}
-              </p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 pb-12">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <button onClick={goBack} className="p-1">
+            <ArrowLeft className="w-6 h-6 text-gray-900" />
+          </button>
+          <h1 className="text-[17px] font-bold text-gray-900">Outlet info</h1>
         </div>
+        <p className="text-[13px] text-gray-600">
+          Restaurant id: {loading ? "..." : (restaurantMongoId && restaurantMongoId.length >= 5 ? restaurantMongoId.slice(-5) : (restaurantId || "N/A"))}
+        </p>
+      </div>
 
-        {/* Main Image & Profile Section */}
-        <div className="px-4 pt-4">
-          <div className="relative w-full h-[180px] rounded-[2rem] overflow-hidden shadow-xl ring-1 ring-black/5">
-            <img src={mainImage} alt="Restaurant banner" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            
-            <button
-              onClick={() => handleImageClick('cover', menuImageInputRef, "Add Cover Image", true)}
+      <div className="bg-white">
+        {/* Cover Image */}
+        <div className="relative w-full h-56 bg-gray-100">
+          {mainImage && (
+            <img src={mainImage} alt="Cover" className="w-full h-full object-cover" />
+          )}
+          <div className="absolute bottom-4 right-4 flex gap-2.5">
+            <button 
               disabled={uploadingImage}
-              className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-md hover:bg-white/30 px-4 py-2 rounded-2xl flex items-center gap-2 text-xs font-bold text-white transition-all shadow-lg border border-white/20 active:scale-95 disabled:opacity-50"
+              className="bg-[#111827] text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-70 transition-colors shadow-sm" 
+              onClick={() => handleImageClick('cover', menuImageInputRef, "Add Cover Image", true)}
             >
-              <Plus className="w-4 h-4" />
-              <span>{uploadingImage && imageType === 'menu' ? `Uploading...` : 'Add Photo'}</span>
+              {uploadingImage && imageType === 'menu' ? 'Uploading...' : 'Add image'}
             </button>
+            {mainImage && (
+              <button 
+                disabled={uploadingImage}
+                className="bg-[#FF3B4D] text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-70 transition-colors shadow-sm" 
+                onClick={() => handleCoverImageDelete(0)}
+              >
+                Remove
+              </button>
+            )}
             <input
               ref={menuImageInputRef}
               type="file"
@@ -403,20 +313,30 @@ export default function OutletInfo() {
               onChange={(e) => handleCoverImageAdd(Array.from(e.target.files || []))}
             />
           </div>
+        </div>
 
-          {/* Profile Overlap */}
-          <div className="flex items-end gap-4 -mt-10 relative z-10 px-2">
-            <div className="relative group">
-              <div className="w-24 h-24 rounded-[2rem] bg-white p-1.5 shadow-2xl ring-1 ring-black/5">
-                <img src={thumbnailImage} alt="Restaurant thumbnail" className="w-full h-full rounded-[1.6rem] object-cover" />
-                <button
-                  onClick={() => handleImageClick('profile', profileImageInputRef, "Update Profile Photo")}
-                  disabled={uploadingImage}
-                  className="absolute -bottom-1 -right-1 bg-primary p-2 rounded-xl text-white shadow-lg shadow-primary/30 hover:scale-105 transition-all border-2 border-white active:scale-90"
+        {/* Profile Image */}
+        <div className="px-4 py-5 border-b border-gray-100">
+          <div className="flex items-center justify-between bg-white border border-gray-100/80 rounded-3xl p-3.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+            <div className="w-[88px] h-[88px] bg-gray-100 rounded-[1.25rem] overflow-hidden shrink-0 border border-gray-100 shadow-sm">
+              <img src={thumbnailImage} alt="Profile" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex gap-2.5">
+              <button 
+                disabled={uploadingImage}
+                className="bg-[#111827] text-white px-4 py-2.5 rounded-xl text-[13px] font-bold disabled:opacity-70 shadow-sm transition-colors" 
+                onClick={() => handleImageClick('profile', profileImageInputRef, "Update Profile Photo")}
+              >
+                {uploadingImage && imageType === 'profile' ? 'Uploading...' : 'Add image'}
+              </button>
+              {thumbnailImage && (
+                <button 
+                  className="bg-[#FF3B4D] text-white px-4 py-2.5 rounded-xl text-[13px] font-bold shadow-sm transition-colors"
+                  // onClick={() => {/* handle profile image delete if needed */}}
                 >
-                  <Pencil className="w-3.5 h-3.5" />
+                  Delete
                 </button>
-              </div>
+              )}
               <input
                 ref={profileImageInputRef}
                 type="file"
@@ -425,154 +345,257 @@ export default function OutletInfo() {
                 onChange={(e) => handleProfileImageReplace(e.target.files?.[0])}
               />
             </div>
-
-            <div className="pb-1 mb-2">
-              <h2 className="text-xl font-black text-gray-900 leading-tight">
-                {loading ? "Loading..." : (restaurantName || "My Restaurant")}
-              </h2>
-              <div className="flex items-center gap-1.5 mt-1">
-                <div className="bg-green-600 px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
-                  <span className="text-white text-[11px] font-black">{restaurantData?.rating?.toFixed(1) || "0.0"}</span>
-                  <Star className="w-2.5 h-2.5 text-white fill-white" />
-                </div>
-                <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">{restaurantData?.totalRatings || 0} Reviews</span>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Info Content Section */}
-        <div className="px-5 pt-8 pb-12 space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Vital Information</h3>
-              <div className="h-[1px] flex-1 bg-gray-100 ml-4"></div>
-            </div>
-
-            {/* Restaurant Name Card */}
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="group bg-gradient-to-br from-blue-50/40 to-blue-50/80 rounded-[1.5rem] p-5 border border-blue-100/50 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer overflow-hidden relative"
-              onClick={handleOpenEditDialog}
-            >
-              <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
-                <div className="bg-primary p-1.5 rounded-lg">
-                  <Edit className="w-3 h-3 text-white" />
-                </div>
-              </div>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
-                Official Name
-              </p>
-              <p className="text-lg font-black text-gray-900 group-hover:text-primary transition-colors">
-                {loading ? "Loading..." : (restaurantName || "N/A")}
-              </p>
-            </motion.div>
-
-            {/* Cuisine Tags Card */}
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="group bg-gradient-to-br from-indigo-50/40 to-indigo-50/80 rounded-[1.5rem] p-5 border border-indigo-100/50 shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden relative"
-              onClick={() => navigate("/food/restaurant/edit-cuisines")}
-            >
-              <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
-                <div className="bg-primary p-1.5 rounded-lg">
-                  <Edit className="w-3 h-3 text-white" />
-                </div>
-              </div>
-              <p className="text-[10px] text-indigo-600 font-black uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
-                Cuisines Served
-              </p>
-              <p className="text-base font-black text-gray-900 leading-tight">
-                {loading ? "Loading..." : (cuisineTags || "Not specified")}
-              </p>
-            </motion.div>
-
-            {/* Address Card */}
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="group bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-[1.5rem] p-5 border border-gray-200/50 shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden relative"
-              onClick={() => navigate("/food/restaurant/edit-address")}
-            >
-              <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
-                <div className="bg-primary p-1.5 rounded-lg">
-                  <MapPin className="w-3 h-3 text-white" />
-                </div>
-              </div>
-              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-gray-500 rounded-full"></span>
-                Location Address
-              </p>
-              <div className="flex items-start gap-3">
-                <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 shrink-0">
-                  <MapPin className="w-5 h-5 text-primary" />
-                </div>
-                <p className="text-[15px] font-bold text-gray-700 leading-snug">
-                  {loading ? "Loading..." : (address || "No address found")}
-                </p>
-              </div>
-            </motion.div>
+        {/* Ratings */}
+        <div className="px-4 py-4 border-b border-gray-100 flex items-center gap-3.5">
+          <div className="bg-[#E91E63] px-2 py-1 rounded-[6px] flex items-center gap-1 shadow-sm">
+            <span className="text-white font-black text-sm">{restaurantData?.rating?.toFixed(1) || "5.0"}</span>
+            <Star className="w-3.5 h-3.5 text-white fill-white mb-[1px]" />
           </div>
-
-          {/* Quick Actions Grid */}
-          <div className="space-y-4">
-             <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Outlet Settings</h3>
-             <div className="grid grid-cols-1 gap-3">
-                <ActionButton 
-                  icon={Clock} 
-                  label="Working Hours" 
-                  onClick={() => navigate("/food/restaurant/outlet-timings")} 
-                  color="plum"
-                />
-                <ActionButton 
-                  icon={Phone} 
-                  label="Contact Info" 
-                  onClick={() => navigate("/food/restaurant/phone")} 
-                  color="plum"
-                />
-                <ActionButton 
-                  icon={CreditCard} 
-                  label="Bank & Payments" 
-                  onClick={() => navigate("/food/restaurant/hub-finance")} 
-                  color="plum"
-                />
-             </div>
+          <div className="flex items-center text-[#E91E63] font-black text-sm uppercase tracking-wide cursor-pointer hover:underline" onClick={() => navigate("/food/restaurant/feedback")}>
+            {restaurantData?.totalRatings || 1} DELIVERY REVIEWS
+            <ChevronRight className="w-4 h-4 ml-0.5" />
           </div>
         </div>
       </div>
 
-      {/* Helper Component for Buttons */}
-      <Dialog open={showEditNameDialog} onOpenChange={setShowEditNameDialog}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-[2.5rem] w-[92%] border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-gradient-to-br from-white to-gray-50 border-b border-gray-100">
-            <DialogTitle className="text-xl font-black text-gray-900 tracking-tight">Rename Outlet</DialogTitle>
-            <DialogDescription className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Update official restaurant name</DialogDescription>
-          </DialogHeader>
-          <div className="p-6 space-y-4">
-            <div className="relative group">
-              <Input 
-                value={editNameValue} 
-                onChange={(e) => setEditNameValue(e.target.value)} 
-                placeholder="Ex: Indian Bites Express" 
-                className="w-full h-14 px-5 rounded-2xl border-2 border-gray-100 focus:border-primary focus:ring-0 transition-all font-bold text-lg bg-gray-50 group-hover:bg-white" 
-              />
-              <Pencil className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-hover:text-primary transition-colors" />
+      <div className="p-4 bg-[#F8F9FA]">
+        <div className="mb-4">
+          <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">Restaurant Information</h2>
+          <p className="text-[13px] text-gray-500 mt-1 font-medium">All onboarding and profile details at one place.</p>
+        </div>
+
+        <div className="space-y-3.5">
+          {/* Card 1: Restaurant Name */}
+          <div className="bg-white rounded-3xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)] border border-gray-100/50">
+            <div className="flex flex-col mb-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <p className="text-[13px] text-gray-500 font-semibold">Restaurant name</p>
+                  <span className="px-2.5 py-0.5 bg-[#FFEAF0] text-[#E91E63] rounded-full text-[10px] font-bold tracking-wide">{capitalize(restaurantData?.status || 'Approved')}</span>
+                </div>
+                <button onClick={() => handleEditClick('restaurantName')} className="text-[#2563EB] text-sm font-bold hover:underline">Edit</button>
+              </div>
             </div>
-            <p className="text-[10px] font-bold text-gray-400 px-1 italic">* This will be visible to all customers on the app.</p>
+            <p className="text-base font-black text-gray-900 mt-0.5">{restaurantName || "N/A"}</p>
           </div>
-          <DialogFooter className="p-6 bg-gray-50/50 flex flex-row gap-3">
-            <Button variant="ghost" onClick={() => setShowEditNameDialog(false)} className="flex-1 h-12 rounded-2xl font-bold text-gray-500">Discard</Button>
-            <Button onClick={handleSaveName} disabled={!editNameValue.trim()} className="flex-[2] h-12 bg-primary text-white hover:bg-[#6a2f56] rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-50">Save Changes</Button>
-          </DialogFooter>
+
+          {/* Card 2: Basic Details */}
+          <div className="bg-white rounded-3xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] border border-gray-100/50">
+            <div className="flex flex-col mb-4.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <p className="text-base font-bold text-gray-900">Basic details</p>
+                  <span className="px-2.5 py-0.5 bg-[#FFEAF0] text-[#E91E63] rounded-full text-[10px] font-bold tracking-wide">{capitalize(restaurantData?.status || 'Approved')}</span>
+                </div>
+                <button onClick={() => handleEditClick('basic')} className="text-[#2563EB] text-sm font-bold hover:underline">Edit</button>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">Owner name</p>
+                <p className="text-[15px] font-bold text-gray-900">{restaurantData?.ownerName || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">Primary contact</p>
+                <p className="text-[15px] font-bold text-gray-900">{restaurantData?.primaryContactNumber || restaurantData?.ownerPhone || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">Email</p>
+                <p className="text-[15px] font-bold text-gray-900">{restaurantData?.email || restaurantData?.ownerEmail || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">Restaurant type</p>
+                <p className="text-[15px] font-bold text-gray-900">{restaurantData?.pureVegRestaurant ? "Pure Veg" : "Veg & Non-Veg"}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Compliance Details */}
+          <div className="bg-white rounded-3xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] border border-gray-100/50">
+            <div className="flex flex-col mb-4.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <p className="text-base font-bold text-gray-900">Compliance details</p>
+                  <span className="px-2.5 py-0.5 bg-[#FFEAF0] text-[#E91E63] rounded-full text-[10px] font-bold tracking-wide">{capitalize(restaurantData?.status || 'Approved')}</span>
+                </div>
+                <button onClick={() => handleEditClick('compliance')} className="text-[#2563EB] text-sm font-bold hover:underline">Edit</button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">PAN number</p>
+                <p className="text-[15px] font-bold text-gray-900 uppercase">{restaurantData?.panNumber || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">GST registered</p>
+                <p className="text-[15px] font-bold text-gray-900">{restaurantData?.gstNumber ? "Yes" : "No"}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">FSSAI number</p>
+                <p className="text-[15px] font-bold text-gray-900">{restaurantData?.fssaiNumber || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">FSSAI expiry</p>
+                <p className="text-[15px] font-bold text-gray-900">{formatDate(restaurantData?.fssaiExpiry)}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">FSSAI document</p>
+                <div className="flex gap-4 mt-1.5">
+                  <button className="text-[#2563EB] text-[15px] font-bold hover:underline tracking-tight" onClick={() => window.open(restaurantData?.fssaiImage?.url || restaurantData?.fssaiImage, "_blank")}>View image</button>
+                  <button className="text-[#2563EB] text-[15px] font-bold hover:underline tracking-tight">Upload</button>
+                </div>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">PAN document</p>
+                <div className="flex gap-4 mt-1.5">
+                  <button className="text-[#2563EB] text-[15px] font-bold hover:underline tracking-tight" onClick={() => window.open(restaurantData?.panImage?.url || restaurantData?.panImage, "_blank")}>View image</button>
+                  <button className="text-[#2563EB] text-[15px] font-bold hover:underline tracking-tight">Upload</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Bank and UPI Details */}
+          <div className="bg-white rounded-3xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] border border-gray-100/50">
+            <div className="flex flex-col mb-4.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <p className="text-base font-bold text-gray-900">Bank and UPI details</p>
+                  <span className="px-2.5 py-0.5 bg-[#FFEAF0] text-[#E91E63] rounded-full text-[10px] font-bold tracking-wide">{capitalize(restaurantData?.status || 'Approved')}</span>
+                </div>
+                <button onClick={() => handleEditClick('bank')} className="text-[#2563EB] text-sm font-bold hover:underline">Edit</button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">Account holder</p>
+                <p className="text-[15px] font-bold text-gray-900">{restaurantData?.accountHolderName || restaurantData?.nameOnPan || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">Account number</p>
+                <p className="text-[15px] font-bold text-gray-900 tracking-wider">
+                  {restaurantData?.accountNumber ? `.... .... ${restaurantData.accountNumber.slice(-4)}` : "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">IFSC code</p>
+                <p className="text-[15px] font-bold text-gray-900 uppercase">{restaurantData?.ifscCode || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">UPI ID</p>
+                <p className="text-[15px] font-bold text-gray-900">{restaurantData?.upiId || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-gray-500 font-medium mb-0.5">UPI QR image</p>
+                <p className="text-[15px] font-bold text-gray-900">{restaurantData?.upiImage ? "Uploaded" : "Not uploaded"}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="w-[92%] sm:max-w-md rounded-[24px] p-0 overflow-hidden bg-white shadow-2xl border-0 gap-0">
+          <DialogHeader className="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
+            <DialogTitle className="text-[19px] font-black text-gray-900 tracking-tight text-left">
+              Edit {editSection === 'restaurantName' ? 'Restaurant Name' : editSection === 'basic' ? 'Basic Details' : editSection === 'compliance' ? 'Compliance Details' : 'Bank Details'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+            {editSection === 'restaurantName' && (
+              <div>
+                <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Restaurant Name</label>
+                <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.restaurantName || editFormData.name || ''} onChange={e => setEditFormData({...editFormData, restaurantName: e.target.value})} placeholder="Enter restaurant name" />
+              </div>
+            )}
+            {editSection === 'basic' && (
+              <>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Owner Name</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.ownerName || ''} onChange={e => setEditFormData({...editFormData, ownerName: e.target.value})} placeholder="Enter owner name" />
+                </div>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Primary Contact</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.primaryContactNumber || editFormData.ownerPhone || ''} onChange={e => setEditFormData({...editFormData, primaryContactNumber: e.target.value})} placeholder="Enter contact number" />
+                </div>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Email</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.email || editFormData.ownerEmail || ''} onChange={e => setEditFormData({...editFormData, email: e.target.value})} placeholder="Enter email address" />
+                </div>
+                <div className="flex items-center gap-3 mt-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <input type="checkbox" id="pureVeg" checked={!!editFormData.pureVegRestaurant} onChange={e => setEditFormData({...editFormData, pureVegRestaurant: e.target.checked})} className="w-5 h-5 rounded text-[#E91E63] focus:ring-[#E91E63]" />
+                  <label htmlFor="pureVeg" className="text-[14px] font-bold text-gray-800 cursor-pointer">Pure Veg Restaurant</label>
+                </div>
+              </>
+            )}
+            {editSection === 'compliance' && (
+              <>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">PAN Number</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4 uppercase" value={editFormData.panNumber || ''} onChange={e => setEditFormData({...editFormData, panNumber: e.target.value})} placeholder="Enter PAN number" />
+                </div>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">GST Number</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4 uppercase" value={editFormData.gstNumber || ''} onChange={e => setEditFormData({...editFormData, gstNumber: e.target.value})} placeholder="Enter GST number (if any)" />
+                </div>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">FSSAI Number</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.fssaiNumber || ''} onChange={e => setEditFormData({...editFormData, fssaiNumber: e.target.value})} placeholder="Enter FSSAI number" />
+                </div>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">FSSAI Expiry</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" type="date" value={editFormData.fssaiExpiry ? new Date(editFormData.fssaiExpiry).toISOString().split('T')[0] : ''} onChange={e => setEditFormData({...editFormData, fssaiExpiry: e.target.value})} />
+                </div>
+              </>
+            )}
+            {editSection === 'bank' && (
+              <>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Account Holder</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.accountHolderName || editFormData.nameOnPan || ''} onChange={e => setEditFormData({...editFormData, accountHolderName: e.target.value})} placeholder="Enter account holder name" />
+                </div>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Account Number</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.accountNumber || ''} onChange={e => setEditFormData({...editFormData, accountNumber: e.target.value})} placeholder="Enter bank account number" />
+                </div>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">IFSC Code</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4 uppercase" value={editFormData.ifscCode || ''} onChange={e => setEditFormData({...editFormData, ifscCode: e.target.value})} placeholder="Enter IFSC code" />
+                </div>
+                <div>
+                  <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">UPI ID</label>
+                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.upiId || ''} onChange={e => setEditFormData({...editFormData, upiId: e.target.value})} placeholder="Enter UPI ID (optional)" />
+                </div>
+              </>
+            )}
+          </div>
+          
+          <div className="px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row gap-3 sm:justify-end">
+            <button 
+              className="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors shadow-sm order-2 sm:order-1"
+              onClick={() => setEditModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button 
+              className="w-full sm:w-auto px-5 py-2.5 bg-[#E91E63] text-white rounded-xl font-bold text-sm hover:bg-[#D81B60] transition-colors shadow-sm disabled:opacity-70 flex justify-center items-center order-1 sm:order-2"
+              onClick={handleEditSave} 
+              disabled={savingEdit}
+            >
+              {savingEdit ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
-
+      
       <ImageSourcePicker
         isOpen={!!activePicker}
         onClose={() => setActivePicker(null)}
@@ -588,6 +611,6 @@ export default function OutletInfo() {
         fileNamePrefix={`outlet-${activePicker?.type}`}
         galleryInputRef={activePicker?.ref}
       />
-    </>
+    </div>
   )
 }

@@ -602,11 +602,11 @@ export default function EditOwner() {
               </div>
             </div>
             <button
-              onClick={handlePhotoClick}
+              disabled={true}
               disabled={loading || saving}
               className="text-blue-600 text-sm font-normal hover:text-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Edit photo
+              Photo View
             </button>
             <input
               ref={fileInputRef}
@@ -629,10 +629,10 @@ export default function EditOwner() {
                   value={loading ? "Loading..." : formData.restaurantName}
                   onChange={(e) => handleInputChange("restaurantName", e.target.value)}
                   placeholder="Enter restaurant name"
-                  className="w-full pr-10 focus-visible:border-black focus-visible:ring-0"
+                  className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                   disabled={loading || saving}
                 />
-                <Edit className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                
               </div>
             </div>
 
@@ -645,7 +645,7 @@ export default function EditOwner() {
                 <span className="text-sm font-semibold text-gray-700">Pure Veg Restaurant</span>
               </div>
               <button
-                onClick={() => handleInputChange("pureVegRestaurant", !formData.pureVegRestaurant)}
+                disabled={true}
                 disabled={loading || saving}
                 className={`w-12 h-6 rounded-full transition-colors relative ${formData.pureVegRestaurant ? 'bg-green-600' : 'bg-gray-300'}`}
               >
@@ -662,10 +662,10 @@ export default function EditOwner() {
                   value={loading ? "Loading..." : formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
                   placeholder="Enter owner name"
-                  className="w-full pr-10 focus-visible:border-black focus-visible:ring-0"
+                  className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                   disabled={loading || saving}
                 />
-                <Edit className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                
               </div>
             </div>
 
@@ -692,10 +692,10 @@ export default function EditOwner() {
                   value={loading ? "Loading..." : formData.primaryContactNumber}
                   onChange={(e) => handleInputChange("primaryContactNumber", e.target.value)}
                   placeholder="Enter contact number"
-                  className="w-full pr-10 focus-visible:border-black focus-visible:ring-0"
+                  className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                   disabled={loading || saving}
                 />
-                <Edit className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                
               </div>
             </div>
 
@@ -708,10 +708,10 @@ export default function EditOwner() {
                   value={loading ? "Loading..." : formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="Enter email address"
-                  className="w-full pr-10 focus-visible:border-black focus-visible:ring-0"
+                  className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                   disabled={loading || saving}
                 />
-                <Edit className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                
               </div>
             </div>
 
@@ -726,8 +726,8 @@ export default function EditOwner() {
               <select
                 value={formData.zoneId || ""}
                 onChange={(e) => handleInputChange("zoneId", e.target.value)}
-                className="w-full h-10 rounded-md border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:border-black"
-                disabled={zonesLoading || loading || saving}
+                className="w-full h-10 rounded-md border border-gray-200 bg-gray-50 text-gray-500 px-3 text-sm focus:outline-none cursor-not-allowed appearance-none"
+                disabled={true}
               >
                 <option value="">{zonesLoading ? "Loading zones..." : "Select a zone"}</option>
                 {zones.map((z) => {
@@ -738,64 +738,7 @@ export default function EditOwner() {
               </select>
             </div>
 
-            {/* Search Location */}
-            <div className="relative">
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Search Location</label>
-              <div className="relative">
-                <Input
-                  ref={locationSearchInputRef}
-                  value={locationSearchValue}
-                  onChange={(e) => setLocationSearchValue(e.target.value)}
-                  className="w-full focus-visible:border-black focus-visible:ring-0"
-                  placeholder="Search your restaurant address..."
-                  disabled={loading || saving}
-                />
-                {isSearchingLocation && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-orange-500 border-t-transparent" />
-                  </div>
-                )}
-              </div>
 
-              {/* Suggestions */}
-              {locationSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-xl z-[100] overflow-hidden max-h-60 overflow-y-auto">
-                  {locationSuggestions.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => {
-                        const { lat, lng, display, addr } = s
-                        const area = addr.suburb || addr.neighbourhood || addr.city_district || addr.locality || ""
-                        const city = addr.city || addr.town || addr.village || ""
-                        const state = addr.state || ""
-                        const pincode = addr.postcode || ""
-
-                        setFormData((prev) => ({
-                          ...prev,
-                          location: {
-                            ...prev.location,
-                            formattedAddress: display,
-                            addressLine1: display,
-                            area: area || prev.location.area,
-                            city: city || prev.location.city,
-                            state: state || prev.location.state,
-                            pincode: pincode || prev.location.pincode,
-                            latitude: lat,
-                            longitude: lng,
-                          },
-                        }))
-                        setLocationSearchValue(display)
-                        setLocationSuggestions([])
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-orange-50 border-b border-gray-100 last:border-none text-gray-700"
-                    >
-                      {s.display}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
 
             {/* Manual Address Fields */}
             <div className="grid grid-cols-1 gap-4">
@@ -803,23 +746,22 @@ export default function EditOwner() {
                 value={formData.location?.addressLine1 || ""}
                 onChange={(e) => setFormData(prev => ({ ...prev, location: { ...prev.location, addressLine1: e.target.value } }))}
                 placeholder="Shop no. / building no."
-                className="w-full"
+                className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                 disabled={loading || saving}
               />
               <Input
                 value={formData.location?.area || ""}
                 onChange={(e) => setFormData(prev => ({ ...prev, location: { ...prev.location, area: e.target.value } }))}
                 placeholder="Area / Sector / Locality*"
-                className="w-full"
+                className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                 disabled={loading || saving}
               />
               
               <div className="grid grid-cols-2 gap-3">
-                <Select
-                  value={formData.location?.city || ""}
+                <Select disabled={true} value={formData.location?.city || ""}
                   onValueChange={(val) => setFormData(prev => ({ ...prev, location: { ...prev.location, city: val } }))}
                 >
-                  <SelectTrigger className="bg-white text-sm">
+                  <SelectTrigger className="bg-gray-50 text-gray-500 cursor-not-allowed [&>svg]:hidden text-sm">
                     <SelectValue placeholder="Select City*" />
                   </SelectTrigger>
                   <SelectContent>
@@ -836,7 +778,7 @@ export default function EditOwner() {
                   value={formData.location?.pincode || ""}
                   onChange={(e) => setFormData(prev => ({ ...prev, location: { ...prev.location, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) } }))}
                   placeholder="Pincode*"
-                  className="w-full"
+                  className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                   disabled={loading || saving}
                 />
               </div>
@@ -856,10 +798,10 @@ export default function EditOwner() {
                   value={loading ? "Loading..." : formData.panNumber}
                   onChange={(e) => handleInputChange("panNumber", e.target.value.toUpperCase())}
                   placeholder="ABCDE1234F"
-                  className="w-full pr-10 focus-visible:border-black focus-visible:ring-0"
+                  className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                   disabled={loading || saving}
                 />
-                <Edit className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                
               </div>
             </div>
 
@@ -872,10 +814,10 @@ export default function EditOwner() {
                   value={loading ? "Loading..." : formData.nameOnPan}
                   onChange={(e) => handleInputChange("nameOnPan", e.target.value)}
                   placeholder="Enter name as per PAN"
-                  className="w-full pr-10 focus-visible:border-black focus-visible:ring-0"
+                  className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                   disabled={loading || saving}
                 />
-                <Edit className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                
               </div>
             </div>
 
@@ -888,21 +830,20 @@ export default function EditOwner() {
                   value={loading ? "Loading..." : formData.accountNumber}
                   onChange={(e) => handleInputChange("accountNumber", e.target.value)}
                   placeholder="Enter account number"
-                  className="w-full pr-10 focus-visible:border-black focus-visible:ring-0"
+                  className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                   disabled={loading || saving}
                 />
-                <Edit className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                
               </div>
             </div>
 
             {/* Account Type */}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">Account Type</label>
-              <Select
-                value={formData.accountType || ""}
+              <Select disabled={true} value={formData.accountType || ""}
                 onValueChange={(val) => handleInputChange("accountType", val)}
               >
-                <SelectTrigger className="w-full focus:ring-0 focus:border-black">
+                <SelectTrigger className="w-full bg-gray-50 text-gray-500 cursor-not-allowed [&>svg]:hidden focus:ring-0 focus:border-black">
                   <SelectValue placeholder="Select account type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -921,10 +862,10 @@ export default function EditOwner() {
                   value={loading ? "Loading..." : formData.ifscCode}
                   onChange={(e) => handleInputChange("ifscCode", e.target.value.toUpperCase())}
                   placeholder="SBIN0001234"
-                  className="w-full pr-10 focus-visible:border-black focus-visible:ring-0"
+                  className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                   disabled={loading || saving}
                 />
-                <Edit className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                
               </div>
             </div>
 
@@ -937,24 +878,15 @@ export default function EditOwner() {
                   value={loading ? "Loading..." : formData.upiId}
                   onChange={(e) => handleInputChange("upiId", e.target.value)}
                   placeholder="name@okaxis"
-                  className="w-full pr-10 focus-visible:border-black focus-visible:ring-0"
+                  className="w-full bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" readOnly
                   disabled={loading || saving}
                 />
-                <Edit className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                
               </div>
             </div>
           </div>
 
-          {/* Delete Account Section */}
-          <div className="pt-8 border-t border-gray-100">
-            <button
-              onClick={() => setShowDeleteDialog(true)}
-              className="flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors"
-            >
-              <Trash2 className="w-5 h-5" />
-              <span className="text-sm font-normal">Delete your Appzeto account</span>
-            </button>
-          </div>
+          
         </div>
 
         {/* Delete Account Confirmation Dialog */}
@@ -992,21 +924,7 @@ export default function EditOwner() {
           </DialogContent>
         </Dialog>
 
-        {/* Save Button - Fixed at bottom */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4 z-40">
-          <Button
-            onClick={handleSave}
-            disabled={!hasChanges || loading || saving}
-            className={`w-full py-3 ${
-              hasChanges && !loading && !saving
-                ? "bg-black hover:bg-gray-900 text-white" 
-                : "bg-gray-200 text-gray-500 cursor-not-allowed"
-            } transition-colors`}
-          >
-            {saving ? "Saving..." : "Save"}
-          </Button>
         </div>
-      </div>
 
       <ImageSourcePicker
         isOpen={isPhotoPickerOpen}

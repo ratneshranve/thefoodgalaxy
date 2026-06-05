@@ -19,6 +19,9 @@ const feeSettingsSchema = new mongoose.Schema(
         platformFee: { type: Number, min: 0 },
         packagingFee: { type: Number, min: 0 },
         gstRate: { type: Number, min: 0, max: 100 },
+        gstOnDeliveryFee: { type: Number, min: 0, max: 100, default: 0 },
+        gstOnPlatformFee: { type: Number, min: 0, max: 100, default: 0 },
+        gstOnPackagingFee: { type: Number, min: 0, max: 100, default: 0 },
         deliveryBonusAmount: { type: Number, min: 0, default: 0 },
         dispatchRadiusTiers: { type: [Number], default: [2, 4, 6, 8, 10] },
         isActive: { type: Boolean, default: true, index: true }
