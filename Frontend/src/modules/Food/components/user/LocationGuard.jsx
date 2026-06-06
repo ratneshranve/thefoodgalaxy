@@ -10,19 +10,20 @@ export default function LocationGuard({ children }) {
   const { isLocationResolved } = useSelector((state) => state.location)
   
   // We only use the hooks here ONCE globally.
-  const { location: coords, address } = useLocation()
-  const { zoneId } = useZone(coords)
+  const { location: coords, loading: locationLoading } = useLocation()
+  const { zoneId, zoneStatus } = useZone(coords)
 
   useEffect(() => {
-    // Wait until both coords and zoneId are available
-    if (coords && zoneId) {
+    // Unblock the app once location is fetched (or fallback is provided) 
+    // AND zone status is determined (not 'loading').
+    if (coords && !locationLoading && zoneStatus !== 'loading') {
       dispatch(setLocation({
         coords,
-        zoneId,
-        address
+        zoneId: zoneId || null,
+        address: coords?.address || coords?.formattedAddress || ''
       }))
     }
-  }, [coords, zoneId, address, dispatch])
+  }, [coords, zoneId, zoneStatus, locationLoading, dispatch])
 
   if (!isLocationResolved) {
     // Show the premium loader while location is being fetched for the very first time

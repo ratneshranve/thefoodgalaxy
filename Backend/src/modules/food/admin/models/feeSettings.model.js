@@ -24,6 +24,10 @@ const feeSettingsSchema = new mongoose.Schema(
         gstOnPackagingFee: { type: Number, min: 0, max: 100, default: 0 },
         deliveryBonusAmount: { type: Number, min: 0, default: 0 },
         dispatchRadiusTiers: { type: [Number], default: [2, 4, 6, 8, 10] },
+        globalRestaurantCommission: { type: Number, min: 0, default: 0 },
+        globalGstOnCommission: { type: Number, min: 0, max: 100, default: 18 },
+        globalPaymentGatewayFee: { type: Number, min: 0, max: 100, default: 2 },
+        globalTcs: { type: Number, min: 0, max: 100, default: 1 },
         isActive: { type: Boolean, default: true, index: true }
     },
     { collection: 'food_fee_settings', timestamps: true }

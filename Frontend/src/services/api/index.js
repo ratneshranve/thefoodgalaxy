@@ -191,6 +191,9 @@ export const adminAPI = {
       "/auth/admin/change-password",
       { currentPassword, newPassword }
     ),
+  /** Public API for fee settings */
+  getPublicFeeSettings: () =>
+    apiClient.get("/food/admin/fee-settings/public"),
   logout: (refreshToken, fcmToken = null, platform = "web") => {
     const token =
       refreshToken ||
@@ -521,6 +524,8 @@ export const adminAPI = {
   /** Restaurant Commission (admin) */
   getRestaurantCommissionBootstrap: () =>
     adminClient.get("/food/admin/restaurant-commissions/bootstrap"),
+  updateGlobalRestaurantCommissionSettings: (body) =>
+    adminClient.post("/food/admin/restaurant-commissions/global", body),
   getRestaurantCommissions: (params = {}) =>
     adminClient.get("/food/admin/restaurant-commissions", { params }),
   getRestaurantCommissionById: (id) =>

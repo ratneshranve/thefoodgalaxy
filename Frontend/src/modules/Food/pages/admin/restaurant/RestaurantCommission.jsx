@@ -22,6 +22,13 @@ export default function RestaurantCommission() {
   const [deleting, setDeleting] = useState(false)
   const [isAddEditOpen, setIsAddEditOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [savingGlobal, setSavingGlobal] = useState(false)
+  const [globalSettings, setGlobalSettings] = useState({
+    globalRestaurantCommission: 0,
+    globalGstOnCommission: 18,
+    globalPaymentGatewayFee: 2,
+    globalTcs: 1
+  })
   const [isRestaurantSelectOpen, setIsRestaurantSelectOpen] = useState(false)
   const [selectedCommission, setSelectedCommission] = useState(null)
   const [selectedRestaurant, setSelectedRestaurant] = useState(null)
@@ -81,7 +88,16 @@ export default function RestaurantCommission() {
       const response = await adminAPI.getRestaurantCommissionBootstrap()
       const data = response?.data?.data
       setCommissions(Array.isArray(data?.commissions) ? data.commissions : [])
+      setCommissions(Array.isArray(data?.commissions) ? data.commissions : [])
       setApprovedRestaurants(Array.isArray(data?.restaurants) ? data.restaurants : [])
+      if (data?.globalSettings) {
+        setGlobalSettings({
+          globalRestaurantCommission: data.globalSettings.globalRestaurantCommission || 0,
+          globalGstOnCommission: data.globalSettings.globalGstOnCommission || 0,
+          globalPaymentGatewayFee: data.globalSettings.globalPaymentGatewayFee || 0,
+          globalTcs: data.globalSettings.globalTcs || 0
+        })
+      }
     } catch (error) {
       debugError('Error fetching bootstrap:', error)
       if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
@@ -170,6 +186,24 @@ export default function RestaurantCommission() {
     } catch (error) {
       debugError('Error toggling status:', error)
       toast.error(error.response?.data?.message || 'Failed to update status')
+    }
+  }
+
+  const handleSaveGlobal = async () => {
+    try {
+      setSavingGlobal(true)
+      await adminAPI.updateGlobalRestaurantCommissionSettings({
+        globalRestaurantCommission: Number(globalSettings.globalRestaurantCommission),
+        globalGstOnCommission: Number(globalSettings.globalGstOnCommission),
+        globalPaymentGatewayFee: Number(globalSettings.globalPaymentGatewayFee),
+        globalTcs: Number(globalSettings.globalTcs),
+      })
+      toast.success('Global settings updated successfully')
+    } catch (error) {
+      debugError('Error saving global settings:', error)
+      toast.error(error.response?.data?.message || 'Failed to update global settings')
+    } finally {
+      setSavingGlobal(false)
     }
   }
 
@@ -359,6 +393,82 @@ export default function RestaurantCommission() {
               >
                 <Plus className="w-4 h-4" />
                 Add Commission
+              </button>
+            </div>
+          </div>
+
+          {/* Global Configurations Section */}
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 mb-6">
+            <h2 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <Percent className="w-4 h-4 text-blue-600" />
+              Global Settings (Applied to all restaurants)
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Global Default Commission (%)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={globalSettings.globalRestaurantCommission}
+                    onChange={(e) => setGlobalSettings({ ...globalSettings, globalRestaurantCommission: e.target.value })}
+                    className="w-full pl-3 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">GST on Commission (%)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={globalSettings.globalGstOnCommission}
+                    onChange={(e) => setGlobalSettings({ ...globalSettings, globalGstOnCommission: e.target.value })}
+                    className="w-full pl-3 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Payment Gateway Fee (%)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={globalSettings.globalPaymentGatewayFee}
+                    onChange={(e) => setGlobalSettings({ ...globalSettings, globalPaymentGatewayFee: e.target.value })}
+                    className="w-full pl-3 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">TCS (%)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={globalSettings.globalTcs}
+                    onChange={(e) => setGlobalSettings({ ...globalSettings, globalTcs: e.target.value })}
+                    className="w-full pl-3 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={handleSaveGlobal}
+                disabled={savingGlobal}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {savingGlobal && <Loader2 className="w-4 h-4 animate-spin" />}
+                Save Global Settings
               </button>
             </div>
           </div>

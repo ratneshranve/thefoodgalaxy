@@ -814,6 +814,11 @@ export async function getTransactionReport(query = {}) {
             pricing.platformFee !== undefined && pricing.platformFee !== null
                 ? Number(pricing.platformFee || 0) || 0
                 : platformFeeDerived;
+
+        const deliveryFeeUser = Number(pricing.deliveryFee || 0);
+        const deliveryCostAdmin = Number(tx.amounts?.riderShare) || Number(order.riderEarning) || 30;
+        const deliveryGstAdmin = deliveryCostAdmin * 0.18;
+
         return {
             id: tx._id,
             orderId: tx.orderReadableId || order.orderId || 'N/A',
@@ -828,7 +833,20 @@ export async function getTransactionReport(query = {}) {
             deliveryCharge: pricing.deliveryFee || 0,
             platformFee,
             orderAmount: tx.amounts?.totalCustomerPaid || pricing.total || 0,
-            status: tx.status
+            status: tx.status,
+            adminEarningBreakdown: {
+                deliveryProfit: deliveryFeeUser - deliveryCostAdmin - deliveryGstAdmin,
+                platformFee: platformFee,
+                packagingFee: packagingFee,
+                restaurantCommission: Number(pricing.restaurantCommission || 0),
+                gstOnCommission: Number(pricing.gstOnCommission || 0),
+                paymentGatewayFee: Number(pricing.paymentGatewayFee || 0),
+                tcs: Number(pricing.tcs || 0),
+                totalAdminReceivable: Number(pricing.totalAdminReceivable || 0),
+                deliveryCostToAdmin: deliveryCostAdmin,
+                deliveryGstToAdmin: deliveryGstAdmin,
+                gstCollectedFromUser: Number(pricing.tax || 0)
+            }
         };
     });
 
@@ -838,6 +856,16 @@ export async function getTransactionReport(query = {}) {
     let restaurantEarning = 0;
     let deliverymanEarning = 0;
 
+    let adminEarningBreakdown = {
+        deliveryProfit: 0,
+        platformFee: 0,
+        packagingFee: 0,
+        restaurantCommission: 0,
+        gstOnCommission: 0,
+        paymentGatewayFee: 0,
+        tcs: 0
+    };
+
     for (const tx of transactionRows) {
         // Calculate Summary
         if (tx.status === 'captured' || tx.status === 'settled' || (tx.orderId && tx.orderId.orderStatus === 'delivered')) {
@@ -845,6 +873,22 @@ export async function getTransactionReport(query = {}) {
             adminEarning += tx.amounts?.platformNetProfit || 0;
             restaurantEarning += tx.amounts?.restaurantShare || 0;
             deliverymanEarning += tx.amounts?.riderShare || 0;
+
+            // Breakdown
+            const order = tx.orderId || {};
+            const pricing = order.pricing || {};
+            
+            const deliveryFeeUser = Number(pricing.deliveryFee || 0);
+            const deliveryCostAdmin = Number(tx.amounts?.riderShare) || Number(order.riderEarning) || 30;
+            const deliveryGstAdmin = deliveryCostAdmin * 0.18;
+            
+            adminEarningBreakdown.deliveryProfit += (deliveryFeeUser - deliveryCostAdmin - deliveryGstAdmin);
+            adminEarningBreakdown.platformFee += Number(pricing.platformFee || 0);
+            adminEarningBreakdown.packagingFee += Number(pricing.packagingFee || 0);
+            adminEarningBreakdown.restaurantCommission += Number(pricing.restaurantCommission || 0);
+            adminEarningBreakdown.gstOnCommission += Number(pricing.gstOnCommission || 0);
+            adminEarningBreakdown.paymentGatewayFee += Number(pricing.paymentGatewayFee || 0);
+            adminEarningBreakdown.tcs += Number(pricing.tcs || 0);
         }
         if (tx.status === 'refunded' || (tx.orderId && tx.orderId.orderStatus === 'cancelled_by_admin')) {
             // Count number of refunded transactions according to old logic or sum them
@@ -856,6 +900,7 @@ export async function getTransactionReport(query = {}) {
         completedTransaction,
         refundedTransaction, // Returning amount instead of count for consistency, frontend might expect count though
         adminEarning,
+        adminEarningBreakdown,
         restaurantEarning,
         deliverymanEarning,
     };
@@ -1599,7 +1644,18 @@ export async function getRestaurantCommissionBootstrap() {
         hasCommissionSetup: commissionByRestaurantId.has(String(r._id))
     }));
 
-    return { commissions: commissionsData.commissions || [], restaurants };
+    const feeSettings = await FoodFeeSettings.findOne({ isActive: true }).sort({ createdAt: -1 }).lean() || {};
+
+    return { 
+        commissions: commissionsData.commissions || [], 
+        restaurants,
+        globalSettings: {
+            globalRestaurantCommission: feeSettings.globalRestaurantCommission || 0,
+            globalGstOnCommission: feeSettings.globalGstOnCommission || 0,
+            globalPaymentGatewayFee: feeSettings.globalPaymentGatewayFee || 0,
+            globalTcs: feeSettings.globalTcs || 0
+        }
+    };
 }
 
 export async function getRestaurantCommissionById(id) {
@@ -1647,6 +1703,27 @@ export async function deleteRestaurantCommission(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const deleted = await FoodRestaurantCommission.findByIdAndDelete(id).lean();
     return deleted ? { id } : null;
+}
+
+export async function updateGlobalRestaurantCommissionSettings(body) {
+    const { globalRestaurantCommission, globalGstOnCommission, globalPaymentGatewayFee, globalTcs } = body;
+    let settings = await FoodFeeSettings.findOne({ isActive: true }).sort({ createdAt: -1 });
+    if (!settings) {
+        settings = new FoodFeeSettings();
+    }
+    
+    if (globalRestaurantCommission !== undefined) settings.globalRestaurantCommission = Number(globalRestaurantCommission);
+    if (globalGstOnCommission !== undefined) settings.globalGstOnCommission = Number(globalGstOnCommission);
+    if (globalPaymentGatewayFee !== undefined) settings.globalPaymentGatewayFee = Number(globalPaymentGatewayFee);
+    if (globalTcs !== undefined) settings.globalTcs = Number(globalTcs);
+    
+    await settings.save();
+    return {
+        globalRestaurantCommission: settings.globalRestaurantCommission,
+        globalGstOnCommission: settings.globalGstOnCommission,
+        globalPaymentGatewayFee: settings.globalPaymentGatewayFee,
+        globalTcs: settings.globalTcs
+    };
 }
 
 export async function toggleRestaurantCommissionStatus(id) {

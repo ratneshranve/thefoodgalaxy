@@ -161,6 +161,7 @@ export default function Cart() {
   const [sendCutlery, setSendCutlery] = useState(true)
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const [showBillDetails, setShowBillDetails] = useState(true)
+  const [showGstModal, setShowGstModal] = useState(false)
   const [showPlacingOrder, setShowPlacingOrder] = useState(false)
   const [isScheduled, setIsScheduled] = useState(false)
   const [scheduledDate, setScheduledDate] = useState("")
@@ -984,6 +985,9 @@ export default function Cart() {
             platformFee: response.data.data.feeSettings.platformFee ?? 5,
             packagingFee: response.data.data.feeSettings.packagingFee ?? 0,
             gstRate: response.data.data.feeSettings.gstRate ?? 5,
+            gstOnDeliveryFee: response.data.data.feeSettings.gstOnDeliveryFee ?? 0,
+            gstOnPlatformFee: response.data.data.feeSettings.gstOnPlatformFee ?? 0,
+            gstOnPackagingFee: response.data.data.feeSettings.gstOnPackagingFee ?? 0,
           })
         }
       } catch (error) {
@@ -1063,12 +1067,11 @@ export default function Cart() {
     : null
   const platformFee = pricing != null ? (pricing.platformFee ?? 0) : (feeSettings.platformFee ?? 0)
   const packagingFee = pricing != null ? (pricing.packagingFee ?? 0) : (feeSettings.packagingFee ?? 0)
-  const gstCharges = pricing != null ? (pricing.tax ?? 0) : Math.round(
-    subtotal * ((feeSettings.gstRate ?? 0) / 100) +
-    fallbackDeliveryFee * ((feeSettings.gstOnDeliveryFee ?? 0) / 100) +
-    (feeSettings.platformFee ?? 0) * ((feeSettings.gstOnPlatformFee ?? 0) / 100) +
-    (feeSettings.packagingFee ?? 0) * ((feeSettings.gstOnPackagingFee ?? 0) / 100)
-  )
+  const gstOnItemTotal = pricing?.taxBreakdown?.itemTax ?? (subtotal * ((feeSettings.gstRate ?? 0) / 100));
+  const gstOnDeliveryFee = pricing?.taxBreakdown?.deliveryTax ?? (fallbackDeliveryFee * ((feeSettings.gstOnDeliveryFee ?? 0) / 100));
+  const gstOnPlatformFee = pricing?.taxBreakdown?.platformTax ?? ((feeSettings.platformFee ?? 0) * ((feeSettings.gstOnPlatformFee ?? 0) / 100));
+  const gstOnPackagingFee = pricing?.taxBreakdown?.packagingTax ?? ((feeSettings.packagingFee ?? 0) * ((feeSettings.gstOnPackagingFee ?? 0) / 100));
+  const gstCharges = pricing != null ? (pricing.tax ?? 0) : Math.round(gstOnItemTotal + gstOnDeliveryFee + gstOnPlatformFee + gstOnPackagingFee);
   const itemDiscount = pricing?.itemDiscount || 0;
   const couponDiscount = pricing?.couponDiscount || (appliedCoupon ? Math.min(appliedCoupon.discount, subtotal * 0.5) : 0);
   const discount = pricing?.discount || couponDiscount;
@@ -2808,7 +2811,12 @@ export default function Cart() {
                       <span className="text-gray-800 dark:text-gray-200 font-medium">{RUPEE_SYMBOL}{packagingFee.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">GST</span>
+                      <span 
+                        className="text-gray-600 dark:text-gray-400 border-b border-dashed border-gray-400 cursor-pointer"
+                        onClick={() => setShowGstModal(true)}
+                      >
+                        GST
+                      </span>
                       <span className="text-gray-800 dark:text-gray-200 font-medium">{RUPEE_SYMBOL}{gstCharges.toFixed(2)}</span>
                     </div>
                     {couponDiscount > 0 && (
@@ -3475,6 +3483,79 @@ export default function Cart() {
           stroke-dashoffset: 0;
         }
       `}</style>
+
+      {/* GST Modal */}
+      {typeof window !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {showGstModal && (
+              <>
+                <motion.div
+                  className="fixed inset-0 bg-black/50 z-[10020]"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowGstModal(false)}
+                />
+                <motion.div
+                  className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[10021] w-[90vw] max-w-[320px] bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl overflow-hidden"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.16 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-5">
+                    <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
+                      {companyName} has no role to play in taxes levied by the govt.
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center text-[13px]">
+                        <span className="text-gray-800 dark:text-gray-200">GST on item total</span>
+                        <span className="text-gray-900 dark:text-gray-100 font-medium">{RUPEE_SYMBOL}{gstOnItemTotal.toFixed(2)}</span>
+                      </div>
+                      
+                      {gstOnPackagingFee > 0 && (
+                        <div className="flex justify-between items-center text-[13px]">
+                          <span className="text-gray-800 dark:text-gray-200">GST on restaurant packaging charges</span>
+                          <span className="text-gray-900 dark:text-gray-100 font-medium">{RUPEE_SYMBOL}{gstOnPackagingFee.toFixed(2)}</span>
+                        </div>
+                      )}
+                      
+                      {gstOnDeliveryFee > 0 && (
+                        <div className="flex justify-between items-center text-[13px]">
+                          <span className="text-gray-800 dark:text-gray-200">GST on delivery partner fee</span>
+                          <span className="text-gray-900 dark:text-gray-100 font-medium">{RUPEE_SYMBOL}{gstOnDeliveryFee.toFixed(2)}</span>
+                        </div>
+                      )}
+                      
+                      {gstOnPlatformFee > 0 && (
+                        <div className="flex justify-between items-center text-[13px]">
+                          <span className="text-gray-800 dark:text-gray-200">GST on platform fee</span>
+                          <span className="text-gray-900 dark:text-gray-100 font-medium">{RUPEE_SYMBOL}{gstOnPlatformFee.toFixed(2)}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center text-[14px] font-bold pt-3 mt-1 border-t border-gray-100 dark:border-gray-800">
+                        <span className="text-gray-900 dark:text-white">Total</span>
+                        <span className="text-gray-900 dark:text-white">{RUPEE_SYMBOL}{gstCharges.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    className="w-full py-3 text-center text-primary font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-t border-gray-100 dark:border-gray-800"
+                    onClick={() => setShowGstModal(false)}
+                  >
+                    OKAY
+                  </button>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
 
       {/* Share Modal */}
       {typeof window !== "undefined" &&

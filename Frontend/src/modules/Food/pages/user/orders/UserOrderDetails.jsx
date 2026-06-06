@@ -232,6 +232,13 @@ export default function UserOrderDetails() {
       // Create new PDF document
       const doc = new jsPDF()
 
+      // Add Border
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      doc.setDrawColor(0)
+      doc.setLineWidth(0.5)
+      doc.rect(5, 5, pageWidth - 10, pageHeight - 10)
+
       // Title
       doc.setFontSize(16)
       doc.setFont('helvetica', 'bold')
@@ -291,8 +298,8 @@ export default function UserOrderDetails() {
       const tableData = items.map(item => [
         item.variantName ? `${item.name || 'Item'} (${item.variantName})` : (item.name || 'Item'),
         String(item.quantity || item.qty || 1),
-        `?${Number(item.price || 0).toFixed(2)}`,
-        `?${Number((item.price || 0) * (item.quantity || item.qty || 1)).toFixed(2)}`
+        `Rs. ${Number(item.price || 0).toFixed(2)}`,
+        `Rs. ${Number((item.price || 0) * (item.quantity || item.qty || 1)).toFixed(2)}`
       ])
 
       autoTable(doc, {
@@ -317,7 +324,7 @@ export default function UserOrderDetails() {
       doc.setFontSize(12)
       doc.setFont('helvetica', 'bold')
       doc.text('Total:', 145, finalY + 10, { align: 'right' })
-      doc.text(`?${Number(pricing.total || 0).toFixed(2)}`, 195, finalY + 10, { align: 'right' })
+      doc.text(`Rs. ${Number(pricing.total || 0).toFixed(2)}`, 195, finalY + 10, { align: 'right' })
 
       // Use robust download utility
       const pdfBlob = doc.output('blob');

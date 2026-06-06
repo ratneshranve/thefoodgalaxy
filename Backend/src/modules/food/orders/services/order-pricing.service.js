@@ -250,6 +250,12 @@ export async function calculateOrderPricing(userId, dto) {
     pricing: {
       subtotal,
       tax,
+      taxBreakdown: {
+        itemTax,
+        deliveryTax,
+        platformTax,
+        packagingTax
+      },
       packagingFee,
       deliveryFee,
       deliveryFeeBreakdown: deliveryFeeBreakdown || undefined,

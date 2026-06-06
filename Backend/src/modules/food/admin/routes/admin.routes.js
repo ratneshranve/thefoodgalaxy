@@ -21,6 +21,9 @@ router.use('/menu', menuBulkRoutes);
 // ----- Public Business Settings (No Admin Required) -----
 router.get('/business-settings/public', businessSettingsController.getBusinessSettings);
 
+// ----- Public Fee Settings (No Admin Required) -----
+router.get('/fee-settings/public', adminController.getFeeSettings);
+
 const requireAdmin = (req, _res, next) => {
     const user = req.user;
     if (!user || user.role !== 'ADMIN') {
@@ -82,6 +85,7 @@ router.delete('/restaurants/:id', adminController.deleteRestaurant);
 
 // ----- Restaurant Commission -----
 router.get('/restaurant-commissions/bootstrap', adminController.getRestaurantCommissionBootstrap);
+router.post('/restaurant-commissions/global', adminController.updateGlobalRestaurantCommissionSettings);
 router.get('/restaurant-commissions', adminController.getRestaurantCommissions);
 router.post('/restaurant-commissions', adminController.createRestaurantCommission);
 router.get('/restaurant-commissions/:id', adminController.getRestaurantCommissionById);

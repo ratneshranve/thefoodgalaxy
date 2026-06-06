@@ -235,19 +235,24 @@ export async function createOrder(userId, dto) {
     riderEarning += deliveryBonusAmount;
   }
   
-  // Calculate restaurant commission from subtotal
-  const { commissionAmount: restaurantCommission } = await foodTransactionService.getRestaurantCommissionSnapshot({
+  // Calculate restaurant commission and taxes from subtotal
+  const commissionSnapshot = await foodTransactionService.getRestaurantCommissionSnapshot({
     pricing: normalizedPricing,
     restaurantId: dto.restaurantId
   });
 
-  normalizedPricing.restaurantCommission = restaurantCommission || 0;
+  normalizedPricing.restaurantCommission = commissionSnapshot.commissionAmount || 0;
+  normalizedPricing.gstOnCommission = commissionSnapshot.gstOnCommission || 0;
+  normalizedPricing.paymentGatewayFee = commissionSnapshot.paymentGatewayFee || 0;
+  normalizedPricing.tcs = commissionSnapshot.tcs || 0;
 
   const platformProfit = Math.max(
     0,
     (Number.isFinite(normalizedPricing.deliveryFee) ? normalizedPricing.deliveryFee : 0) +
       (Number.isFinite(normalizedPricing.platformFee) ? normalizedPricing.platformFee : 0) +
-      restaurantCommission -
+      normalizedPricing.restaurantCommission + 
+      normalizedPricing.paymentGatewayFee + 
+      normalizedPricing.tcs -
       riderEarning,
   );
 

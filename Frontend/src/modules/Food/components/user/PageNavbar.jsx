@@ -8,6 +8,7 @@ import { useLocationSelector } from "./UserLayout"
 import { FaLocationDot } from "react-icons/fa6"
 import { getCachedSettings, loadBusinessSettings } from "@food/utils/businessSettings"
 import quickSpicyLogo from "@food/assets/quicky-spicy-logo.png"
+import { toast } from "sonner"
 
 export default function PageNavbar({
   textColor = "white",
@@ -72,6 +73,8 @@ export default function PageNavbar({
 
         if (!isGranted) {
           debugLog("?? Geolocation permission not granted; waiting for user action")
+          openLocationSelector()
+          toast.error("Please enter location or enable GPS")
           return
         }
         const fetchedLocation = await requestLocationRef.current()
@@ -83,6 +86,8 @@ export default function PageNavbar({
           debugLog("? Location fetched successfully:", fetchedLocation)
         } else {
           debugLog("Location fetch returned placeholder, user may need to select manually")
+          openLocationSelector()
+          toast.error("Please enter location or enable GPS")
         }
       } catch (err) {
         if (!cancelled) {

@@ -43,6 +43,9 @@ const pricingSchema = new mongoose.Schema(
         deliveryFee: { type: Number, default: 0, min: 0 },
         platformFee: { type: Number, default: 0, min: 0 },
         restaurantCommission: { type: Number, default: 0, min: 0 },
+        gstOnCommission: { type: Number, default: 0, min: 0 },
+        paymentGatewayFee: { type: Number, default: 0, min: 0 },
+        tcs: { type: Number, default: 0, min: 0 },
         discount: { type: Number, default: 0, min: 0 },
         total: { type: Number, required: true, min: 0 },
         currency: { type: String, default: 'INR' }

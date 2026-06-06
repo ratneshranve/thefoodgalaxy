@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { BarChart3, ChevronDown, Info, Settings, FileText, FileSpreadsheet, Code, Loader2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
@@ -31,7 +32,8 @@ export default function TransactionReport() {
     refundedTransaction: 0,
     adminEarning: 0,
     restaurantEarning: 0,
-    deliverymanEarning: 0
+    deliverymanEarning: 0,
+    adminEarningBreakdown: {}
   })
   const [filters, setFilters] = useState({
     zone: "All Zones",
@@ -41,6 +43,7 @@ export default function TransactionReport() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [zones, setZones] = useState([])
   const [restaurants, setRestaurants] = useState([])
+  const navigate = useNavigate()
 
   // Fetch zones and restaurants for filters
   useEffect(() => {
@@ -106,7 +109,8 @@ export default function TransactionReport() {
             refundedTransaction: 0,
             adminEarning: 0,
             restaurantEarning: 0,
-            deliverymanEarning: 0
+            deliverymanEarning: 0,
+            adminEarningBreakdown: {}
           })
         } else {
           setTransactions([])
@@ -316,7 +320,11 @@ export default function TransactionReport() {
           {/* Right Column - Small Cards */}
           <div className="space-y-3">
             {/* Admin Earning */}
-            <div className="rounded-lg shadow-sm border border-slate-200 p-3" style={{ backgroundColor: '#f1f5f9' }}>
+            <div 
+              className="rounded-lg shadow-sm border border-slate-200 p-3 cursor-pointer hover:shadow-md transition-all" 
+              style={{ backgroundColor: '#f1f5f9' }}
+              onClick={() => navigate('/admin/food/admin-earning-report', { state: { filters, searchQuery } })}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
@@ -537,6 +545,7 @@ export default function TransactionReport() {
           </div>
         </DialogContent>
       </Dialog>
+
     </div>
   )
 }
