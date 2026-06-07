@@ -41,23 +41,10 @@ async function listNearbyOnlineDeliveryPartners(
     .lean();
 
   if (!restaurant?.location?.coordinates?.length) {
-    const partners = await FoodDeliveryPartner.find({
-      status: "approved",
-      availabilityStatus: "online",
-    })
-      .select("_id status name")
-      .limit(Math.max(1, limit))
-      .lean();
-
-    const cashEligiblePartners = await filterPartnersByCashLimit(
-      partners.map((p) => ({ partnerId: p._id, ...p })),
-      { requiredAmount, allowOverLimitFallback },
-    );
-
-    return {
-      restaurant: null,
-      partners: cashEligiblePartners.map((p) => ({ partnerId: p.partnerId || p._id, distanceKm: null })),
-    };
+    // Restaurant has no GPS coordinates — cannot calculate distance to riders.
+    // Return empty so no one gets notified until restaurant sets their location.
+    logger.warn(`listNearbyOnlineDeliveryPartners: Restaurant ${rId} has no location coordinates. Skipping dispatch.`);
+    return { restaurant: null, partners: [] };
   }
 
   const [rLng, rLat] = restaurant.location.coordinates;
@@ -74,9 +61,9 @@ async function listNearbyOnlineDeliveryPartners(
   for (const p of allOnline) {
     if (!allowedStatuses.includes(p.status)) continue;
 
+    // Skip riders with no GPS data or stale location — they cannot be distance-verified
     const isStale = !p.lastLocationAt || (Date.now() - new Date(p.lastLocationAt).getTime()) > STALE_GPS_MS;
     if (p.lastLat == null || p.lastLng == null || isStale) {
-      scored.push({ partnerId: p._id, distanceKm: 999, status: p.status });
       continue;
     }
 
@@ -89,22 +76,10 @@ async function listNearbyOnlineDeliveryPartners(
   scored.sort((a, b) => a.distanceKm - b.distanceKm);
   const picked = scored.slice(0, Math.max(1, limit));
 
+  // No fallback — if no riders found in radius, return empty.
+  // The tiered dispatch will expand radius on next attempt automatically.
   if (picked.length === 0) {
-    const anyOnline = await FoodDeliveryPartner.find({
-      status: { $in: allowedStatuses },
-      availabilityStatus: "online",
-    })
-      .select("_id status name")
-      .limit(Math.max(1, limit))
-      .lean();
-
-    return {
-      partners: anyOnline.map((p) => ({
-        partnerId: p._id,
-        distanceKm: null,
-        status: p.status,
-      })),
-    };
+    return { partners: [] };
   }
 
   const final = picked.filter(p => p.status === 'approved');
