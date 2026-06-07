@@ -181,8 +181,8 @@ export default function DeliverymanReviews() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1 sm:flex-initial min-w-[250px]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0 flex-wrap lg:flex-nowrap">
+              <div className="relative flex-1 w-full sm:w-[280px] lg:w-[350px]">
                 <input
                   type="text"
                   placeholder="Ex : search delivery man"
