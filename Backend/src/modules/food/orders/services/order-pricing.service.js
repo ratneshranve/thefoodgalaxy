@@ -25,25 +25,10 @@ export async function calculateOrderPricing(userId, dto) {
     const qty = Number(it.quantity) || 1;
     let hasItemDiscount = false;
     
-    if (restaurant.itemDiscounts && restaurant.itemDiscounts.length > 0) {
-      const itemDiscountRule = restaurant.itemDiscounts.find(
-        (rule) => String(rule.itemId) === String(it.itemId || it._id)
-      );
-      if (itemDiscountRule) {
-        const discountVal = Number(itemDiscountRule.discountValue) || 0;
-        if (discountVal > 0) {
-          let discountAmount = 0;
-          if (itemDiscountRule.discountType === 'FLAT') {
-            discountAmount = Math.min(price, discountVal);
-          } else {
-            discountAmount = (price * (discountVal / 100));
-          }
-          itemDiscountTotal += discountAmount * qty;
-          price = Math.max(0, price - discountAmount);
-          hasItemDiscount = true;
-        }
-      }
-    }
+    // The frontend already sends the discounted price in it.price.
+    // If we need to calculate itemDiscountTotal, we should rely on originalPrice sent by frontend,
+    // but since it's not sent, we skip re-applying the discount to avoid double discounting.
+    // In a future secure update, backend should fetch item prices from DB and apply discounts here.
     
     subtotal += price * qty;
     if (!hasItemDiscount) {
