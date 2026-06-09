@@ -602,7 +602,6 @@ export default function EditOwner() {
               </div>
             </div>
             <button
-              disabled={true}
               disabled={loading || saving}
               className="text-blue-600 text-sm font-normal hover:text-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

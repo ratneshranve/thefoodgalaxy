@@ -256,7 +256,6 @@ export default function OrderDetails() {
               paymentStatus,
               deliveryCostToAdmin,
               deliveryGstToAdmin,
-              deliveryGstToAdmin,
               totalAdminReceivable,
               restaurantCommission,
               gstOnItem,
