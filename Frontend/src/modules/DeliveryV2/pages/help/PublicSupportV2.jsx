@@ -1,50 +1,85 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Phone, Mail, ShieldCheck } from 'lucide-react';
-import logoNew from "@/assets/logo.png";
+import { ArrowLeft, Phone, Mail, MessageSquare, Clock } from 'lucide-react';
 
 export const PublicSupportV2 = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#FFF9F2] dark:bg-[#0a0a0a] flex flex-col font-['Poppins']">
-      <div className="p-4 flex items-center gap-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md sticky top-0 z-50">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-all">
-          <ArrowLeft className="w-6 h-6 text-gray-800 dark:text-gray-200" />
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#121212] flex flex-col font-['Inter',sans-serif]">
+      {/* Header */}
+      <div className="px-4 py-4 flex items-center gap-4 bg-white dark:bg-[#1a1a1a] sticky top-0 z-50">
+        <button onClick={() => navigate(-1)} className="p-1 -ml-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+          <ArrowLeft className="w-6 h-6 text-[#1A2642] dark:text-gray-200" strokeWidth={2.5} />
         </button>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Delivery Support</h1>
+        <div className="flex flex-col">
+          <h1 className="text-[19px] font-bold text-[#1A2642] dark:text-white leading-tight">Help & Support</h1>
+          <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">DELIVERY PARTNER INFORMATION</span>
+        </div>
       </div>
 
-      <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
-        <div className="w-24 h-24 mb-6 rounded-full bg-white shadow-lg overflow-hidden p-2 flex items-center justify-center border-4 border-white">
-           <img src={logoNew} alt="Logo" className="w-full h-full object-contain" />
-        </div>
-        <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Need Help?</h2>
-        <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm">
-          If you are facing issues with login or registration, please contact our support team.
-        </p>
+      <div className="flex-1 p-4 flex flex-col gap-4 max-w-lg w-full mx-auto pb-8">
+        
+        {/* Email Support Card */}
+        <a href="mailto:support@theindianbite.com" className="bg-white dark:bg-[#1a1a1a] rounded-[20px] p-6 flex flex-col items-center justify-center text-center shadow-sm hover:shadow-md transition-shadow">
+          <div className="w-14 h-14 rounded-[18px] border-[1.5px] border-[#E53935] flex items-center justify-center mb-4">
+            <Mail className="w-6 h-6 text-[#E53935]" strokeWidth={2} />
+          </div>
+          <h3 className="text-[13px] font-bold text-[#1A2642] dark:text-gray-200 tracking-wider mb-1.5 uppercase">DELIVERY SUPPORT</h3>
+          <p className="text-[15px] text-[#2c3e50] dark:text-gray-400 font-medium mb-3">support@theindianbite.com</p>
+          <span className="text-[#E53935] text-[11px] font-bold tracking-wider uppercase">EMAIL SUPPORT</span>
+        </a>
 
-        <div className="w-full max-w-sm space-y-4">
-          <a href="tel:+919876543210" className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 hover:shadow-md transition-all active:scale-[0.98]">
-            <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0">
-              <Phone className="w-6 h-6 text-green-600 dark:text-green-400" />
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-bold text-gray-900 dark:text-white">Call Support</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Available 24/7 for urgent issues</p>
-            </div>
-          </a>
+        {/* Phone Support Card */}
+        <a href="tel:+919917675609" className="bg-white dark:bg-[#1a1a1a] rounded-[20px] p-6 flex flex-col items-center justify-center text-center shadow-sm hover:shadow-md transition-shadow">
+          <div className="w-14 h-14 rounded-[18px] border-[1.5px] border-[#E53935] flex items-center justify-center mb-4">
+            <Phone className="w-6 h-6 text-[#E53935]" strokeWidth={2} />
+          </div>
+          <h3 className="text-[13px] font-bold text-[#1A2642] dark:text-gray-200 tracking-wider mb-1.5 uppercase">DELIVERY HELPLINE</h3>
+          <p className="text-[15px] text-[#2c3e50] dark:text-gray-400 font-medium mb-3">9917675609</p>
+          <span className="text-[#E53935] text-[11px] font-bold tracking-wider uppercase">INSTANT CALL</span>
+        </a>
 
-          <a href="mailto:support@theindianbite.com" className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 hover:shadow-md transition-all active:scale-[0.98]">
-            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
-              <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        {/* FAQs Section */}
+        <div className="mt-4">
+          <h2 className="text-lg font-bold text-[#1A2642] dark:text-white mb-5 px-1">Delivery FAQs</h2>
+          
+          <div className="space-y-6 px-1">
+            <div className="flex gap-4">
+              <MessageSquare className="w-5 h-5 text-[#E53935] shrink-0 mt-0.5" strokeWidth={2} />
+              <div>
+                <h4 className="text-[15px] font-bold text-[#1A2642] dark:text-gray-200 mb-1.5">How to resolve login issues?</h4>
+                <p className="text-[14px] text-gray-500 dark:text-gray-400 leading-relaxed">Ensure you're using the correct registered mobile number. If the issue persists, contact our helpline for an instant OTP reset.</p>
+              </div>
             </div>
-            <div className="text-left">
-              <p className="text-sm font-bold text-gray-900 dark:text-white">Email Us</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">support@theindianbite.com</p>
+
+            <div className="flex gap-4">
+              <MessageSquare className="w-5 h-5 text-[#E53935] shrink-0 mt-0.5" strokeWidth={2} />
+              <div>
+                <h4 className="text-[15px] font-bold text-[#1A2642] dark:text-gray-200 mb-1.5">Delay in payout settlement?</h4>
+                <p className="text-[14px] text-gray-500 dark:text-gray-400 leading-relaxed">Payouts are settled according to your active withdrawal cycle. Contact support for delays exceeding 48 hours.</p>
+              </div>
             </div>
-          </a>
+
+            <div className="flex gap-4">
+              <MessageSquare className="w-5 h-5 text-[#E53935] shrink-0 mt-0.5" strokeWidth={2} />
+              <div>
+                <h4 className="text-[15px] font-bold text-[#1A2642] dark:text-gray-200 mb-1.5">Technical issue with app?</h4>
+                <p className="text-[14px] text-gray-500 dark:text-gray-400 leading-relaxed">Restart the app and check internet connectivity. Make sure your app is updated to the latest version.</p>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Business Hours */}
+        <div className="mt-4 bg-white dark:bg-[#1a1a1a] rounded-[20px] p-5 flex gap-4 shadow-sm items-start">
+          <Clock className="w-5 h-5 text-[#E53935] shrink-0 mt-0.5" strokeWidth={2} />
+          <div>
+            <h4 className="text-[12px] font-bold text-[#1A2642] dark:text-gray-200 uppercase tracking-wider mb-1.5">BUSINESS HOURS</h4>
+            <p className="text-[14px] text-gray-500 dark:text-gray-400 leading-relaxed">Delivery support is available from 8 AM to 12 AM, 7 days a week.</p>
+          </div>
+        </div>
+
       </div>
     </div>
   );
