@@ -19,7 +19,7 @@ import { useCart } from "@food/context/CartContext"
 import { toast } from "sonner"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
-import { getCompanyNameAsync } from "@food/utils/businessSettings"
+import { getCompanyNameAsync, loadBusinessSettings } from "@food/utils/businessSettings"
 import { downloadFile } from "@/shared/utils/downloadUtils"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -228,159 +228,214 @@ export default function UserOrderDetails() {
 
   const handleDownloadSummary = async () => {
     try {
-      const companyName = await getCompanyNameAsync()
-      // Create new PDF document
+      toast.info("Generating invoice...");
       const doc = new jsPDF()
+      
+      // Load settings
+      let settings = {};
+      try {
+        settings = await loadBusinessSettings() || {};
+      } catch (err) {
+        debugWarn("Could not load business settings", err);
+      }
+
+      const companyName = settings.companyName || "Indian Bites"
+
+      const primaryColor = [220, 38, 38]; // Red #DC2626
+      const secondaryColor = [71, 85, 105]; // Slate 600
 
       // Add Border
-      const pageWidth = doc.internal.pageSize.getWidth()
-      const pageHeight = doc.internal.pageSize.getHeight()
-      doc.setDrawColor(0)
-      doc.setLineWidth(0.5)
-      doc.rect(5, 5, pageWidth - 10, pageHeight - 10)
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setDrawColor(226, 232, 240); // Slate 200 border
+      doc.setLineWidth(1);
+      doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
 
-      // Title
-      doc.setFontSize(16)
-      doc.setFont('helvetica', 'bold')
-      doc.text(`${companyName} Order: Summary and Receipt`, 105, 20, { align: 'center' })
+      // Header: INVOICE
+      doc.setFontSize(22);
+      doc.setTextColor(...primaryColor);
+      doc.setFont("helvetica", "bold");
+      doc.text("INVOICE", 105, 25, { align: "center" });
 
-      // Order details section
-      let yPos = 35
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
+      // Load logo if available
+      if (settings.logo?.url) {
+        try {
+          const img = new Image();
+          img.crossOrigin = "Anonymous";
+          img.src = settings.logo.url;
+          await new Promise((resolve) => {
+            img.onload = () => {
+              doc.addImage(img, "PNG", 14, 15, 30, 30, undefined, 'FAST');
+              resolve();
+            };
+            img.onerror = resolve; // Continue without logo if it fails
+          });
+        } catch (e) {
+          debugWarn("Logo load failed", e);
+        }
+      }
 
-      // Order ID
-      doc.setFont('helvetica', 'bold')
-      doc.text('Order ID:', 20, yPos)
-      doc.setFont('helvetica', 'normal')
-      doc.text(orderIdDisplay, 60, yPos)
-      yPos += 7
+      doc.setTextColor(15, 23, 42); // Slate 900
+      
+      // Platform Info (Left)
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(companyName, 14, 55);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...secondaryColor);
+      if (settings.address) {
+        const addrLines = doc.splitTextToSize(settings.address, 85);
+        doc.text(addrLines, 14, 60);
+      }
+      doc.text(`FSSAI: ${settings.fssai || "N/A"}`, 14, 75);
+      doc.text(`GSTIN: ${settings.gstin || "N/A"}`, 14, 80);
 
-      // Order Time
-      doc.setFont('helvetica', 'bold')
-      doc.text('Order Time:', 20, yPos)
-      doc.setFont('helvetica', 'normal')
-      const orderTimeLines = doc.splitTextToSize(paymentDate || 'N/A', 130)
-      doc.text(orderTimeLines, 60, yPos)
-      yPos += orderTimeLines.length * 7
+      // Restaurant Info (Right)
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(restaurantName, 110, 55);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...secondaryColor);
+      
+      const resAddrLines = doc.splitTextToSize(restaurantLocation || "Address not available", 85);
+      doc.text(resAddrLines, 110, 60);
+      doc.text(`FSSAI: ${restaurantObj.fssaiNumber || restaurantObj.fssai || order.restaurantFssai || "N/A"}`, 110, 75);
+      doc.text(`GSTIN: ${restaurantObj.gstNumber || restaurantObj.gstin || order.restaurantGstin || "N/A"}`, 110, 80);
 
-      // Customer Name
-      doc.setFont('helvetica', 'bold')
-      doc.text('Customer Name:', 20, yPos)
-      doc.setFont('helvetica', 'normal')
-      doc.text(userName || 'Customer', 60, yPos)
-      yPos += 7
+      // Divider line
+      doc.setDrawColor(226, 232, 240); // Slate 200
+      doc.setLineWidth(0.5);
+      doc.line(14, 85, 196, 85);
 
-      // Delivery Address
-      doc.setFont('helvetica', 'bold')
-      doc.text('Delivery Address:', 20, yPos)
-      doc.setFont('helvetica', 'normal')
-      const addressLines = doc.splitTextToSize(addressText || 'N/A', 130)
-      doc.text(addressLines, 60, yPos)
-      yPos += addressLines.length * 7
+      // Order Info
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Order ID: ${orderIdDisplay || "N/A"}`, 14, 95);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...secondaryColor);
+      doc.text(`Date & Time: ${paymentDate || "N/A"}`, 14, 100);
+      doc.text(`Payment: ${paymentMethod}`, 14, 105);
 
-      // Restaurant Name
-      doc.setFont('helvetica', 'bold')
-      doc.text('Restaurant Name:', 20, yPos)
-      doc.setFont('helvetica', 'normal')
-      doc.text(restaurantName, 60, yPos)
-      yPos += 7
+      // Customer Info
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("helvetica", "bold");
+      doc.text("Billed To:", 110, 95);
+      doc.setFont("helvetica", "normal");
+      doc.text(userName || "Customer", 110, 100);
+      doc.setTextColor(...secondaryColor);
 
-      // Restaurant Address
-      doc.setFont('helvetica', 'bold')
-      doc.text('Restaurant Address:', 20, yPos)
-      doc.setFont('helvetica', 'normal')
-      const restaurantAddressLines = doc.splitTextToSize(restaurantLocation || 'N/A', 130)
-      doc.text(restaurantAddressLines, 60, yPos)
-      yPos += restaurantAddressLines.length * 7 + 5
+      const custAddrLines = doc.splitTextToSize(addressText || "Address not available", 85);
+      doc.text(custAddrLines, 110, 105);
 
       // Items table
-      const tableData = items.map(item => [
-        item.variantName ? `${item.name || 'Item'} (${item.variantName})` : (item.name || 'Item'),
-        String(item.quantity || item.qty || 1),
-        `Rs. ${Number(item.price || 0).toFixed(2)}`,
-        `Rs. ${Number((item.price || 0) * (item.quantity || item.qty || 1)).toFixed(2)}`
-      ])
+      let yPos = 120;
+      if (items && items.length > 0) {
+        const tableData = items.map((item, index) => [
+          index + 1,
+          item.variantName ? `${item.name || 'Item'} (${item.variantName})` : (item.name || 'Item'),
+          String(item.quantity || item.qty || 1),
+          `Rs. ${Number(item.price || 0).toFixed(2)}`,
+          `Rs. ${Number((item.price || 0) * (item.quantity || item.qty || 1)).toFixed(2)}`
+        ]);
 
-      autoTable(doc, {
-        startY: yPos,
-        head: [['Item', 'Quantity', 'Unit Price', 'Total Price']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [0, 0, 0], textColor: 255, fontStyle: 'bold', fontSize: 10 },
-        styles: { fontSize: 9 },
-        columnStyles: {
-          0: { cellWidth: 80 },
-          1: { cellWidth: 30, halign: 'center' },
-          2: { cellWidth: 35, halign: 'right' },
-          3: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
-        }
-      })
+        autoTable(doc, {
+          startY: yPos,
+          margin: { left: 14, right: 14 },
+          head: [["S.No", "Item Description", "Qty", "Unit Price", "Total Price"]],
+          body: tableData,
+          theme: "striped",
+          headStyles: {
+            fillColor: primaryColor,
+            textColor: 255,
+            fontStyle: "bold",
+          },
+          styles: { fontSize: 9, cellPadding: 4 },
+          columnStyles: {
+            0: { cellWidth: 15, halign: "center" },
+            2: { cellWidth: 15, halign: "center" },
+            3: { cellWidth: 35, halign: "right" },
+            4: { cellWidth: 35, halign: "right" },
+          },
+        });
 
-      // Get final Y position after table (autoTable adds lastAutoTable property)
-      let summaryY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY : yPos + (tableData.length * 8) + 20
-
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-
-      // Subtotal
-      summaryY += 10
-      doc.text('Item Total:', 145, summaryY, { align: 'right' })
-      doc.text(`Rs. ${Number(pricing.subtotal || pricing.total || 0).toFixed(2)}`, 195, summaryY, { align: 'right' })
-
-      // GST
-      if (Number(pricing.tax) > 0) {
-        summaryY += 7
-        doc.text('GST (govt. taxes):', 145, summaryY, { align: 'right' })
-        doc.text(`Rs. ${Number(pricing.tax).toFixed(2)}`, 195, summaryY, { align: 'right' })
+        yPos = doc.lastAutoTable.finalY + 10;
       }
 
-      // Delivery Fee
-      summaryY += 7
-      doc.text('Delivery Fee:', 145, summaryY, { align: 'right' })
-      doc.text(pricing.deliveryFee ? `Rs. ${Number(pricing.deliveryFee).toFixed(2)}` : 'Free', 195, summaryY, { align: 'right' })
+      // Totals block right aligned
+      const totalWidth = 196;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...secondaryColor);
+      
+      const subtotal = Number(pricing.subtotal || pricing.total || 0);
+      const tax = Number(pricing.tax || 0);
+      const deliveryFee = Number(pricing.deliveryFee || 0);
+      const platformFee = Number(pricing.platformFee || 0);
+      const subscriptionFee = Number(pricing.subscriptionFee || 0);
+      const discount = (Number(pricing.discount) || 0) + (Number(pricing.originalItemTotal) || 0) - (Number(pricing.subtotal) || 0);
+      const total = Number(pricing.total || 0);
 
-      // Platform Fee
-      if (Number(pricing.platformFee) > 0) {
-        summaryY += 7
-        doc.text('Platform Fee:', 145, summaryY, { align: 'right' })
-        doc.text(`Rs. ${Number(pricing.platformFee).toFixed(2)}`, 195, summaryY, { align: 'right' })
+      doc.text("Item Total:", 140, yPos);
+      doc.text(`Rs. ${subtotal.toFixed(2)}`, totalWidth, yPos, { align: "right" });
+      yPos += 6;
+      
+      if (tax > 0) {
+        doc.text("GST (gov. taxes):", 140, yPos);
+        doc.text(`Rs. ${tax.toFixed(2)}`, totalWidth, yPos, { align: "right" });
+        yPos += 6;
+      }
+      
+      doc.text("Delivery Fee:", 140, yPos);
+      doc.text(deliveryFee > 0 ? `Rs. ${deliveryFee.toFixed(2)}` : "Free", totalWidth, yPos, { align: "right" });
+      yPos += 6;
+      
+      if (platformFee > 0) {
+        doc.text("Platform Fee:", 140, yPos);
+        doc.text(`Rs. ${platformFee.toFixed(2)}`, totalWidth, yPos, { align: "right" });
+        yPos += 6;
       }
 
-      // Subscription/Other fees
-      if (Number(pricing.subscriptionFee) > 0) {
-        summaryY += 7
-        doc.text('Other Fees:', 145, summaryY, { align: 'right' })
-        doc.text(`Rs. ${Number(pricing.subscriptionFee).toFixed(2)}`, 195, summaryY, { align: 'right' })
+      if (subscriptionFee > 0) {
+        doc.text("Other Fees:", 140, yPos);
+        doc.text(`Rs. ${subscriptionFee.toFixed(2)}`, totalWidth, yPos, { align: "right" });
+        yPos += 6;
       }
 
-      // Discount
-      const savings = (Number(pricing.discount) || 0) + (Number(pricing.originalItemTotal) || 0) - (Number(pricing.subtotal) || 0)
-      if (savings > 0) {
-        summaryY += 7
-        doc.text('Discount:', 145, summaryY, { align: 'right' })
-        doc.text(`- Rs. ${Number(savings).toFixed(2)}`, 195, summaryY, { align: 'right' })
+      if (discount > 0) {
+        doc.text("Discount:", 140, yPos);
+        doc.text(`- Rs. ${discount.toFixed(2)}`, totalWidth, yPos, { align: "right" });
+        yPos += 6;
       }
+      
+      yPos += 2;
 
-      // Total
-      summaryY += 10
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      doc.text('Total:', 145, summaryY, { align: 'right' })
-      doc.text(`Rs. ${Number(pricing.total || 0).toFixed(2)}`, 195, summaryY, { align: 'right' })
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42); // Slate 900
+      doc.text("Grand Total:", 140, yPos);
+      doc.text(`Rs. ${total.toFixed(2)}`, totalWidth, yPos, { align: "right" });
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(148, 163, 184); // Slate 400
+      doc.text("This is a computer generated invoice and does not require a physical signature.", 105, pageHeight - 15, { align: "center" });
 
       // Use robust download utility
       const pdfBlob = doc.output('blob');
       downloadFile({
         data: pdfBlob,
-        filename: `Order_Summary_${orderIdDisplay}_${Date.now()}.pdf`,
+        filename: `Invoice_${orderIdDisplay}_${Date.now()}.pdf`,
         type: 'application/pdf'
       });
 
-      toast.success("Summary downloaded successfully!")
+      toast.success("Invoice downloaded successfully!")
     } catch (error) {
       debugError("Error generating PDF:", error)
-      toast.error("Failed to download summary")
+      toast.error("Failed to download invoice")
     }
   }
 

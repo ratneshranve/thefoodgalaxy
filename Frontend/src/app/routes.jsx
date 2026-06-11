@@ -10,7 +10,19 @@ const FoodApp = lazy(() => import('../modules/Food/routes'))
 const AuthApp = lazy(() => import('../modules/auth/routes'))
 import ProtectedRoute from '@food/components/ProtectedRoute'
 
-const PageLoader = () => <AppShellSkeleton />
+const PageLoader = () => {
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname.toLowerCase()
+    if (
+      path.includes('/terms') ||
+      path.includes('/privacy') ||
+      path.includes('/support')
+    ) {
+      return null
+    }
+  }
+  return <AppShellSkeleton />
+}
 
 /**
  * FoodAppWrapper — Quick-spicy App. को /food prefix के साथ render करता है.

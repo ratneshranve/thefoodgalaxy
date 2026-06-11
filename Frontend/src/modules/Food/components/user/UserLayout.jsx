@@ -161,7 +161,7 @@ export default function UserLayout() {
                 <div className="hidden md:block">
                   {showBottomNav && <DesktopNavbar showLogo={!isUnder250} />}
                 </div>
-                <LocationPrompt />
+                {/* <LocationPrompt /> */}
                 <LocationGuard>
                   <main className={showBottomNav ? "md:pt-40" : ""}>
                     <Outlet />

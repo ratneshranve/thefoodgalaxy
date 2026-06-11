@@ -32,6 +32,7 @@ import { useRestaurantNotifications } from "@food/hooks/useRestaurantNotificatio
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import ResendNotificationButton from "@food/components/restaurant/ResendNotificationButton";
+import { loadBusinessSettings } from "@food/utils/businessSettings";
 const debugLog = (...args) => {};
 const debugWarn = (...args) => {};
 const debugError = (...args) => {};
@@ -40,15 +41,15 @@ const STORAGE_KEY = "restaurant_online_status";
 
 // Top filter tabs
 const filterTabs = [
-  { id: "all", label: "All" },
+  { id: "new", label: "New" },
   { id: "preparing", label: "Preparing" },
   { id: "ready", label: "Ready" },
   { id: "out-for-delivery", label: "Out for delivery" },
   { id: "scheduled", label: "Scheduled" },
-  { id: "table-booking", label: "Table Booking" },
   { id: "completed", label: "Completed" },
   { id: "cancelled", label: "Cancelled" },
   { id: "dead", label: "Dead Orders" },
+  { id: "all", label: "All" },
 ];
 
 const allOrdersStatusPriority = {
@@ -930,6 +931,91 @@ function TableBookings() {
   );
 }
 
+// New Orders List Component
+function NewOrders({ onSelectOrder }) {
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    let intervalId = null;
+
+    const fetchOrders = async () => {
+      try {
+        const response = await restaurantAPI.getOrders();
+        if (!isMounted) return;
+
+        if (response.data?.success && response.data.data?.orders) {
+          const newOrders = response.data.data.orders.filter((order) => {
+            const status = String(order.status || order.orderStatus).toLowerCase();
+            return ["pending", "created", "confirmed"].includes(status);
+          });
+          
+          const transformedOrders = newOrders
+            .map(transformOrderForList)
+            .sort((a, b) => b.sortTimestamp - a.sortTimestamp);
+
+          setOrders(transformedOrders);
+        } else {
+          setOrders([]);
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        setOrders([]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchOrders();
+    intervalId = setInterval(fetchOrders, 10000);
+
+    return () => {
+      isMounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="pt-1 pb-6">
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-base font-semibold text-black">New orders</h2>
+          <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+        </div>
+        <div className="text-center py-8 text-gray-500 text-sm">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-1 pb-6">
+      <div className="flex items-baseline justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold text-black">New orders</h2>
+          <span className="text-xs text-gray-500">({orders.length})</span>
+        </div>
+      </div>
+      {orders.length === 0 ? (
+        <div className="text-center py-8 text-gray-500 text-sm">
+          No new orders found
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {orders.map((order) => (
+            <OrderCard
+              key={order.orderId || order.mongoId}
+              {...order}
+              onSelect={onSelectOrder}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AllOrders({ onSelectOrder, onCancel }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1260,7 +1346,7 @@ const getInitialCountdown = (order) => {
 
 export default function OrdersMain() {
   const navigate = useNavigate();
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeFilter, setActiveFilter] = useState("new");
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -2220,177 +2306,240 @@ export default function OrdersMain() {
 
   // Handle PDF download
   const handlePrint = async () => {
-    if (!newOrder) {
+    const orderToPrint = popupOrder || newOrder;
+    if (!orderToPrint) {
       debugWarn("No order data available for PDF generation");
       return;
     }
 
     try {
-      // Create new PDF document
+      toast.info("Generating invoice...");
       const doc = new jsPDF();
+      
+      // Load settings
+      let settings = {};
+      try {
+        settings = await loadBusinessSettings() || {};
+      } catch (err) {
+        debugWarn("Could not load business settings", err);
+      }
 
-      // Set font
+      // Load restaurant details
+      let restaurant = {};
+      try {
+        const resData = await restaurantAPI.getCurrentRestaurant();
+        restaurant = resData?.data?.data?.restaurant || resData?.data?.restaurant || {};
+      } catch (err) {
+        debugWarn("Could not load restaurant details", err);
+      }
+
+      const primaryColor = [220, 38, 38]; // Red #DC2626
+      const secondaryColor = [71, 85, 105]; // Slate 600
+
+      // Add Border
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setDrawColor(226, 232, 240); // Slate 200 border
+      doc.setLineWidth(1);
+      doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+
+      // Header: INVOICE
+      doc.setFontSize(22);
+      doc.setTextColor(...primaryColor);
       doc.setFont("helvetica", "bold");
+      doc.text("INVOICE", 105, 25, { align: "center" });
 
-      // Header
-      doc.setFontSize(20);
-      doc.text("Order Receipt", 105, 20, { align: "center" });
+      // Load logo if available
+      if (settings.logo?.url) {
+        try {
+          const img = new Image();
+          img.crossOrigin = "Anonymous";
+          img.src = settings.logo.url;
+          await new Promise((resolve) => {
+            img.onload = () => {
+              doc.addImage(img, "PNG", 14, 15, 30, 30, undefined, 'FAST');
+              resolve();
+            };
+            img.onerror = resolve; // Continue without logo if it fails
+          });
+        } catch (e) {
+          debugWarn("Logo load failed", e);
+        }
+      }
 
-      // Restaurant name
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "normal");
-      doc.text(orderToPrint.restaurantName || "Restaurant", 105, 30, {
-        align: "center",
-      });
-
-      // Order details
-      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42); // Slate 900
+      
+      // Platform Info (Left)
+      doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
-      doc.text(`Order ID: ${orderToPrint.orderId || "N/A"}`, 20, 45);
+      doc.text(settings.companyName || "Indian Bites", 14, 55);
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...secondaryColor);
+      if (settings.address) {
+        const addrLines = doc.splitTextToSize(settings.address, 85);
+        doc.text(addrLines, 14, 60);
+      }
+      doc.text(`FSSAI: ${settings.fssai || "N/A"}`, 14, 75);
+      doc.text(`GSTIN: ${settings.gstin || "N/A"}`, 14, 80);
 
-      const orderDate = orderToPrint.createdAt
-        ? new Date(orderToPrint.createdAt).toLocaleString("en-GB", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : new Date().toLocaleString("en-GB");
+      // Restaurant Info (Right)
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(restaurant.restaurantName || orderToPrint.restaurantName || "Restaurant", 110, 55);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...secondaryColor);
+      
+      const resAddress = restaurant.address?.street ? `${restaurant.address.street}, ${restaurant.address.city}, ${restaurant.address.state}` : "Address not available";
+      const resAddrLines = doc.splitTextToSize(resAddress, 85);
+      doc.text(resAddrLines, 110, 60);
+      doc.text(`FSSAI: ${restaurant.fssaiNumber || restaurant.fssai || "N/A"}`, 110, 75);
+      doc.text(`GSTIN: ${restaurant.gstNumber || restaurant.gstin || "N/A"}`, 110, 80);
 
-      doc.text(`Date: ${orderDate}`, 20, 52);
+      // Divider line
+      doc.setDrawColor(226, 232, 240); // Slate 200
+      doc.setLineWidth(0.5);
+      doc.line(14, 85, 196, 85);
 
-      // Customer address
+      // Order Info
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Order ID: ${orderToPrint.orderId || orderToPrint._id || "N/A"}`, 14, 95);
+      const orderDate = orderToPrint.createdAt ? new Date(orderToPrint.createdAt).toLocaleString("en-GB") : new Date().toLocaleString("en-GB");
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...secondaryColor);
+      doc.text(`Date & Time: ${orderDate}`, 14, 100);
+      doc.text(`Payment: ${orderToPrint.paymentMethod === "COD" || orderToPrint.payment?.method === "COD" ? "Cash on Delivery" : "Paid Online"}`, 14, 105);
+
+      // Customer Info
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("helvetica", "bold");
+      doc.text("Billed To:", 110, 95);
+      doc.setFont("helvetica", "normal");
+      doc.text(orderToPrint.customerName || "Customer", 110, 100);
+      doc.setTextColor(...secondaryColor);
+
       if (orderToPrint.customerAddress) {
-        doc.setFont("helvetica", "bold");
-        doc.text("Delivery Address:", 20, 62);
-        doc.setFont("helvetica", "normal");
-        const addressText =
-          [
-            orderToPrint.customerAddress.street,
-            orderToPrint.customerAddress.city,
-            orderToPrint.customerAddress.state,
-          ]
-            .filter(Boolean)
-            .join(", ") || "Address not available";
-        const addressLines = doc.splitTextToSize(addressText, 170);
-        doc.text(addressLines, 20, 69);
+        const custAddr = [
+          orderToPrint.customerAddress.street,
+          orderToPrint.customerAddress.city,
+          orderToPrint.customerAddress.state,
+        ].filter(Boolean).join(", ") || "Address not available";
+        const custAddrLines = doc.splitTextToSize(custAddr, 85);
+        doc.text(custAddrLines, 110, 105);
       }
 
       // Items table
-      let yPos = 85;
+      let yPos = 120;
       if (orderToPrint.items && orderToPrint.items.length > 0) {
-        doc.setFont("helvetica", "bold");
-        doc.text("Items:", 20, yPos);
-        yPos += 8;
-
-        // Prepare table data
-        const tableData = orderToPrint.items.map((item) => [
+        const tableData = orderToPrint.items.map((item, index) => [
+          index + 1,
           item.name || "Item",
           item.quantity || 1,
-          `₹${(item.price || 0).toFixed(2)}`,
-          `₹${((item.price || 0) * (item.quantity || 1)).toFixed(2)}`,
+          `Rs. ${(item.price || 0).toFixed(2)}`,
+          `Rs. ${((item.price || 0) * (item.quantity || 1)).toFixed(2)}`,
         ]);
 
         autoTable(doc, {
           startY: yPos,
-          head: [["Item", "Qty", "Price", "Total"]],
+          margin: { left: 14, right: 14 },
+          head: [["S.No", "Item Description", "Qty", "Unit Price", "Total Price"]],
           body: tableData,
           theme: "striped",
           headStyles: {
-            fillColor: [0, 0, 0],
+            fillColor: primaryColor,
             textColor: 255,
             fontStyle: "bold",
           },
-          styles: { fontSize: 9 },
+          styles: { fontSize: 9, cellPadding: 4 },
           columnStyles: {
-            0: { cellWidth: 80 },
-            1: { cellWidth: 30, halign: "center" },
-            2: { cellWidth: 35, halign: "right" },
+            0: { cellWidth: 15, halign: "center" },
+            2: { cellWidth: 15, halign: "center" },
             3: { cellWidth: 35, halign: "right" },
+            4: { cellWidth: 35, halign: "right" },
           },
         });
 
         yPos = doc.lastAutoTable.finalY + 10;
       }
 
-      // Total
+      // Totals block right aligned
+      const totalWidth = 196;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...secondaryColor);
+      
+      const pricing = orderToPrint.pricing || {};
+      const itemsTotal = orderToPrint.items?.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0) || 0;
+      const subtotal = pricing.subtotal || itemsTotal;
+      const tax = pricing.tax || 0;
+      const deliveryFee = pricing.deliveryFee || 0;
+      const platformFee = pricing.platformFee || 0;
+      const total = pricing.total || orderToPrint.total || (subtotal + tax + deliveryFee + platformFee);
+
+      doc.text("Item Total:", 140, yPos);
+      doc.text(`Rs. ${subtotal.toFixed(2)}`, totalWidth, yPos, { align: "right" });
+      yPos += 6;
+      doc.text("GST (gov. taxes):", 140, yPos);
+      doc.text(`Rs. ${tax.toFixed(2)}`, totalWidth, yPos, { align: "right" });
+      yPos += 6;
+      doc.text("Delivery Fee:", 140, yPos);
+      doc.text(`Rs. ${deliveryFee.toFixed(2)}`, totalWidth, yPos, { align: "right" });
+      yPos += 6;
+      if (platformFee > 0) {
+        doc.text("Platform Fee:", 140, yPos);
+        doc.text(`Rs. ${platformFee.toFixed(2)}`, totalWidth, yPos, { align: "right" });
+        yPos += 6;
+      }
+      yPos += 2;
+
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text(`Total: ₹${(orderToPrint.total || 0).toFixed(2)}`, 20, yPos);
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42); // Slate 900
+      doc.text("Grand Total:", 140, yPos);
+      doc.text(`Rs. ${total.toFixed(2)}`, totalWidth, yPos, { align: "right" });
 
-      // Payment status
-      yPos += 10;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(
-        `Payment Status: ${orderToPrint.status === "confirmed" ? "Paid" : "Pending"}`,
-        20,
-        yPos,
-      );
-
-      // Estimated delivery time
-      if (orderToPrint.estimatedDeliveryTime) {
-        yPos += 8;
-        doc.text(
-          `Estimated Delivery: ${orderToPrint.estimatedDeliveryTime} minutes`,
-          20,
-          yPos,
-        );
+      // Notes
+      let noteYPos = yPos + 15;
+      if (orderToPrint.note || orderToPrint.restaurantNote) {
+        doc.setFontSize(9);
+        if (orderToPrint.note) {
+          doc.setFont("helvetica", "bold");
+          doc.text("Delivery Note:", 14, noteYPos);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...secondaryColor);
+          const noteLines = doc.splitTextToSize(orderToPrint.note, 180);
+          doc.text(noteLines, 14, noteYPos + 5);
+          noteYPos += (noteLines.length * 5) + 5;
+        }
+        if (orderToPrint.restaurantNote) {
+          doc.setTextColor(15, 23, 42);
+          doc.setFont("helvetica", "bold");
+          doc.text("Restaurant Note:", 14, noteYPos);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...secondaryColor);
+          const rNoteLines = doc.splitTextToSize(orderToPrint.restaurantNote, 180);
+          doc.text(rNoteLines, 14, noteYPos + 5);
+        }
       }
-
-      // Delivery Note
-      if (orderToPrint.note) {
-        yPos += 10;
-        doc.setFont("helvetica", "bold");
-        doc.text("Note for Delivery:", 20, yPos);
-        doc.setFont("helvetica", "normal");
-        const noteLines = doc.splitTextToSize(orderToPrint.note, 170);
-        doc.text(noteLines, 20, yPos + 7);
-        yPos += (noteLines.length * 7);
-      }
-
-      // Restaurant Note
-      if (orderToPrint.restaurantNote) {
-        yPos += 10;
-        doc.setFont("helvetica", "bold");
-        doc.text("Note for Restaurant:", 20, yPos);
-        doc.setFont("helvetica", "normal");
-        const restaurantNoteLines = doc.splitTextToSize(orderToPrint.restaurantNote, 170);
-        doc.text(restaurantNoteLines, 20, yPos + 7);
-      }
-
-      // Cutlery preference
-      yPos += 15;
-      doc.setFont("helvetica", "normal");
-      doc.text(
-        orderToPrint.sendCutlery === false
-          ? "? Don't send cutlery"
-          : "? Send cutlery requested",
-        20,
-        yPos,
-      );
 
       // Footer
-      const pageHeight = doc.internal.pageSize.height;
       doc.setFontSize(8);
       doc.setFont("helvetica", "italic");
-      doc.text(
-        `Generated on ${new Date().toLocaleString("en-GB")}`,
-        105,
-        pageHeight - 10,
-        { align: "center" },
-      );
+      doc.setTextColor(148, 163, 184); // Slate 400
+      doc.text("This is a computer generated invoice and does not require a physical signature.", 105, pageHeight - 15, { align: "center" });
 
       // Download PDF
-      const fileName = `Order-${orderToPrint.orderId || "Receipt"}-${Date.now()}.pdf`;
+      const fileName = `Invoice-${orderToPrint.orderId || orderToPrint._id || Date.now()}.pdf`;
       doc.save(fileName);
-
+      
+      toast.success("Invoice downloaded successfully");
       debugLog("? PDF generated successfully:", fileName);
     } catch (error) {
       debugError("? Error generating PDF:", error);
-      alert("Failed to generate PDF. Please try again.");
+      toast.error("Failed to generate PDF. Please try again.");
     }
   };
 
@@ -2515,6 +2664,12 @@ export default function OrdersMain() {
     }
 
     switch (activeFilter) {
+      case "new":
+        return (
+          <NewOrders
+            onSelectOrder={handleSelectOrder}
+          />
+        );
       case "all":
         return (
           <AllOrders
@@ -2559,8 +2714,6 @@ export default function OrdersMain() {
             refreshToken={ordersRefreshToken}
           />
         );
-      case "table-booking":
-        return <TableBookings />;
       case "cancelled":
         return (
           <CancelledOrders

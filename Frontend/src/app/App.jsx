@@ -4,7 +4,19 @@ import SplashScreen from '@/shared/components/SplashScreen.jsx'
 import PageLoader from '@/shared/components/PageLoader.jsx'
 
 function App() {
-  const [showSplash, setShowSplash] = useState(true)
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.toLowerCase()
+      if (
+        path.includes('/terms') ||
+        path.includes('/privacy') ||
+        path.includes('/support')
+      ) {
+        return false
+      }
+    }
+    return true
+  })
 
   const [isLoading, setIsLoading] = useState(false)
 

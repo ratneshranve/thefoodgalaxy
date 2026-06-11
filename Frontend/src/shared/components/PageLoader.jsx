@@ -11,7 +11,10 @@ export default function PageLoader() {
     // Skip default page loader for routes with custom loaders (like under-250 and restaurant details)
     if (
       location.pathname.includes('/under-250') || 
-      location.pathname.includes('/restaurants/')
+      location.pathname.includes('/restaurants/') ||
+      location.pathname.includes('/terms') ||
+      location.pathname.includes('/privacy') ||
+      location.pathname.includes('/support')
     ) {
       setIsNavigating(false)
       return

@@ -34,7 +34,7 @@ export async function updateBusinessSettings(req, res, next) {
 
         const { 
             companyName, email, phoneCountryCode, phoneNumber, address, state, pincode, region,
-            supportEmail, supportPhone, supportHours, onlinePaymentOnly, maxCodAmount,
+            supportEmail, supportPhone, supportHours, fssai, gstin, onlinePaymentOnly, maxCodAmount,
             maintenanceMode, customerRegistration, restaurantRegistration, deliveryRegistration
         } = data;
 
@@ -48,6 +48,8 @@ export async function updateBusinessSettings(req, res, next) {
         const s_supportEmail = String(supportEmail || "").trim();
         const s_supportPhone = String(supportPhone || "").trim();
         const s_supportHours = String(supportHours || "").trim();
+        const s_fssai = String(fssai || "").trim();
+        const s_gstin = String(gstin || "").trim();
 
         // Validation (only if field is provided for partial updates)
         if (companyName !== undefined && (!s_companyName || s_companyName.length < 2 || s_companyName.length > 50)) {
@@ -93,6 +95,8 @@ export async function updateBusinessSettings(req, res, next) {
         if (supportEmail !== undefined) settings.supportEmail = s_supportEmail;
         if (supportPhone !== undefined) settings.supportPhone = s_supportPhone;
         if (supportHours !== undefined) settings.supportHours = s_supportHours;
+        if (fssai !== undefined) settings.fssai = s_fssai;
+        if (gstin !== undefined) settings.gstin = s_gstin;
         
         if (onlinePaymentOnly !== undefined) {
             settings.onlinePaymentOnly = Boolean(onlinePaymentOnly === 'true' || onlinePaymentOnly === true);
