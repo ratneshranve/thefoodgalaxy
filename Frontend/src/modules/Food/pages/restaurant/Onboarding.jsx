@@ -1346,22 +1346,7 @@ export default function RestaurantOnboarding() {
   const validateStep2 = () => {
     const errors = []
 
-    // Check menu images - must have at least one File or existing URL
-    const hasMenuImages = step2.menuImages && step2.menuImages.length > 0
-    if (!hasMenuImages) {
-      errors.push("At least one menu image is required")
-    } else {
-      // Verify that menu images are either File objects or have valid URLs
-      const validMenuImages = step2.menuImages.filter(img => {
-        if (isUploadableFile(img)) return true
-        if (img?.url && typeof img.url === 'string') return true
-        if (typeof img === 'string' && img.trim()) return true
-        return false
-      })
-      if (validMenuImages.length === 0) {
-        errors.push("Please upload at least one valid menu image")
-      }
-    }
+
 
     // Check profile image - must be a File or existing URL
     if (!step2.profileImage) {
@@ -1377,17 +1362,7 @@ export default function RestaurantOnboarding() {
       }
     }
 
-    if (!step2.menuPdf) {
-      errors.push("Menu PDF is required")
-    } else {
-      const isValidMenuPdf =
-        isUploadableFile(step2.menuPdf) ||
-        (step2.menuPdf?.url && typeof step2.menuPdf.url === "string") ||
-        (typeof step2.menuPdf === "string" && step2.menuPdf.trim())
-      if (!isValidMenuPdf) {
-        errors.push("Please upload a valid menu PDF")
-      }
-    }
+
 
     if (!step2.openingTime?.trim()) {
       errors.push("Opening time is required")
@@ -1560,21 +1535,17 @@ export default function RestaurantOnboarding() {
       } else if (step === 3) {
         if (hasExistingRestaurantProfile) {
           const [
-            menuImagesPayload,
             profileImagePayload,
             panImagePayload,
             gstImagePayload,
             fssaiImagePayload,
-            menuPdfPayload,
           ] = await Promise.all([
-            resolveMenuImagesForProfileUpdate(step2.menuImages || []),
             resolveImageForProfileUpdate(step2.profileImage, "food/restaurants/profile"),
             resolveImageForProfileUpdate(step3.panImage, "food/restaurants/pan"),
             step3.gstRegistered
               ? resolveImageForProfileUpdate(step3.gstImage, "food/restaurants/gst")
               : Promise.resolve(null),
             resolveImageForProfileUpdate(step3.fssaiImage, "food/restaurants/fssai"),
-            resolveMenuPdfForProfileUpdate(step2.menuPdf),
           ])
 
           const updatePayload = {
@@ -1602,7 +1573,6 @@ export default function RestaurantOnboarding() {
             openingTime: normalizeTimeValue(step2.openingTime) || "",
             closingTime: normalizeTimeValue(step2.closingTime) || "",
             openDays: Array.isArray(step2.openDays) ? step2.openDays : [],
-            menuImages: menuImagesPayload,
             profileImage: profileImagePayload || "",
             panNumber: step3.panNumber || "",
             nameOnPan: step3.nameOnPan || "",
@@ -1619,10 +1589,6 @@ export default function RestaurantOnboarding() {
             ifscCode: (step3.ifscCode || "").toUpperCase(),
             accountHolderName: step3.accountHolderName || "",
             accountType: step3.accountType || "",
-          }
-
-          if (menuPdfPayload) {
-            updatePayload.menuPdf = menuPdfPayload
           }
 
           await restaurantAPI.updateProfile(updatePayload)
@@ -1668,16 +1634,6 @@ export default function RestaurantOnboarding() {
         formData.append("closingTime", normalizeTimeValue(step2.closingTime) || "")
         formData.append("openDays", (step2.openDays || []).join(","))
 
-        const menuFiles = (step2.menuImages || []).filter((f) => isUploadableFile(f))
-        if (menuFiles.length === 0) {
-          throw new Error("At least one menu image must be uploaded")
-        }
-        menuFiles.forEach((file) => formData.append("menuImages", file))
-
-        if (!isUploadableFile(step2.menuPdf)) {
-          throw new Error("Menu PDF is required")
-        }
-        formData.append("menuPdf", step2.menuPdf)
 
         if (!isUploadableFile(step2.profileImage)) {
           throw new Error("Restaurant profile image is required")
@@ -2300,177 +2256,12 @@ export default function RestaurantOnboarding() {
     <div className="space-y-6">
       {/* Images section */}
       <section className="bg-white p-4 sm:p-6 rounded-md space-y-5">
-        <h2 className="text-lg font-semibold text-black">Menu & photos</h2>
+        <h2 className="text-lg font-semibold text-black">Restaurant photo</h2>
         <p className="text-xs text-gray-500">
-          Add clear photos of your printed menu and a primary profile image. This helps customers
-          understand what you serve.
+          Add a clear primary profile image for your restaurant. This helps customers recognize your brand.
         </p>
 
-        {/* Menu images */}
-        <div className="space-y-2">
-          <Label className="text-xs font-medium text-gray-700">Menu images</Label>
-          <div className="mt-1 border border-dashed border-gray-300 rounded-md bg-gray-50/70 px-4 py-3 flex items-center justify-between flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-md bg-white flex items-center justify-center">
-                <ImageIcon className="w-5 h-5 text-gray-700" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-medium text-gray-900">Upload menu images</span>
-                <span className="text-[11px] text-gray-500">
-                  JPG, PNG, WebP ? You can select multiple files
-                </span>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full text-xs"
-              onClick={() =>
-                openImageSourcePicker({
-                  title: "Add menu image",
-                  fileNamePrefix: "menu-image",
-                  fallbackInputRef: menuImagesInputRef,
-                  onSelectFile: (file) => handleMenuImagesSelected(file ? [file] : []),
-                })
-              }
-            >
-              <Upload className="w-4 h-4 mr-1.5" />
-              Upload
-            </Button>
-            <input
-              id="menuImagesInput"
-              type="file"
-              multiple
-              accept={LOCAL_IMAGE_FILE_ACCEPT}
-              className="hidden"
-              ref={menuImagesInputRef}
-              onChange={(e) => {
-                const files = Array.from(e.target.files || [])
-                if (!files.length) return
-                debugLog('?? Menu images selected:', files.length, 'files')
-                handleMenuImagesSelected(files)
-                // Reset input to allow selecting same file again
-                e.target.value = ''
-              }}
-            />
-          </div>
 
-          {/* Menu image previews */}
-          {!!step2.menuImages.length && (
-            <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {step2.menuImages.map((file, idx) => {
-                // Handle both File objects and URL objects
-                let imageUrl = null
-                let imageName = `Image ${idx + 1}`
-
-                if (isUploadableFile(file)) {
-                  imageUrl = getPreviewImageUrl(file)
-                  imageName = file.name || imageName
-                } else if (file?.url) {
-                  // If it's an object with url property (from backend)
-                  imageUrl = file.url
-                  imageName = file.name || `Image ${idx + 1}`
-                } else if (typeof file === 'string') {
-                  // If it's a direct URL string
-                  imageUrl = file
-                }
-
-                return (
-                  <div
-                    key={idx}
-                    className="relative aspect-4/5 rounded-md overflow-hidden bg-gray-100"
-                  >
-                    <div className="absolute top-1 right-1 z-30">
-                      <button
-                        type="button"
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          await handleRemoveMenuImage(idx)
-                        }}
-                        className="bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                    {imageUrl ? (
-                      <img
-                        src={imageUrl}
-                        alt={`Menu ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[11px] text-gray-500 px-2 text-center">
-                        Preview unavailable
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1">
-                      <p className="text-[10px] text-white truncate">
-                        {imageName}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Menu PDF */}
-        <div className="space-y-2">
-          <Label className="text-xs font-medium text-gray-700">Menu PDF <span className="text-red-500">*</span></Label>
-          <div className="mt-1 border border-dashed border-gray-300 rounded-md bg-gray-50/70 px-4 py-3 flex items-center justify-between flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-md bg-white flex items-center justify-center">
-                <FileText className="w-5 h-5 text-gray-700" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-medium text-gray-900">Upload menu PDF</span>
-                <span className="text-[11px] text-gray-500">PDF only, max 1 file</span>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full text-xs"
-              onClick={() => menuPdfInputRef.current?.click()}
-            >
-              <Upload className="w-4 h-4 mr-1.5" />
-              Upload PDF
-            </Button>
-            <input
-              id="menuPdfInput"
-              type="file"
-              accept={LOCAL_PDF_FILE_ACCEPT}
-              className="hidden"
-              ref={menuPdfInputRef}
-              onChange={(e) => {
-                const file = e.target.files?.[0] || null
-                if (file) {
-                  handleMenuPdfSelected(file)
-                }
-                e.target.value = ""
-              }}
-            />
-          </div>
-          {step2.menuPdf && (
-            <div className="mt-2 flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-gray-600" />
-                <span className="text-xs text-gray-700">
-                  {typeof step2.menuPdf === "object" ? step2.menuPdf.name || "Menu.pdf" : "Menu.pdf"}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleRemoveMenuPdf}
-                className="text-xs text-red-600 hover:text-red-700"
-              >
-                Remove
-              </button>
-            </div>
-          )}
-        </div>
 
         {/* Profile image */}
         <div className="space-y-2">

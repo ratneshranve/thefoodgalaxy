@@ -103,9 +103,9 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
     const totalCashLimit = Number(cashLimitSettings.deliveryCashLimit) || 0;
     const deliveryWithdrawalLimit = Number(cashLimitSettings.deliveryWithdrawalLimit) || 100;
 
-    // Pocket Balance = (Earnings + Bonus) - Total Withdrawn (approved) - Pending Withdrawals
-    // Wait, usually pocket balance subtracts pending too so user knows how much is "left" to request.
-    const pocketBalance = Math.max(0, (totalEarned + totalBonus) - (totalWithdrawn + pendingWithdrawals));
+    // Pocket Balance = (Earnings + Bonus) - Total Withdrawn (approved) - Pending Withdrawals - Cash in hand
+    // Cash in hand must be deducted because if the rider has COD cash, they owe the platform, reducing their withdrawable amount.
+    const pocketBalance = Math.max(0, (totalEarned + totalBonus) - (totalWithdrawn + pendingWithdrawals) - cashInHand);
 
     // Fetch transactions for UI (Orders, Bonuses, Withdrawals)
     const [ordersTx] = await Promise.all([
@@ -157,7 +157,9 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
         totalEarned,
         totalBonus,
         totalCashLimit,
-        availableCashLimit: Math.max(0, totalCashLimit - cashInHand + pocketBalance),
+        // Gross balance is (totalEarned + totalBonus) - (totalWithdrawn + pendingWithdrawals)
+        // Available cash limit increases by the gross balance you are owed.
+        availableCashLimit: Math.max(0, totalCashLimit - cashInHand + Math.max(0, (totalEarned + totalBonus) - (totalWithdrawn + pendingWithdrawals))),
         deliveryWithdrawalLimit,
         transactions: transactions.slice(0, 50)
     };

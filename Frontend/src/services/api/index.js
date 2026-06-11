@@ -669,7 +669,7 @@ export const restaurantAPI = {
   /** Update restaurant profile fields (name/cuisines/location/menuImages). */
   updateProfile: (body) =>
     restaurantClient
-      .patch("/food/restaurant/profile", body ?? {})
+      .patch("/food/restaurant/profile", body ?? {}, { timeout: 300000 })
       .then((res) => {
         // Keep cache coherent to avoid an immediate refetch storm.
         restaurantCurrentCached = res;
@@ -1011,7 +1011,7 @@ export const restaurantAPI = {
     if (!formData || !(formData instanceof FormData)) {
       return Promise.reject(new Error("FormData is required"));
     }
-    return restaurantClient.post("/food/restaurant/register", formData);
+    return restaurantClient.post("/food/restaurant/register", formData, { timeout: 300000 });
   },
   /** Public: list approved restaurants for user app */
   getRestaurants: (params = {}, config = {}) =>
@@ -1785,6 +1785,7 @@ export const uploadAPI = {
 
     return userClient.post("/uploads/image", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      timeout: 300000,
     });
   },
   /**
@@ -1805,6 +1806,7 @@ export const uploadAPI = {
 
     return userClient.post("/uploads/file", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      timeout: 300000,
     });
   },
 };

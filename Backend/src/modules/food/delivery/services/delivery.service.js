@@ -437,11 +437,12 @@ export const getDeliveryPartnerWallet = async (deliveryPartnerId) => {
 
     const totalWithdrawn = 0;
     const totalBalance = totalEarned + totalBonus;
-    const availableCashLimit = Math.max(0, totalCashLimit - cashInHand);
+    const availableCashLimit = Math.max(0, totalCashLimit - cashInHand + totalBalance);
+    const pocketBalance = Math.max(0, totalBalance - cashInHand);
 
     return {
         totalBalance,
-        pocketBalance: totalBalance,
+        pocketBalance,
         cashInHand,
         totalWithdrawn,
         totalEarned,

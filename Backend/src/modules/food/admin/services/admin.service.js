@@ -5116,7 +5116,7 @@ export async function getDeliveryWallets(query = {}) {
         const totalBonus = Number(bonusAgg?.[0]?.total) || 0;
         const totalWithdrawn = Number(withdrawalAgg?.[0]?.totalWithdrawn) || 0;
         const pendingWithdrawals = Number(withdrawalAgg?.[0]?.pendingWithdrawals) || 0;
-        const pocketBalance = Math.max(0, (totalEarned + totalBonus) - (totalWithdrawn + pendingWithdrawals));
+        const pocketBalance = Math.max(0, (totalEarned + totalBonus) - (totalWithdrawn + pendingWithdrawals) - cashInHand);
 
         return {
             walletId: wallet?._id,

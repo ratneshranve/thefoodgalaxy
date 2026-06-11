@@ -22,7 +22,7 @@ export default function JoiningRequest() {
   const [activeTab, setActiveTab] = useState("pending")
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 50
+  const itemsPerPage = 10
   const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" })
   const [pendingRequests, setPendingRequests] = useState([])
   const [rejectedRequests, setRejectedRequests] = useState([])
@@ -565,7 +565,7 @@ export default function JoiningRequest() {
           </div>
 
           {/* Pagination Controls */}
-          {totalPages > 1 && (
+          {totalPages > 0 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200">
               <div className="text-sm text-slate-500">
                 Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedRequests.length)} of {sortedRequests.length} requests
