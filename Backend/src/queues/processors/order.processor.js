@@ -27,6 +27,16 @@ export const processOrderJob = async (job) => {
         }
     }
 
+    // Handle Petpooja Sync
+    if (action === 'SYNC_PETPOOJA') {
+        try {
+            const { pushOrderToPetpooja } = await import('../../../modules/food/orders/services/petpooja.service.js');
+            await pushOrderToPetpooja(orderMongoId);
+        } catch (err) {
+            logger.error(`[BullMQ:order] SYNC_PETPOOJA failed: ${err.message}`);
+            throw err; // Re-throw for BullMQ exponential backoff retry
+        }
+    }
 
     return { processed: true, action, jobId: job.id };
 };

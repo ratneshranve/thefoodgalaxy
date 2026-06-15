@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
-import { ChevronLeft, ChevronRight, Plus, MapPin, MoreHorizontal, Navigation, Home, Building2, Briefcase, Phone, X, Crosshair, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, MapPin, MoreHorizontal, Navigation, Home, Building2, Briefcase, Phone, X, Crosshair, Search, Trash2, Pencil } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
@@ -49,7 +49,7 @@ export default function AddressSelectorPage() {
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
   const { location, loading, requestLocation } = useGeoLocation()
-  const { addresses = [], addAddress, updateAddress, setDefaultAddress, userProfile, isAuthenticated } = useProfile()
+  const { addresses = [], addAddress, updateAddress, deleteAddress, setDefaultAddress, userProfile, isAuthenticated } = useProfile()
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [mapPosition, setMapPosition] = useState([22.7196, 75.8577]) // Default Indore coordinates [lat, lng]
   const [addressFormData, setAddressFormData] = useState({
@@ -255,12 +255,63 @@ export default function AddressSelectorPage() {
     }
   }
 
+  const handleEditAddress = (e, addr) => {
+    e.stopPropagation()
+    setAddressFormData({
+      id: getAddressId(addr),
+      street: addr.street || "",
+      city: addr.city || "",
+      state: addr.state || "",
+      zipCode: addr.zipCode || "",
+      additionalDetails: addr.additionalDetails || "",
+      label: addr.label || "Home",
+      phone: addr.phone || "",
+    })
+    
+    let lat = 22.7196, lng = 75.8577
+    if (addr.location?.coordinates) {
+       lng = addr.location.coordinates[0]
+       lat = addr.location.coordinates[1]
+    } else if (addr.latitude && addr.longitude) {
+       lat = addr.latitude
+       lng = addr.longitude
+    }
+    setMapPosition([lat, lng])
+    setCurrentAddress([addr.additionalDetails, addr.street, addr.city].filter(Boolean).join(", "))
+    
+    setShowAddressForm(true)
+  }
+
+  const handleDeleteAddress = async (e, addr) => {
+    e.stopPropagation()
+    if (window.confirm("Are you sure you want to delete this address?")) {
+      const id = getAddressId(addr)
+      if (id) {
+        try {
+          await deleteAddress(id)
+          toast.success("Address deleted successfully")
+        } catch (error) {
+          toast.error("Failed to delete address")
+        }
+      }
+    }
+  }
+
   const handleAddAddressClick = () => {
     if (!isAuthenticated) {
       toast.info("Please login to add an address")
       navigate("/user/auth/login")
       return
     }
+    setAddressFormData({
+      street: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      additionalDetails: "",
+      label: "Home",
+      phone: "",
+    })
     setShowAddressForm(true)
   }
 
@@ -404,12 +455,18 @@ export default function AddressSelectorPage() {
         latitude: mapPosition[0],
         longitude: mapPosition[1]
       }
-      const created = await addAddress(payload)
-      if (created) {
-        const id = getAddressId(created)
+      let createdOrUpdated;
+      if (addressFormData.id) {
+         createdOrUpdated = await updateAddress(addressFormData.id, payload)
+      } else {
+         createdOrUpdated = await addAddress(payload)
+      }
+      
+      if (createdOrUpdated) {
+        const id = getAddressId(createdOrUpdated)
         if (id) await setDefaultAddress(id)
         try { localStorage.setItem("deliveryAddressMode", "saved") } catch {}
-        toast.success("Address saved")
+        toast.success(addressFormData.id ? "Address updated" : "Address saved")
         handleBack()
       }
     } catch (error) {
@@ -732,8 +789,13 @@ export default function AddressSelectorPage() {
                         {[addr.additionalDetails, addr.street, addr.city, addr.state].filter(Boolean).join(", ")}
                       </p>
                     </div>
-                    <div className="h-6 w-6 rounded-full border border-gray-200 dark:border-gray-700 mt-2 flex items-center justify-center group-hover:border-primary">
-                       <ChevronRight className="h-3 w-3 text-gray-400 group-hover:text-primary" />
+                    <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                       <button onClick={(e) => handleEditAddress(e, addr)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                          <Pencil className="h-4 w-4 text-gray-500" />
+                       </button>
+                       <button onClick={(e) => handleDeleteAddress(e, addr)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors group-hover:bg-red-50 dark:group-hover:bg-red-900/10">
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                       </button>
                     </div>
                   </button>
                 )

@@ -433,8 +433,8 @@ const RestaurantImageCarousel = React.memo(
               src={renderSrc}
               alt={`${restaurant.name} - Image ${safeIndex + 1}`}
               className="w-full h-full object-cover"
-              loading="eager"
-              fetchPriority={priority ? "high" : "auto"}
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : "low"}
               decoding="async"
               onLoad={() => {
                 setLoadedBySrc((prev) => ({ ...prev, [renderSrc]: true }));
@@ -839,11 +839,11 @@ export default function Home() {
             new Set([
               normalized.replace(
                 "/image/upload/",
-                "/image/upload/f_jpg,q_auto,w_1080/",
+                "/image/upload/f_jpg,q_auto,w_500/",
               ),
               normalized.replace(
                 "/image/upload/",
-                "/image/upload/f_auto,q_auto,w_1080/",
+                "/image/upload/f_auto,q_auto,w_500/",
               ),
               normalized,
             ]),

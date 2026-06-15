@@ -28,4 +28,8 @@ export const validateConfig = () => {
         logger.error(`Missing required environment variables: ${missing.join(', ')}`);
         process.exit(1);
     }
+
+    if (!config.petpoojaAppKey || !config.petpoojaAppSecret) {
+        logger.warn('Petpooja API Keys are not configured. Petpooja sync will fail if enabled for a restaurant.');
+    }
 };

@@ -14,6 +14,10 @@ function App() {
       ) {
         return false
       }
+      // Check if splash screen was already shown in this session
+      if (sessionStorage.getItem('splashShown')) {
+        return false
+      }
     }
     return true
   })
@@ -21,6 +25,9 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSplashFinish = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('splashShown', 'true')
+    }
     setShowSplash(false)
   }
 

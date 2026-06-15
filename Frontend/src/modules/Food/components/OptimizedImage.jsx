@@ -88,6 +88,12 @@ const OptimizedImage = React.memo(({
   const supportsOptimization = (imageSrc) => {
     if (!imageSrc || typeof imageSrc !== 'string' || imageSrc === '') return false
     if (imageSrc.startsWith('data:') || imageSrc.startsWith('/')) return false
+    // Don't proxy localhost
+    if (/localhost|127\.0\.0\.1/i.test(imageSrc)) return false;
+    // Native Cloudinary URLs can be optimized natively instead of via proxy
+    if (/res\.cloudinary\.com/i.test(imageSrc)) return true;
+    // Don't proxy signed URLs (Firebase, AWS, etc) as they break
+    if (/[?&](X-Amz-|Signature=|Expires=|AWSAccessKeyId=|GoogleAccessId=|token=|sig=|se=|sp=|sv=|alt=)/i.test(imageSrc)) return false;
     // Check if it's an external URL (http/https)
     return /^https?:\/\//.test(imageSrc)
   }
@@ -96,13 +102,26 @@ const OptimizedImage = React.memo(({
     if (!imageSrc) return imageSrc;
     const { w, format, q = 80 } = params;
     
-    // Use wsrv.nl as a free, high-performance global image CDN proxy
-    // It automatically downloads from Firebase, caches via Cloudflare, and serves compressed formats
-    let proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(imageSrc)}&q=${q}&we=1`;
+    // Native Cloudinary optimization (bypasses wsrv proxy for faster loading)
+    if (/res\.cloudinary\.com/i.test(imageSrc) && /\/image\/upload\//i.test(imageSrc)) {
+      const transforms = [];
+      if (format === 'webp') transforms.push('f_webp');
+      else if (format) transforms.push(`f_${format}`);
+      else transforms.push('f_auto');
+      transforms.push(`q_${q}`);
+      if (w) transforms.push(`w_${w}`);
+      
+      const hasTransform = /\/image\/upload\/(?:f_|q_|w_|h_|c_|dpr_|g_)/i.test(imageSrc);
+      if (!hasTransform) {
+        return imageSrc.replace('/image/upload/', `/image/upload/${transforms.join(',')}/`);
+      }
+      return imageSrc; // Return as-is if already transformed
+    }
     
+    // Use wsrv.nl as a fallback for other generic URLs
+    let proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(imageSrc)}&q=${q}&we=1`;
     if (w) proxyUrl += `&w=${w}`;
     if (format) proxyUrl += `&output=${format}`;
-    
     return proxyUrl;
   }
 

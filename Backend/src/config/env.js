@@ -81,7 +81,12 @@ export const config = {
     emailPort: Number(process.env.EMAIL_PORT) || 587,
     emailUser: process.env.EMAIL_USER,
     emailPass: process.env.EMAIL_PASS ? String(process.env.EMAIL_PASS).replace(/\s/g, '') : '',
-    emailFrom: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@example.com'
+    emailFrom: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@example.com',
+
+    // Petpooja Integration
+    petpoojaSyncEnabled: process.env.PETPOOJA_SYNC_ENABLED === 'true',
+    petpoojaAppKey: process.env.PETPOOJA_APP_KEY,
+    petpoojaAppSecret: process.env.PETPOOJA_APP_SECRET
 };
 
 export const updateConfig = () => {
@@ -134,4 +139,7 @@ export const updateConfig = () => {
     config.emailUser = process.env.EMAIL_USER || config.emailUser;
     config.emailPass = process.env.EMAIL_PASS ? String(process.env.EMAIL_PASS).replace(/\s/g, '') : config.emailPass;
     config.emailFrom = process.env.EMAIL_FROM || process.env.EMAIL_USER || config.emailFrom;
+    config.petpoojaSyncEnabled = process.env.PETPOOJA_SYNC_ENABLED === 'true';
+    config.petpoojaAppKey = process.env.PETPOOJA_APP_KEY || config.petpoojaAppKey;
+    config.petpoojaAppSecret = process.env.PETPOOJA_APP_SECRET || config.petpoojaAppSecret;
 };

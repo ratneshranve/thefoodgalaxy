@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, useContext } from 'react';
 import io from 'socket.io-client';
 import { API_BASE_URL } from '@food/api/config';
 import { deliveryAPI } from '@food/api';
+import { toast } from 'sonner';
 import alertSound from '@food/assets/audio/alert.mp3';
 import originalSound from '@food/assets/audio/original.mp3';
 import { dispatchNotificationInboxRefresh } from '@food/hooks/useNotificationInbox';
@@ -993,7 +994,6 @@ export const useDeliveryNotifications = () => {
         const { useDeliveryStore } = await import('@/modules/DeliveryV2/store/useDeliveryStore');
         const isOnline = payload?.status === 'online';
         useDeliveryStore.getState().setOnline(isOnline);
-        const { toast } = await import('sonner');
         
         if (isOnline) {
             toast.success(payload?.message || 'You have been marked online by the Admin.', { duration: 5000 });
