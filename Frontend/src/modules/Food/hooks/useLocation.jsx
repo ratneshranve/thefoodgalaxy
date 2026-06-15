@@ -1553,10 +1553,8 @@ export function useLocation() {
         } catch (e) {}
 
         let shouldAutoFetch = false;
-        if (!isLoggedIn) {
-          shouldAutoFetch = true; // Not logged in -> Auto fetch
-        } else if (!intentionallySaved) {
-          shouldAutoFetch = true; // Logged in but no saved location -> Auto fetch
+        if (!intentionallySaved) {
+          shouldAutoFetch = true; // No saved location -> Auto fetch
         }
 
         // If permission NOT granted, and we shouldn't auto-fetch,
@@ -1594,6 +1592,10 @@ export function useLocation() {
                 // CRITICAL: Update state with fresh location so PageNavbar displays it
                 setLocation(location)
                 setPermissionGranted(true)
+                try {
+                  localStorage.setItem("deliveryAddressMode", "current")
+                  window.dispatchEvent(new CustomEvent("deliveryAddressModeUpdated"))
+                } catch {}
                 if (AUTO_START_LIVE_WATCH) startWatchingLocation()
               } else {
                 // Placeholder result means reverse-geocode failed or was unavailable.

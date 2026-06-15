@@ -147,6 +147,7 @@ export default function LocationPrompt() {
     }
 
     localStorage.setItem("userLocation", JSON.stringify(locData))
+    try { localStorage.setItem("deliveryAddressMode", "saved") } catch {}
     localStorage.setItem("locationPromptDismissed", "true")
     setShowPrompt(false)
     document.body.style.overflow = ""

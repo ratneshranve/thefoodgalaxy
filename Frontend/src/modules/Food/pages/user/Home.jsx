@@ -614,7 +614,8 @@ export default function Home() {
   const vegModeToggleRef = useRef(null);
   const [isStickyHeaderVisible, setIsStickyHeaderVisible] = useState(false);
   const [showStickySearch, setShowStickySearch] = useState(false);
-  const lastScrollY = useRef(0);
+  const [isCategoryStuck, setIsCategoryStuck] = useState(false);
+  const categoryAnchorRef = useRef(null);
 
   useEffect(() => {
     const handleScrollHeader = () => {
@@ -1599,6 +1600,64 @@ export default function Home() {
 
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("food");
+  const [headerBgHeight, setHeaderBgHeight] = useState(0);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsCategoryStuck(!entry.isIntersecting);
+      },
+      {
+        threshold: 0,
+        rootMargin: "-72px 0px 0px 0px",
+      }
+    );
+
+    if (categoryAnchorRef.current) {
+      observer.observe(categoryAnchorRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const calculateHeight = () => {
+      const locEl = document.getElementById('home-header-loc-row');
+      const searchEl = document.getElementById('home-header-search-row');
+      const festEl = document.getElementById('fest-banner-wrapper');
+
+      let height = 0;
+      if (locEl) height += locEl.offsetHeight;
+      if (searchEl) {
+      }
+      
+      if (locEl) {
+        let maxBottom = locEl.offsetTop + locEl.offsetHeight;
+        if (searchEl) {
+          maxBottom = Math.max(maxBottom, searchEl.offsetTop + searchEl.offsetHeight);
+        }
+        if (festEl && activeTab === 'food') {
+          maxBottom = Math.max(maxBottom, festEl.offsetTop + festEl.offsetHeight);
+        }
+        
+        if (maxBottom > 0) {
+          setHeaderBgHeight(maxBottom); // Height perfectly matches wrapper, so the curved corners are exposed before the white category section starts
+        }
+      }
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    const timeout = setTimeout(calculateHeight, 100);
+    const timeout2 = setTimeout(calculateHeight, 500);
+    
+    return () => {
+      window.removeEventListener('resize', calculateHeight);
+      clearTimeout(timeout);
+      clearTimeout(timeout2);
+    };
+  }, [activeTab]);
+  const lastScrollY = useRef(0);
 
 
   // Simple filter toggle function
@@ -2928,42 +2987,52 @@ export default function Home() {
 
         <div className="md:hidden relative overflow-x-clip bg-white dark:bg-[#0a0a0a]">
           {/* Brand Top Section (Dark) */}
-          <div className="relative overflow-hidden bg-gradient-to-b from-[#3a142c] to-[#1a0a14] rounded-b-[2rem] shadow-lg mb-2">
+          {/* Decoupled Dark Background - Dynamic height based on actual components to prevent clipping sticky elements while covering properly */}
+          <div 
+             className="absolute top-0 left-0 right-0 overflow-hidden bg-gradient-to-b from-[#3a142c] to-[#1a0a14] rounded-b-[2rem] shadow-lg pointer-events-none z-0 transition-all duration-300 [transform:translateZ(0)] [mask-image:-webkit-radial-gradient(white,black)]"
+             style={{ height: headerBgHeight > 0 ? `${headerBgHeight}px` : (activeTab === 'food' ? '300px' : '140px') }}
+          >
             {festVideoActive && (
-              <div className="absolute inset-0 z-0">
+              <div className="absolute inset-0 z-0 overflow-hidden rounded-b-[2rem]">
                 <video
                   src={festBannerVideoUrl}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover rounded-b-[2rem]"
                   autoPlay
                   muted
                   loop
                   playsInline
                 />
-                <div className="absolute inset-0 bg-black/40" />
+                <div className="absolute inset-0 bg-black/40 rounded-b-[2rem]" />
               </div>
             )}
-            <div className="relative z-10">
-              <HomeHeader
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                location={effectiveLocation}
-                handleLocationClick={handleLocationClick}
-                handleSearchFocus={handleSearchFocus}
-                placeholderIndex={placeholderIndex}
-                placeholders={placeholders}
-                vegMode={vegMode}
-                handleVegModeChange={handleVegModeChange}
-              />
+          </div>
 
-              {activeTab === "food" && (
+          {/* Unified Scroll Container so Sticky Search Bar works for the whole page */}
+          <div className="relative z-10 w-full mb-2">
+            <HomeHeader
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              location={effectiveLocation}
+              handleLocationClick={handleLocationClick}
+              handleSearchFocus={handleSearchFocus}
+              placeholderIndex={placeholderIndex}
+              placeholders={placeholders}
+              vegMode={vegMode}
+              handleVegModeChange={handleVegModeChange}
+              isCategoryStuck={isCategoryStuck}
+            />
+
+            {activeTab === "food" && (
+              <div id="fest-banner-wrapper" className="pb-4 sm:pb-6">
                 <FestBanner
                   isVegMode={vegMode}
                   videoUrl={festVideoActive ? "" : festBannerVideoUrl}
                   hideFoodImages={festVideoActive}
                 />
-              )}
-            </div>
-          </div>
+              </div>
+            )}
+            
+            <div className="h-3 w-full" />
 
           <AnimatePresence mode="wait">
             {activeTab === "food" ? (
@@ -2977,9 +3046,10 @@ export default function Home() {
               >
 
                 {/* "What's on your mind today?" Section - Now with Sticky Logic */}
+                <div ref={categoryAnchorRef} className="h-0 w-full" />
                 <div
                   id="categories-section"
-                  className="px-4 py-2.5 space-y-3 bg-white dark:bg-[#0a0a0a]"
+                  className={`sticky top-[60px] z-[50] w-full transition-all duration-300 ${isCategoryStuck ? "bg-white/75 dark:bg-[#0a0a0a]/75 backdrop-blur-xl shadow-sm pb-2 pt-2 border-b border-gray-100/50 dark:border-gray-800/50 px-4" : "bg-white dark:bg-[#0a0a0a] px-4 py-2.5"} space-y-3`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white min-w-0 flex-shrink leading-tight">What's on your mind today?</h2>
@@ -2995,9 +3065,9 @@ export default function Home() {
                       <Link
                         key={category.id || index}
                         to={`/food/user/category/${category.slug}`}
-                        className="flex-shrink-0 flex flex-col items-center gap-2.5 group w-[92px]"
+                        className="flex-shrink-0 flex flex-col items-center gap-1.5 group w-[76px]"
                       >
-                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md border-2 border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] group-active:scale-95 transition-all duration-300">
+                        <div className="relative w-[68px] h-[68px] sm:w-[84px] sm:h-[84px] rounded-full overflow-hidden shadow-md border-2 border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] group-active:scale-95 transition-all duration-300">
                           {/* Shining Glint Effect */}
                           <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
                             <motion.div
@@ -3020,7 +3090,7 @@ export default function Home() {
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           />
                         </div>
-                        <span className="text-[10px] font-extrabold text-gray-900 dark:text-gray-100 text-center leading-tight line-clamp-1 w-full px-0.5">
+                        <span className="text-[9px] font-extrabold text-gray-900 dark:text-gray-100 text-center leading-tight line-clamp-1 w-full px-0.5">
                           {category.name}
                         </span>
                       </Link>
@@ -3028,120 +3098,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Dynamic Sticky Header (Search + Slider + Filters) */}
-                <AnimatePresence>
-                  {isStickyHeaderVisible && (
-                    <motion.div
-                      initial={{ y: -200 }}
-                      animate={{ y: 0 }}
-                      exit={{ y: -200 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="fixed top-0 left-0 right-0 z-[100] bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md shadow-lg border-b border-gray-100 dark:border-white/5 safe-top"
-                    >
-                      {/* Search Bar Row (appears when scrolling up) */}
-                      <AnimatePresence>
-                        {showStickySearch && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="px-4 py-2"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="flex-1 bg-white dark:bg-[#1a1a1a] rounded-xl flex items-center px-4 py-2 cursor-pointer border-2 border-primary/30 dark:border-primary/50 shadow-md"
-                                onClick={handleSearchFocus}
-                              >
-                                <Search className="h-5 w-5 text-primary dark:text-[#a14b84] mr-3" strokeWidth={2.5} />
-                                <div className="flex-1 relative h-5 overflow-hidden">
-                                  <span className="absolute inset-0 text-base text-gray-400 font-medium">Search "biryani"</span>
-                                </div>
-                                <div className="h-5 w-[1px] bg-gray-200 dark:bg-white/10 mx-2" />
-                                <Mic className="h-5 w-5 text-primary dark:text-[#a14b84]" />
-                              </div>
-
-                              {/* Veg Toggle in Sticky Header */}
-                              <div
-                                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 transition-all duration-300 cursor-pointer shadow-md ${vegMode ? 'border-[#00b09b]/50 bg-[#00b09b]/10' : 'border-gray-100 dark:border-white/10 bg-white dark:bg-[#1a1a1a]'}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleVegModeChange?.(!vegMode);
-                                }}
-                              >
-                                <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${vegMode ? 'border-[#00b09b] bg-[#00b09b]' : 'border-gray-300 dark:border-white/30'}`}>
-                                  {vegMode && <Check className="h-3 w-3 text-white" strokeWidth={4} />}
-                                </div>
-                                <span className={`text-xs font-bold uppercase tracking-tight ${vegMode ? 'text-[#00b09b]' : 'text-gray-500 dark:text-gray-400'}`}>Veg</span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      {/* Categories Slider (Increased Icon Size) */}
-                      <div className="flex overflow-x-auto gap-5 py-3 pb-2 scrollbar-hide px-4 mask-edge-fade">
-                        {displayCategories.map((category, index) => (
-                          <Link
-                            key={`sticky-${category.id || index}`}
-                            to={`/food/user/category/${category.slug}`}
-                            className="flex-shrink-0 flex flex-col items-center gap-1.5 group w-[74px]"
-                          >
-                            <div className="w-18 h-18 rounded-full overflow-hidden border-2 border-gray-100 dark:border-white/10 shadow-md bg-white dark:bg-white/5 transition-transform group-active:scale-95">
-                              <OptimizedImage
-                                src={category.image}
-                                alt={category.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300 text-center truncate w-full uppercase tracking-tighter">
-                              {category.name}
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
-
-                      {/* Integrated Filters Row */}
-                      <div className="px-4 pb-2">
-                        <div
-                          className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1"
-                          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setIsFilterOpen(true)}
-                            className="h-8 px-3 rounded-full flex items-center gap-1.5 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/5 shadow-sm whitespace-nowrap"
-                          >
-                            <SlidersHorizontal className="h-3.5 w-3.5" />
-                            <span className="text-[10px] font-bold uppercase">Filters</span>
-                          </button>
-
-                          {[
-                            { id: "delivery-under-30", label: "Under 30 mins" },
-                            { id: "delivery-under-45", label: "Under 45 mins" },
-                            { id: "distance-under-1km", label: "Under 1km", icon: MapPin },
-                          ].map((filter) => {
-                            const Icon = filter.icon;
-                            const isActive = activeFilters.has(filter.id);
-                            return (
-                              <button
-                                key={filter.id}
-                                type="button"
-                                onClick={() => toggleFilter(filter.id)}
-                                className={`h-8 px-4 rounded-full flex items-center gap-2 whitespace-nowrap transition-all font-bold text-[10px] uppercase ${isActive
-                                  ? "bg-primary text-white"
-                                  : "bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 text-gray-600 dark:text-gray-400"
-                                  }`}
-                              >
-                                {Icon && <Icon className="h-3 w-3" />}
-                                {filter.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/* Removed Dynamic Sticky Header (Search + Slider + Filters) */}
 
                 {/* Admin Hero Banners Section - Now below categories */}
                 {HeroBannerSection}
@@ -3211,20 +3168,7 @@ export default function Home() {
                   </div>
                 </section>
 
-              </motion.div>
-            ) : (
-              <motion.div
-                key="quick-content"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <QuickSection />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+
 
         {recommendedForYouRestaurants.length > 0 && (
           <motion.section
@@ -3714,6 +3658,20 @@ export default function Home() {
             </>
           )}
         </motion.section>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="quick-content"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <QuickSection />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Filter Modal - Bottom Sheet */}
@@ -4696,6 +4654,7 @@ export default function Home() {
       <StickyCartCard />
       {/* Live order strip: only on homepage (not in UserLayout) */}
       <OrderTrackingCard hasBottomNav />
+      </div> {/* Closes the unified relative z-10 w-full mb-2 container from top */}
     </div>
   );
 }

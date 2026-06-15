@@ -188,10 +188,11 @@ export default function Dining() {
         const city = cityRaw && cityRaw.toLowerCase() !== "current location" ? cityRaw : ""
 
         const restaurantParams = {}
-        if (city) restaurantParams.city = city
         if (Number.isFinite(lat) && Number.isFinite(lng)) {
           restaurantParams.lat = lat
           restaurantParams.lng = lng
+        } else if (city) {
+          restaurantParams.city = city
         }
 
         const [bannerResponse, cats, rests] = await Promise.all([

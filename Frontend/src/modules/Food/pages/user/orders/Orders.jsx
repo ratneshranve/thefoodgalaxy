@@ -16,6 +16,7 @@ export default function Orders() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [activeTab, setActiveTab] = useState('today') // 'today' or 'past'
   const [ratingModal, setRatingModal] = useState({ open: false, order: null })
   const [activeMenuOrderId, setActiveMenuOrderId] = useState(null)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -393,10 +394,31 @@ export default function Orders() {
     return `${day} ${month}, ${displayHours}:${minutes}${ampm}`
   }
 
-  // Filter orders based on search query
-  const filteredOrders = orders.filter(order => {
-    if (!searchQuery.trim()) return true
+  // Filter orders based on search query and active tab
+  const isToday = (dateString) => {
+    if (!dateString) return false
+    const date = new Date(dateString)
+    const today = new Date()
+    return date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+  }
 
+  const filteredOrders = orders.filter(order => {
+    // 1. Tab filtering
+    const orderIsToday = isToday(order.createdAt)
+    const isActiveStatus = ['preparing', 'outForDelivery', 'confirmed'].includes(order.status)
+    
+    if (activeTab === 'today') {
+      // "Today" tab shows orders from today, or any active order from a previous date (rare but possible)
+      if (!orderIsToday && !isActiveStatus) return false
+    } else {
+      // "Past" tab shows everything else
+      if (orderIsToday || isActiveStatus) return false
+    }
+
+    // 2. Search filtering
+    if (!searchQuery.trim()) return true
     const query = searchQuery.toLowerCase()
     const restaurantMatch = order.restaurant?.toLowerCase().includes(query)
     const itemsMatch = order.items.some(item =>
@@ -664,7 +686,7 @@ Order again from this restaurant in the ${companyName} app.`
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-10">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-24">
         <div className="bg-white dark:bg-[#121212] p-4 flex items-center shadow-sm sticky top-0 z-10 border-b dark:border-gray-800">
           <Link to="/user">
             <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-300 cursor-pointer" />
@@ -680,7 +702,7 @@ Order again from this restaurant in the ${companyName} app.`
 
   if (orders.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-10">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-24">
         <div className="bg-white dark:bg-[#121212] p-4 flex items-center shadow-sm sticky top-0 z-10 border-b dark:border-gray-800">
           <Link to="/user">
             <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-300 cursor-pointer" />
@@ -698,7 +720,7 @@ Order again from this restaurant in the ${companyName} app.`
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-10 font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-24 font-sans">
       {/* Header */}
       <div className="bg-white dark:bg-[#121212] p-4 flex items-center shadow-sm sticky top-0 z-10 border-b dark:border-gray-800">
         <Link to="/user">
@@ -719,6 +741,28 @@ Order again from this restaurant in the ${companyName} app.`
             className="flex-1 ml-3 bg-transparent outline-none text-gray-600 dark:text-gray-300 placeholder-gray-400"
           />
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white dark:bg-[#121212] px-4 pt-3 flex gap-6 border-b dark:border-gray-800 sticky top-[60px] z-10 shadow-sm">
+        <button 
+          onClick={() => setActiveTab('today')}
+          className={`pb-3 text-[15px] font-semibold transition-colors relative ${activeTab === 'today' ? 'text-primary' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'}`}
+        >
+          Today's Orders
+          {activeTab === 'today' && (
+            <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-md" />
+          )}
+        </button>
+        <button 
+          onClick={() => setActiveTab('past')}
+          className={`pb-3 text-[15px] font-semibold transition-colors relative ${activeTab === 'past' ? 'text-primary' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'}`}
+        >
+          Order History
+          {activeTab === 'past' && (
+            <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-md" />
+          )}
+        </button>
       </div>
 
       {/* Orders List */}

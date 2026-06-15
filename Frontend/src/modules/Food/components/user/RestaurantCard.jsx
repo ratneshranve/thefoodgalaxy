@@ -143,8 +143,7 @@ const RestaurantImageCarousel = React.memo(({ restaurant, priority = false, back
   const [, setAttemptedSrcs] = useState({});
   const [showShimmer, setShowShimmer] = useState(true);
   const [lastGoodSrc, setLastGoodSrc] = useState("");
-  const touchStartX = useRef(0);
-  const isSwiping = useRef(false);
+
 
   const safeIndex = images.length > 0 ? (currentIndex % images.length + images.length) % images.length : 0;
   const renderSrc = images[safeIndex] || lastGoodSrc;
@@ -182,39 +181,11 @@ const RestaurantImageCarousel = React.memo(({ restaurant, priority = false, back
     return () => clearTimeout(shimmerTimeout);
   }, [renderSrc]);
 
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-    isSwiping.current = false;
-  };
 
-  const handleTouchMove = (e) => {
-    const currentX = e.touches[0].clientX;
-    const diff = touchStartX.current - currentX;
-    if (Math.abs(diff) > 10) {
-      isSwiping.current = true;
-    }
-  };
-
-  const handleTouchEnd = (e) => {
-    if (!isSwiping.current) return;
-    const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchStartX.current - touchEndX;
-    const minSwipeDistance = 50;
-    if (Math.abs(diff) > minSwipeDistance) {
-      if (diff > 0) {
-        setCurrentIndex((prev) => (prev + 1) % images.length);
-      } else {
-        setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-      }
-    }
-  };
 
   return (
     <div 
       className="relative w-full h-[180px] sm:h-[190px] overflow-hidden bg-gray-100 dark:bg-gray-800"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
       <OptimizedImage
         ref={imageElementRef}
@@ -236,19 +207,7 @@ const RestaurantImageCarousel = React.memo(({ restaurant, priority = false, back
         <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-shimmer" />
       )}
 
-      {/* Navigation Indicators */}
-      {images.length > 1 && (
-        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 px-2 pointer-events-none">
-          {images.map((_, idx) => (
-            <div
-              key={idx}
-              className={`h-1 rounded-full transition-all duration-300 ${
-                idx === safeIndex ? 'w-4 bg-white shadow-sm' : 'w-1 bg-white/60'
-              }`}
-            />
-          ))}
-        </div>
-      )}
+
       
       {/* Discount Badge if any */}
       {restaurant.discount > 0 && (

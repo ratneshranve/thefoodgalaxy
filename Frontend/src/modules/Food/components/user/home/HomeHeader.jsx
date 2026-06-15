@@ -32,7 +32,8 @@ export default function HomeHeader({
   placeholderIndex,
   placeholders,
   vegMode = false,
-  handleVegModeChange
+  handleVegModeChange,
+  isCategoryStuck = false
 }) {
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem('food_user_notifications');
@@ -99,14 +100,15 @@ export default function HomeHeader({
   };
 
   return (
-    <div className="relative pt-2 pb-0 px-4 transition-all duration-700 overflow-hidden bg-transparent shadow-none">
-      {/* Subtle Artistic Glows - Adds depth without being 'boring' */}
-      <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-20%] left-[-10%] w-48 h-48 bg-[#48c479]/5 blur-[80px] rounded-full pointer-events-none" />
+    <>
+      <div id="home-header-loc-row" className="relative pt-2 pb-0 px-4 transition-all duration-700 overflow-hidden bg-transparent shadow-none">
+        {/* Subtle Artistic Glows - Adds depth without being 'boring' */}
+        <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-48 h-48 bg-[#48c479]/5 blur-[80px] rounded-full pointer-events-none" />
 
-      {/* Main Header Content */}
-      <div className="relative z-10 space-y-2.5">
-        {/* Row 1: Location, Toggle, and Notifications */}
+        {/* Main Header Content */}
+        <div className="relative z-10 space-y-2.5">
+          {/* Row 1: Location, Toggle, and Notifications */}
         <div className="flex items-center justify-between gap-3">
           {/* Location Selector */}
           <div
@@ -235,23 +237,28 @@ export default function HomeHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-[95%] mx-auto">
+        </div>
+      </div>
+
+      {/* Sticky Search Bar and Veg Toggle */}
+      <div id="home-header-search-row" className={`relative sticky z-[60] px-1 pb-2 transition-all duration-300 pointer-events-none mt-2 sm:mt-3 ${isCategoryStuck ? 'top-0 pt-2 bg-white/75 dark:bg-[#0a0a0a]/75 backdrop-blur-xl' : 'top-2'}`}>
+        <div className="flex items-center gap-2.5 w-[96%] mx-auto pointer-events-auto">
           {/* Search Bar */}
           <div
-            className="relative bg-white rounded-2xl flex items-center px-4 shadow-lg border border-black/5 cursor-pointer active:scale-[0.98] transition-all duration-300 flex-1 h-[52px]"
+            className="relative bg-white rounded-2xl flex items-center px-3 shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-black/5 cursor-pointer active:scale-[0.98] transition-all duration-300 flex-1 h-11"
             onClick={handleSearchFocus}
           >
-            <Search className="h-5 w-5 text-primary mr-2 shrink-0" strokeWidth={2.5} />
+            <Search className="h-[18px] w-[18px] text-primary mr-2 shrink-0" strokeWidth={2.5} />
             
             <div className="flex-1 overflow-hidden relative h-5">
               <AnimatePresence mode="wait">
                 <motion.span
                   key={placeholderIndex}
-                  initial={{ y: 10, opacity: 0 }}
+                  initial={{ y: 8, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -10, opacity: 0 }}
+                  exit={{ y: -8, opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute inset-0 text-[15px] font-bold text-gray-400 truncate flex items-center"
+                  className="absolute inset-0 text-[13px] font-bold text-gray-400 truncate flex items-center"
                 >
                   {placeholders?.[placeholderIndex] || 'Search'}
                 </motion.span>
@@ -272,18 +279,18 @@ export default function HomeHeader({
 
           {/* Veg Toggle (Stacked Pill Switch) */}
           <div 
-            className="flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-transform duration-300 shrink-0 px-1"
+            className="flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-transform duration-300 shrink-0 px-1.5 bg-black/20 dark:bg-black/40 backdrop-blur-md rounded-[12px] py-1"
             onClick={() => handleVegModeChange?.(!vegMode)}
           >
-            <div className="text-[10px] font-black leading-[1.1] text-white tracking-wide text-center">
+            <div className="text-[9px] font-black leading-tight text-white tracking-wider text-center drop-shadow-md">
               VEG<br/>MODE
             </div>
-            <div className={`mt-1.5 w-[38px] h-[22px] rounded-full relative transition-colors duration-300 ${vegMode ? 'bg-green-600' : 'bg-[#bcc0c5]'}`}>
-              <div className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-transform duration-300 ${vegMode ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
+            <div className={`mt-0.5 w-[30px] h-[16px] rounded-full relative transition-colors duration-300 border border-white/20 ${vegMode ? 'bg-green-600' : 'bg-[#bcc0c5]/50'}`}>
+              <div className={`absolute top-[1px] w-[12px] h-[12px] rounded-full bg-white shadow-sm transition-transform duration-300 ${vegMode ? 'translate-x-[15px]' : 'translate-x-[1px]'}`} />
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

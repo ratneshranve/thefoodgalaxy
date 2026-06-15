@@ -137,6 +137,11 @@ const OptimizedImage = React.memo(({
   // Generate WebP srcset
   const webPSrcSet = useMemo(() => {
     if (!supportsOptimization(src)) return undefined
+    
+    // If the source URL explicitly forces a non-webp format (e.g. Cloudinary f_jpg),
+    // we must NOT generate a webp source tag, otherwise Chrome will reject the mismatched MIME type.
+    if (/f_(jpg|png|gif)/i.test(src)) return undefined;
+
     const sizesArr = [200, 400, 600, 800, 1200]
     return sizesArr
       .map(size => `${getOptimizedUrl(src, { w: size, q: 80, format: 'webp' })} ${size}w`)

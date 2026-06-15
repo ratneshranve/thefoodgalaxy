@@ -438,9 +438,31 @@ export default function AddressSelectorPage() {
   const handleAddressFormSubmit = async (e) => {
     e.preventDefault()
     if (!isAuthenticated) {
-       toast.info("Please login to save an address")
-       navigate("/user/auth/login")
-       return
+      if (!addressFormData.street || !addressFormData.city) {
+        toast.error("Please fill required fields")
+        return
+      }
+      
+      const locData = {
+        latitude: mapPosition[0],
+        longitude: mapPosition[1],
+        address: [addressFormData.additionalDetails, addressFormData.street, addressFormData.city].filter(Boolean).join(", "),
+        formattedAddress: currentAddress,
+        city: addressFormData.city,
+        state: addressFormData.state,
+        area: addressFormData.additionalDetails || "",
+        label: addressFormData.label
+      }
+      
+      try {
+        localStorage.setItem("userLocation", JSON.stringify(locData))
+        localStorage.setItem("deliveryAddressMode", "saved")
+        window.dispatchEvent(new CustomEvent("userLocationUpdated", { detail: locData }))
+      } catch (e) {}
+      
+      toast.success("Location set successfully")
+      handleBack()
+      return
     }
     if (!addressFormData.street || !addressFormData.city) {
       toast.error("Please fill required fields")

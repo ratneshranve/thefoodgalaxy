@@ -49,6 +49,7 @@ export default function FestBanner({ isVegMode, videoUrl = "", hideFoodImages = 
   return (
       <motion.div 
       initial={false}
+      id="fest-banner-root"
       className={`relative px-4 pt-8 pb-4 overflow-hidden min-h-[140px] sm:min-h-[180px] transition-all duration-700 ${hasVideo ? 'bg-transparent' : 'bg-transparent'} rounded-b-[2rem]`}
     >
       {hasVideo && (

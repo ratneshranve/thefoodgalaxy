@@ -297,10 +297,10 @@ export default function Under250() {
   const initialFiltersRef = useRef(readUnder250Filters())
   const { location } = useLocation()
   const { zoneId, zoneStatus, isInService, isOutOfService } = useZone(location)
-  
   // Initialize state from cache if zoneId matches
   const isCacheValid = pageCache.zoneId === zoneId;
-  const [showScanAnimation, setShowScanAnimation] = useState(() => !(isCacheValid && pageCache.under250Restaurants && pageCache.under250Restaurants.length > 0))
+  // Always show scan animation on page load, even if cached, because user likes the animation
+  const [showScanAnimation, setShowScanAnimation] = useState(true)
   const navigate = useNavigate()
   const { addToCart, updateQuantity, removeFromCart, getCartItem, cart } = useCart()
   const [showSearch, setShowSearch] = useState(false)
