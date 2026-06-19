@@ -2192,9 +2192,11 @@ export default function Cart() {
                 <div className="space-y-3 md:space-y-4">
                   <div className="space-y-6">
                     {cart.map((item, index) => {
-                      let displayPrice = item.price || 0;
-                      let originalDisplayPrice = item.originalPrice || displayPrice;
+                      let displayPrice = item.originalPrice || item.price || 0;
+                      let originalDisplayPrice = displayPrice;
+                      let bestDiscountAmount = 0;
 
+                      // 1. Check item specific discount
                       if (restaurantData?.itemDiscounts && restaurantData.itemDiscounts.length > 0) {
                         const itemDiscountRule = restaurantData.itemDiscounts.find(
                           (rule) => String(rule.itemId) === String(item.itemId || item.id)
@@ -2202,18 +2204,26 @@ export default function Cart() {
                         if (itemDiscountRule) {
                           const discountVal = Number(itemDiscountRule.discountValue) || 0;
                           if (discountVal > 0) {
-                            if (!item.originalPrice) {
-                               originalDisplayPrice = displayPrice;
-                            }
-                            let discountAmount = 0;
                             if (itemDiscountRule.discountType === 'FLAT') {
-                              discountAmount = Math.min(originalDisplayPrice, discountVal);
+                              bestDiscountAmount = Math.min(originalDisplayPrice, discountVal);
                             } else {
-                              discountAmount = originalDisplayPrice * (discountVal / 100);
+                              bestDiscountAmount = originalDisplayPrice * (discountVal / 100);
                             }
-                            displayPrice = Math.max(0, originalDisplayPrice - discountAmount);
                           }
                         }
+                      }
+
+                      // 2. Check global discount
+                      if (restaurantData?.discount > 0) {
+                        const globalDiscountVal = Number(restaurantData.discount);
+                        const globalDiscountAmount = originalDisplayPrice * (globalDiscountVal / 100);
+                        if (globalDiscountAmount > bestDiscountAmount) {
+                          bestDiscountAmount = globalDiscountAmount;
+                        }
+                      }
+
+                      if (bestDiscountAmount > 0) {
+                        displayPrice = Math.max(0, originalDisplayPrice - bestDiscountAmount);
                       }
 
                       return (

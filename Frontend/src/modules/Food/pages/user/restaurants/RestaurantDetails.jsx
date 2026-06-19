@@ -1722,6 +1722,17 @@ function RestaurantDetailsContent() {
       }
     }
 
+    // 3. Check global restaurant discount
+    const globalDiscount = Number(restaurant?.discount || 0);
+    if (globalDiscount > 0) {
+      const discountAmount = (priceNum * globalDiscount) / 100;
+      if (discountAmount > bestDiscountAmount) {
+        bestDiscountAmount = discountAmount;
+        bestDiscountValue = globalDiscount;
+        bestIsFlatDiscount = false;
+      }
+    }
+
     return {
       discountValue: bestDiscountValue,
       isFlatDiscount: bestIsFlatDiscount,
