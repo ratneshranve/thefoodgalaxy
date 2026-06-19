@@ -1896,14 +1896,7 @@ export default function Home() {
         const normalizedUserCity = String(effectiveLocation?.city || "")
           .trim()
           .toLowerCase();
-        const hasUsableUserCity =
-          normalizedUserCity &&
-          normalizedUserCity !== "current location" &&
-          normalizedUserCity !== "unknown city" &&
-          normalizedUserCity !== "select location";
-        if (hasUsableUserCity) {
-          params.city = String(effectiveLocation.city).trim();
-        }
+        // Removed city filtering to allow zoneId & polygon to accurately fetch all zone restaurants.
 
         debugLog("Fetching restaurants with params:", params);
         const response = await restaurantAPI.getRestaurants(params, { noCache: true });
@@ -1956,28 +1949,7 @@ export default function Home() {
               .replace(/\s+/g, " ")
               .trim();
 
-          const strictCityRestaurants = restaurantsArray.filter((restaurant) => {
-            if (!hasUsableUserCity) return true;
-
-            const cityCandidates = [
-              restaurant?.city,
-              restaurant?.location?.city,
-              restaurant?.address?.city,
-              restaurant?.onboarding?.step1?.city,
-              restaurant?.onboarding?.step1?.location?.city,
-            ];
-
-            const restaurantCity = cityCandidates
-              .map((candidate) => normalizeCityValue(candidate))
-              .find(Boolean);
-
-            if (!restaurantCity) return false;
-
-            const userCity = normalizeCityValue(effectiveLocation?.city);
-            return restaurantCity === userCity;
-          });
-
-          const transformedRestaurants = strictCityRestaurants
+          const transformedRestaurants = restaurantsArray
             .filter((restaurant) => {
               const name = (restaurant.restaurantName || restaurant.name || "").toLowerCase()
               return true
@@ -3760,12 +3732,9 @@ export default function Home() {
 
               <div className="flex flex-col items-center pt-2 sm:pt-3 gap-2 px-4">
                 {hasMoreRestaurants && (
-                  <Button
-                    variant="outline"
-                    onClick={loadMoreRestaurants}
-                    className="text-sm font-medium border-gray-300 hover:border-gray-400">
-                    Load more restaurants
-                  </Button>
+                  <div className="flex justify-center my-2">
+                    <div className="w-6 h-6 rounded-full border-[3px] border-gray-200 border-t-primary animate-spin" />
+                  </div>
                 )}
                 <div
                   ref={restaurantLoadMoreRef}
