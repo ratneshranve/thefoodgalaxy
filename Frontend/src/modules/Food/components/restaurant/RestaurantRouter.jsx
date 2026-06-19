@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react"
 import { Routes, Route, Navigate } from "react-router-dom"
 import ProtectedRoute from "@food/components/ProtectedRoute"
 import Loader from "@food/components/Loader"
+import GlobalPickupOtpModal from "./GlobalPickupOtpModal"
 import "./restaurantTheme.css"
 
 // Lazy Loading Components
@@ -107,6 +108,7 @@ export default function RestaurantRouter() {
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><ZoneSetup /></ProtectedRoute>} path="zone-setup" />
         </Routes>
       </Suspense>
+      <GlobalPickupOtpModal />
     </div>
   )
 }

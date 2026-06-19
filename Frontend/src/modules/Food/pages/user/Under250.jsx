@@ -1553,6 +1553,14 @@ export default function Under250() {
                         <span>{restaurant.rating} {restaurant.totalRatings > 0 ? `(${restaurant.totalRatings >= 1000 ? `${(restaurant.totalRatings / 1000).toFixed(1)}K+` : restaurant.totalRatings}+)` : ''}</span>
                       </div>
                       <span className="text-gray-500 dark:text-gray-400 text-sm md:text-base">•</span>
+                      {restaurant.distance && (
+                        <>
+                          <div className="flex items-center text-sm md:text-base font-semibold text-gray-700 dark:text-gray-300">
+                            <span>{restaurant.distance}</span>
+                          </div>
+                          <span className="text-gray-500 dark:text-gray-400 text-sm md:text-base">•</span>
+                        </>
+                      )}
                       <div className="flex items-center text-sm md:text-base font-semibold text-gray-700 dark:text-gray-300">
                         <span>{restaurant.deliveryTime}</span>
                       </div>

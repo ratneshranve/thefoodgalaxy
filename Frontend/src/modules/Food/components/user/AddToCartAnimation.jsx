@@ -28,7 +28,7 @@ export default function AddToCartAnimation({
   linkTo = '/food/user/cart',
   dynamicBottom = null,
 }) {
-  const { items, itemCount, total, lastAddEvent, lastRemoveEvent } = useCart();
+  const { items, itemCount, total, lastAddEvent, lastRemoveEvent, clearCart } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
   const linkRef = useRef(null);
@@ -442,89 +442,55 @@ export default function AddToCartAnimation({
             style={{
               position: 'fixed',
               bottom: dynamicBottom ? undefined : `${bottomOffset || 20}px`,
-              pointerEvents: 'auto',
+              pointerEvents: 'none',
             }}
-            className={`left-0 right-0 z-[9999] flex justify-center px-4 pb-4 md:pb-6 transition-all duration-300 ease-in-out bg-transparent ${dynamicBottom || ''}`}
+            className={`left-0 right-0 z-[9999] flex justify-center px-4 pb-4 md:pb-6 transition-all duration-300 ease-in-out bg-transparent pointer-events-none ${dynamicBottom || ''}`}
           >
-            <button
-              ref={linkRef}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                debugLog('View cart clicked, navigating to:', linkTo);
-                navigate(linkTo);
-              }}
-              className={`bg-gradient-to-r from-secondary via-primary to-secondary text-white rounded-full shadow-xl shadow-primary/30 px-3 py-2 flex items-center gap-2 hover:from-secondary hover:via-primary hover:to-secondary transition-all duration-300 pointer-events-auto border border-primary/30 backdrop-blur-sm cursor-pointer ${pillClassName}`}
-            >
-              {/* Left: Product thumbnails */}
-              <div className="flex items-center -space-x-4">
-                {thumbnailItems.map((item, idx) => (
-                  <motion.div
-                    key={item?.product?.id || item?.id || `thumb-${idx}`}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{
-                      delay: idx * 0.1,
-                      type: 'spring',
-                      stiffness: 500,
-                      damping: 25,
-                    }}
-                    className="w-7 h-7 rounded-full border-2 border-white/90 overflow-hidden bg-white flex-shrink-0 shadow-md"
-                  >
-                    {item?.product?.imageUrl ? (
-                      <img
-                        src={item.product.imageUrl}
-                        alt={item?.product?.name || 'Item'}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-neutral-200 text-neutral-400 text-xs font-semibold">
-                        {item?.product?.name?.charAt(0)?.toUpperCase() || '?'}
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Middle: Text */}
-              <motion.div
-                className="flex flex-col"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
+            {/* The main container */}
+            <div className="bg-red-50/90 backdrop-blur-md rounded-full shadow-2xl p-1.5 flex items-center border border-red-100 pointer-events-auto">
+              
+              {/* View Cart Button (Left) */}
+              <motion.button
+                ref={linkRef}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  debugLog('View cart clicked, navigating to:', linkTo);
+                  navigate(linkTo);
+                }}
+                className="relative overflow-hidden bg-primary text-white rounded-full px-6 py-2.5 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.4)] hover:shadow-[0_0_25px_rgba(220,38,38,0.6)] hover:bg-primary/90 transition-all duration-300 min-w-[130px]"
               >
-                <span className="text-xs font-bold leading-tight drop-shadow-sm">View cart</span>
-                <span className="text-[10px] opacity-95 leading-tight font-medium">
+                {/* Shining Animation */}
+                <motion.div 
+                  className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12"
+                  animate={{ x: ['-150%', '250%'] }}
+                  transition={{ repeat: Infinity, duration: 2.5, ease: "linear", repeatDelay: 0.5 }}
+                />
+                
+                <span className="relative z-10 text-[15px] font-black tracking-wide leading-tight">View Cart</span>
+                <span className="relative z-10 text-[13px] opacity-90 font-medium leading-tight">
                   {itemCount} {itemCount === 1 ? 'item' : 'items'}
                 </span>
-              </motion.div>
+              </motion.button>
 
-              {/* Right: Arrow icon */}
-              <motion.div
-                className="ml-auto bg-white/25 rounded-full p-1 backdrop-blur-sm"
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.15, duration: 0.3 }}
-                whileHover={{ scale: 1.1, rotate: -5 }}
+              {/* Remove Button (Right) */}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  clearCart();
+                }}
+                className="flex items-center gap-2 pl-3 pr-5 py-2 hover:opacity-80 transition-opacity"
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="text-white"
-                >
-                  <path
-                    d="M6 12L10 8L6 4"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </motion.div>
-            </button>
+                <div className="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </div>
+                <span className="font-bold text-[15px] text-primary tracking-wide">Remove</span>
+              </button>
+
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

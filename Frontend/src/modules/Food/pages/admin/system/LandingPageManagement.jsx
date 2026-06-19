@@ -208,8 +208,8 @@ export default function LandingPageManagement() {
   const handleBannerFileSelect = (e) => {
     const files = Array.from(e.target?.files || e.files || [])
     if (files.length === 0) return
-    if (files.length > 5) {
-      setError('You can upload a maximum of 5 images at once')
+    if (files.length > 25) {
+      setError('You can upload a maximum of 25 images at once')
       return
     }
     uploadBanners(files)
@@ -823,8 +823,8 @@ export default function LandingPageManagement() {
   const handleUnder250BannerFileSelect = (e) => {
     const files = Array.from(e.target?.files || e.files || [])
     if (files.length === 0) return
-    if (files.length > 5) {
-      setError('You can upload a maximum of 5 images at once')
+    if (files.length > 25) {
+      setError('You can upload a maximum of 25 images at once')
       return
     }
     uploadUnder250Banners(files)
@@ -926,7 +926,7 @@ export default function LandingPageManagement() {
     try {
       setDiningBannersLoading(true)
       setError(null)
-      const response = await api.get('/food/hero-banners/dining', getAuthConfig())
+      const response = await api.get('/food/hero-banners/ads', getAuthConfig())
       if (response.data.success) {
         setDiningBanners(response.data.data.banners || [])
       }
@@ -949,8 +949,8 @@ export default function LandingPageManagement() {
   const handleDiningBannerFileSelect = (e) => {
     const files = Array.from(e.target?.files || e.files || [])
     if (files.length === 0) return
-    if (files.length > 5) {
-      setError('You can upload a maximum of 5 images at once')
+    if (files.length > 25) {
+      setError('You can upload a maximum of 25 images at once')
       return
     }
     uploadDiningBanners(files)
@@ -971,20 +971,20 @@ export default function LandingPageManagement() {
 
       const formData = new FormData()
       files.forEach((file) => {
-        formData.append('images', file)
+        formData.append('files', file)
       })
 
-      const response = await api.post('/food/hero-banners/dining/multiple', formData, getAuthConfig({
+      const response = await api.post('/food/hero-banners/ads/multiple', formData, getAuthConfig({
         headers: { 'Content-Type': 'multipart/form-data' },
       }))
 
       if (response.data.success) {
-        setSuccess(`${response.data.data.banners?.length || files.length} dining banner(s) uploaded successfully!`)
+        setSuccess(`${response.data.data.banners?.length || files.length} ads banner(s) uploaded successfully!`)
         await fetchDiningBanners()
         setTimeout(() => setSuccess(null), 3000)
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Failed to upload dining banners'
+      const errorMessage = err.response?.data?.message || 'Failed to upload ads banners'
       setErrorSafely(errorMessage)
       setDiningBannersUploadProgress({ current: 0, total: 0 })
     } finally {
@@ -993,14 +993,14 @@ export default function LandingPageManagement() {
   }
 
   const handleDeleteDiningBanner = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this dining banner?')) return
+    if (!window.confirm('Are you sure you want to delete this ads banner?')) return
     try {
       setDiningBannersDeleting(id)
       setError(null)
       setSuccess(null)
-      const response = await api.delete(`/food/hero-banners/dining/${id}`, getAuthConfig())
+      const response = await api.delete(`/food/hero-banners/ads/${id}`, getAuthConfig())
       if (response.data.success) {
-        setSuccess('Dining banner deleted successfully!')
+        setSuccess('Ads banner deleted successfully!')
         await fetchDiningBanners()
         setTimeout(() => setSuccess(null), 3000)
       }
@@ -1015,7 +1015,7 @@ export default function LandingPageManagement() {
     try {
       setError(null)
       setSuccess(null)
-      const response = await api.patch(`/food/hero-banners/dining/${id}/status`, {}, getAuthConfig())
+      const response = await api.patch(`/food/hero-banners/ads/${id}/status`, {}, getAuthConfig())
       if (response.data.success) {
         setSuccess(`Banner ${currentStatus ? 'deactivated' : 'activated'} successfully!`)
         await fetchDiningBanners()
@@ -1034,9 +1034,9 @@ export default function LandingPageManagement() {
     if (!otherBanner && newOrder < 0) return
     try {
       setError(null)
-      await api.patch(`/food/hero-banners/dining/${id}/order`, { order: newOrder }, getAuthConfig())
+      await api.patch(`/food/hero-banners/ads/${id}/order`, { order: newOrder }, getAuthConfig())
       if (otherBanner) {
-        await api.patch(`/food/hero-banners/dining/${otherBanner._id}/order`, { order: banner.order }, getAuthConfig())
+        await api.patch(`/food/hero-banners/ads/${otherBanner._id}/order`, { order: banner.order }, getAuthConfig())
       }
       await fetchDiningBanners()
     } catch (err) {
@@ -1113,8 +1113,8 @@ export default function LandingPageManagement() {
     if (!files.length) return
 
     const currentImagesCount = settings.festBannerImages?.length || 0
-    if (currentImagesCount + files.length > 5) {
-      setErrorSafely('You can upload a maximum of 5 images.')
+    if (currentImagesCount + files.length > 25) {
+      setErrorSafely('You can upload a maximum of 25 images.')
       return
     }
 
@@ -1313,7 +1313,7 @@ export default function LandingPageManagement() {
   const tabs = [
     { id: 'banners', label: 'Hero Banners', icon: ImageIcon },
     { id: 'under-250', label: '250 Banner', icon: Tag },
-    { id: 'dining', label: 'Dining', icon: UtensilsCrossed },
+    { id: 'dining', label: 'Ads Banner', icon: Megaphone },
     { id: 'explore-more', label: 'Explore More', icon: Layout },
   ]
 
@@ -1432,7 +1432,7 @@ export default function LandingPageManagement() {
                       </button>
                       <span className="text-slate-600"> or drag and drop</span>
                     </div>
-                    <p className="text-xs text-slate-500">PNG, JPG, WEBP up to 5MB each (Max 5 images at once)</p>
+                    <p className="text-xs text-slate-500">PNG, JPG, WEBP up to 5MB each (Max 25 images at once)</p>
                   </div>
                 )}
               </div>
@@ -1578,7 +1578,7 @@ export default function LandingPageManagement() {
                       </button>
                       <span className="text-slate-600"> or drag and drop</span>
                     </div>
-                    <p className="text-xs text-slate-500">PNG, JPG, WEBP up to 5MB each (Max 5 images at once)</p>
+                    <p className="text-xs text-slate-500">PNG, JPG, WEBP up to 5MB each (Max 25 images at once)</p>
                   </div>
                 )}
               </div>
@@ -1642,7 +1642,7 @@ export default function LandingPageManagement() {
           <>
             {/* Upload Section */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4">Upload New Dining Banner(s)</h2>
+              <h2 className="text-lg font-bold text-slate-900 mb-4">Upload New Ads Banner(s)</h2>
               <div
                 className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center bg-blue-50/30 cursor-pointer transition-colors hover:border-blue-400 hover:bg-blue-50/50"
                 onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -1694,7 +1694,7 @@ export default function LandingPageManagement() {
                       </button>
                       <span className="text-slate-600"> or drag and drop</span>
                     </div>
-                    <p className="text-xs text-slate-500">PNG, JPG, WEBP up to 5MB each (Max 5 images at once)</p>
+                    <p className="text-xs text-slate-500">PNG, JPG, WEBP up to 5MB each (Max 25 images at once)</p>
                   </div>
                 )}
               </div>
@@ -1709,15 +1709,15 @@ export default function LandingPageManagement() {
                 </div>
               ) : diningBanners.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
-                  <UtensilsCrossed className="w-12 h-12 mx-auto mb-3 text-slate-400" />
-                  <p>No dining banners uploaded yet.</p>
+                  <Megaphone className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+                  <p>No ads banners uploaded yet.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {diningBanners.map((banner, index) => (
                     <div key={banner._id} className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
                       <div className="relative aspect-video bg-slate-100">
-                        <img src={banner.imageUrl} alt={`Dining Banner ${index + 1}`} className="w-full h-full object-cover" />
+                        <img src={banner.imageUrl} alt={`Ads Banner ${index + 1}`} className="w-full h-full object-cover" />
                         <div className="absolute top-2 right-2">
                           <span className={`px-2 py-1 rounded text-xs font-medium ${banner.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                             {banner.isActive ? 'Active' : 'Inactive'}
@@ -1802,9 +1802,9 @@ export default function LandingPageManagement() {
                   </div>
 
                   <div>
-                    <Label>Fest Banner Images (Max 5)</Label>
+                    <Label>Fest Banner Images (Max 25)</Label>
                     <p className="text-xs text-slate-500 mt-1 mb-3">
-                      Upload up to 5 promo images for the home fest banner slider.
+                      Upload up to 25 promo images for the home fest banner slider.
                     </p>
                     <div className="flex flex-col gap-3">
                       <input
@@ -1814,17 +1814,17 @@ export default function LandingPageManagement() {
                         multiple
                         onChange={handleFestBannerImageSelect}
                         className="hidden"
-                        disabled={festBannerUploading || (settings.festBannerImages?.length || 0) >= 5}
+                        disabled={festBannerUploading || (settings.festBannerImages?.length || 0) >= 25}
                       />
                       <div className="flex flex-wrap items-center gap-3">
                         <Button
                           type="button"
                           onClick={() => festBannerFileInputRef.current?.click()}
-                          disabled={festBannerUploading || (settings.festBannerImages?.length || 0) >= 5}
+                          disabled={festBannerUploading || (settings.festBannerImages?.length || 0) >= 25}
                           className="bg-slate-900 hover:bg-slate-800 text-white"
                         >
                           {festBannerUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                          {festBannerUploading ? 'Uploading...' : `Upload Images (${settings.festBannerImages?.length || 0}/5)`}
+                          {festBannerUploading ? 'Uploading...' : `Upload Images (${settings.festBannerImages?.length || 0}/25)`}
                         </Button>
                       </div>
                       

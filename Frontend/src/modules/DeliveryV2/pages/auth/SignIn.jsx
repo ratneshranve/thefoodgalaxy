@@ -13,9 +13,9 @@ const DEFAULT_COUNTRY_CODE = "+91"
 export default function DeliverySignIn() {
   const navigate = useNavigate()
   const [phone, setPhone] = useState(() => {
-    const draft = sessionStorage.getItem("delivery_draft_phone")
+    const draft = localStorage.getItem("delivery_draft_phone")
     if (draft) return draft;
-    const stored = sessionStorage.getItem("deliveryAuthData")
+    const stored = localStorage.getItem("deliveryAuthData")
     if (stored) {
       try {
         const data = JSON.parse(stored)
@@ -55,7 +55,7 @@ export default function DeliverySignIn() {
         purpose: "login",
         module: "delivery",
       }
-      sessionStorage.setItem("deliveryAuthData", JSON.stringify(authData))
+      localStorage.setItem("deliveryAuthData", JSON.stringify(authData))
       toast.success("Verification code sent to your phone!")
       navigate("/food/delivery/otp")
     } catch (err) {
@@ -153,7 +153,7 @@ export default function DeliverySignIn() {
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, "").slice(0, 10);
                     setPhone(val);
-                    sessionStorage.setItem("delivery_draft_phone", val);
+                    localStorage.setItem("delivery_draft_phone", val);
                   }}
                   maxLength={10}
                   className="flex-1 bg-transparent border-0 outline-none focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 text-gray-900 dark:text-white font-bold text-lg placeholder:text-gray-400 placeholder:font-medium placeholder:text-sm py-2 px-1"

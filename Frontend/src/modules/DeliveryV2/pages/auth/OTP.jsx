@@ -31,8 +31,8 @@ export default function DeliveryOTP() {
   const inputRefs = useRef([])
 
   useEffect(() => {
-    // Get auth data from sessionStorage (delivery module key)
-    const stored = sessionStorage.getItem("deliveryAuthData")
+    // Get auth data from localStorage (delivery module key)
+    const stored = localStorage.getItem("deliveryAuthData")
     if (stored) {
       const data = JSON.parse(stored)
       setAuthData(data)
@@ -229,7 +229,7 @@ export default function DeliveryOTP() {
       debugLog("Parsed Delivery OTP Data:", data)
 
       if (data.pendingApproval === true) {
-        sessionStorage.removeItem("deliveryAuthData")
+        localStorage.removeItem("deliveryAuthData")
         setIsLoading(false)
         setError("")
         setPendingMessage(data.message || "Your account is pending admin verification. You will be notified once approved.")
@@ -242,15 +242,15 @@ export default function DeliveryOTP() {
 
       if (needsRegistration) {
         // No DB record yet; redirect to registration details page WITHOUT creating anything in DB.
-        sessionStorage.removeItem("deliveryAuthData")
-        sessionStorage.setItem("deliveryNeedsRegistration", "true")
+        localStorage.removeItem("deliveryAuthData")
+        localStorage.setItem("deliveryNeedsRegistration", "true")
         const digits = String(phone || "").replace(/\D/g, "")
         const details = {
           name: "",
           phone: digits.slice(-10),
           countryCode: "+91",
         }
-        sessionStorage.setItem("deliverySignupDetails", JSON.stringify(details))
+        localStorage.setItem("deliverySignupDetails", JSON.stringify(details))
         setIsLoading(false)
         navigate("/food/delivery/signup/details", { replace: true })
         return
@@ -264,7 +264,7 @@ export default function DeliveryOTP() {
         throw new Error("Invalid response from server")
       }
 
-      sessionStorage.removeItem("deliveryAuthData")
+      localStorage.removeItem("deliveryAuthData")
 
       try {
         debugLog("Storing auth data for delivery:", { hasToken: !!accessToken, hasUser: !!user })
@@ -347,8 +347,8 @@ export default function DeliveryOTP() {
         throw new Error("Invalid response from server")
       }
 
-      // Clear auth data from sessionStorage
-      sessionStorage.removeItem("deliveryAuthData")
+      // Clear auth data from localStorage
+      localStorage.removeItem("deliveryAuthData")
 
       // Store auth data using utility function to ensure proper role handling
       // The setAuthData function includes error handling and verification
@@ -542,13 +542,13 @@ export default function DeliveryOTP() {
                     onClick={() => {
                       const phone = authData?.phone
                       const digits = String(phone || "").replace(/\D/g, "")
-                      sessionStorage.setItem("deliveryNeedsRegistration", "true")
+                      localStorage.setItem("deliveryNeedsRegistration", "true")
                       const details = {
                         name: "",
                         phone: digits.slice(-10),
                         countryCode: "+91",
                       }
-                      sessionStorage.setItem("deliverySignupDetails", JSON.stringify(details))
+                      localStorage.setItem("deliverySignupDetails", JSON.stringify(details))
                       navigate("/food/delivery/signup/details", { replace: true })
                     }}
                     className="w-full py-3.5 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all active:scale-95"

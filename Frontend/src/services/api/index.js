@@ -1925,7 +1925,7 @@ export const diningAPI = {
     userClient.get("/food/dining/restaurants/public", { params }),
   getOccupiedSeatsPublic: (restaurantId) =>
     userClient.get(`/food/dining/restaurants/${String(restaurantId)}/occupied-seats/public`),
-  getHeroBanners: () => userClient.get("/food/hero-banners/dining/public"),
+  getHeroBanners: () => userClient.get("/food/hero-banners/ads/public"),
   getRestaurantBySlug: (slug) =>
     userClient.get(`/food/restaurant/restaurants/${String(slug)}`),
   getOfferBanners: () => Promise.resolve({ data: { success: true, data: [] } }),

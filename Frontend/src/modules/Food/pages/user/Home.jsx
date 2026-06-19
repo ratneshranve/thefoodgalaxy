@@ -99,6 +99,7 @@ import QuickSection from "@food/components/user/home/QuickSection";
 import PromoRow from "@food/components/user/home/PromoRow";
 import FestBanner from "@food/components/user/home/FestBanner";
 import chefMascot from "@food/assets/chef-mascot.png";
+import AdsBannerCarousel from "@food/components/user/home/AdsBannerCarousel";
 
 // Explore More Icons
 import exploreOffers from "@food/assets/explore more icons/offers.png";
@@ -624,6 +625,8 @@ const homePageCache = {
   festBannerImages: [],
   heroBannerImages: null,
   heroBannersData: null,
+  adsBannerImages: null,
+  adsBannersData: null,
 };
 
 export default function Home() {
@@ -692,6 +695,9 @@ export default function Home() {
   const [heroBannerImages, setHeroBannerImages] = useState(() => homePageCache.heroBannerImages || []);
   const [heroBannersData, setHeroBannersData] = useState(() => homePageCache.heroBannersData || []);
   const [loadingBanners, setLoadingBanners] = useState(() => !homePageCache.heroBannerImages);
+  const [adsBannerImages, setAdsBannerImages] = useState(() => homePageCache.adsBannerImages || []);
+  const [adsBannersData, setAdsBannersData] = useState(() => homePageCache.adsBannersData || []);
+  const [loadingAdsBanners, setLoadingAdsBanners] = useState(() => !homePageCache.adsBannerImages);
   const [hasScrolledPastBanner, setHasScrolledPastBanner] = useState(false);
   const [landingCategories, setLandingCategories] = useState([]);
   const [landingExploreMore, setLandingExploreMore] = useState(() => homePageCache.landingExploreMore || []);
@@ -1637,6 +1643,47 @@ export default function Home() {
     };
   }, [effectiveZoneId]);
 
+  // Fetch ads banners from public API (no auth required)
+  useEffect(() => {
+    if (homePageCache.adsBannerImages && homePageCache.effectiveZoneId === effectiveZoneId) {
+      setLoadingAdsBanners(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingAdsBanners(true);
+    publicGetOnce("/food/hero-banners/ads/public", { params: { zoneId: effectiveZoneId } })
+      .then((response) => {
+        if (cancelled) return;
+        const data = response?.data?.data;
+        const list = Array.isArray(data?.banners)
+          ? data.banners
+          : Array.isArray(data)
+            ? data
+            : [];
+        const images = list
+          .map((b) => (b && typeof b.imageUrl === "string" ? b.imageUrl : ""))
+          .filter(Boolean);
+        setAdsBannerImages(images);
+        setAdsBannersData(list);
+
+        homePageCache.adsBannerImages = images;
+        homePageCache.adsBannersData = list;
+        homePageCache.effectiveZoneId = effectiveZoneId;
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        debugError("Failed to fetch ads banners", err);
+        setAdsBannerImages([]);
+        setAdsBannersData([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingAdsBanners(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveZoneId]);
+
   const shouldShowOutOfZoneHome =
     !effectiveZoneLoading &&
     !effectiveZoneError &&
@@ -1821,8 +1868,6 @@ export default function Home() {
           params.radiusKm = 1.0;
         } else if (filters.activeFilters?.has("distance-under-2km")) {
           params.radiusKm = 2.0;
-        } else {
-          params.radiusKm = 15.0;
         }
 
         // Price filters
@@ -2734,7 +2779,7 @@ export default function Home() {
     if (showBannerSkeleton) {
       return (
         <div className="px-4 py-2">
-          <HeroBannerSkeleton className="w-full h-[120px] sm:h-[150px] lg:h-[200px] rounded-2xl" />
+          <HeroBannerSkeleton className="w-full aspect-[21/9] rounded-2xl" />
         </div>
       );
     }
@@ -2746,7 +2791,7 @@ export default function Home() {
         <div
           ref={heroShellRef}
           data-home-hero-shell="true"
-          className="relative w-full overflow-hidden h-[120px] sm:h-[150px] lg:h-[200px] rounded-2xl shadow-sm group cursor-pointer bg-white"
+          className="relative w-full overflow-hidden rounded-2xl shadow-sm group cursor-pointer bg-white"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -2755,7 +2800,7 @@ export default function Home() {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          <div className="absolute inset-0 z-0">
+          <div className="relative z-0 w-full flex items-center justify-center bg-gray-50 dark:bg-[#111]">
             {/* Shining Glint Effect */}
             <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
               <motion.div
@@ -2774,7 +2819,7 @@ export default function Home() {
             {heroBannerImages.map((image, index) => (
               <div
                 key={`${index}-${image}`}
-                className="absolute inset-0 transition-opacity duration-700 ease-in-out"
+                className={`${index === 0 ? "relative" : "absolute inset-0"} w-full h-full flex items-center justify-center transition-opacity duration-700 ease-in-out`}
                 style={{
                   opacity: currentBannerIndex === index ? 1 : 0,
                   zIndex: currentBannerIndex === index ? 2 : 1,
@@ -2783,7 +2828,7 @@ export default function Home() {
                 <img
                   src={image}
                   alt={`Hero Banner ${index + 1}`}
-                  className="h-full w-full object-cover"
+                  className="w-full h-auto max-h-[250px] sm:max-h-[300px] lg:max-h-[350px] object-contain"
                   loading={index === currentBannerIndex ? "eager" : "lazy"}
                   fetchPriority={index === currentBannerIndex ? "high" : "low"}
                   draggable={false}
@@ -3170,6 +3215,7 @@ export default function Home() {
                 {/* Admin Hero Banners Section - Now below categories */}
                 {HeroBannerSection}
 
+
                 {/* Filters Sticky Sidebar Header */}
                 <section className="bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md sticky top-0 z-[40] -mx-4 w-[calc(100%+2rem)] border-b border-gray-100 dark:border-white/5 shadow-sm transition-colors duration-300">
                   <div
@@ -3288,6 +3334,11 @@ export default function Home() {
             </div>
           </motion.section>
         )}
+
+        {/* Ads Banner Section (Moved here to separate from Hero Banners) */}
+        <div className="pt-2 sm:pt-3 lg:pt-4">
+          <AdsBannerCarousel banners={adsBannerImages} data={adsBannersData} />
+        </div>
 
         {/* Explore More Section */}
         <motion.section

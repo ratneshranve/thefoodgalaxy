@@ -173,7 +173,7 @@ export default function DiningManagement() {
     const fetchBanners = async () => {
         try {
             setBannersLoading(true)
-            const response = await api.get('/food/hero-banners/dining', getAuthConfig())
+            const response = await api.get('/food/hero-banners/ads', getAuthConfig())
             if (response.data.success) {
                 setBanners(response.data.data.banners || [])
             } else {
@@ -199,7 +199,7 @@ export default function DiningManagement() {
             if (bannerTagline.trim()) formData.append('title', bannerTagline.trim())
             if (bannerPercentageOff.trim()) formData.append('ctaText', bannerPercentageOff.trim())
 
-            const response = await api.post('/food/hero-banners/dining/multiple', formData, getAuthConfig({
+            const response = await api.post('/food/hero-banners/ads/multiple', formData, getAuthConfig({
                 headers: { 'Content-Type': 'multipart/form-data' }
             }))
 
@@ -223,7 +223,7 @@ export default function DiningManagement() {
         if (!window.confirm("Delete this banner?")) return
         try {
             setBannersDeleting(id)
-            await api.delete(`/food/hero-banners/dining/${id}`, getAuthConfig())
+            await api.delete(`/food/hero-banners/ads/${id}`, getAuthConfig())
             fetchBanners()
             setSuccess("Banner deleted")
         } catch (err) { setError("Failed to delete banner") }

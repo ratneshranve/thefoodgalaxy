@@ -13,7 +13,7 @@ export default function SignupStep1() {
   const navigate = useNavigate()
   const goBack = useDeliveryBackNavigation()
   const [formData, setFormData] = useState(() => {
-    const saved = sessionStorage.getItem("deliverySignupDetails")
+    const saved = localStorage.getItem("deliverySignupDetails")
     const base = {
       name: "",
       phone: "",
@@ -64,7 +64,7 @@ export default function SignupStep1() {
 
   // Save data to session storage whenever formData changes
   useEffect(() => {
-    sessionStorage.setItem("deliverySignupDetails", JSON.stringify(formData))
+    localStorage.setItem("deliverySignupDetails", JSON.stringify(formData))
   }, [formData])
 
   const handleChange = (e) => {
@@ -206,7 +206,7 @@ export default function SignupStep1() {
         panNumber: formData.panNumber.trim().toUpperCase(),
         aadharNumber: formData.aadharNumber.replace(/\s/g, "")
       }
-      sessionStorage.setItem("deliverySignupDetails", JSON.stringify(details))
+      localStorage.setItem("deliverySignupDetails", JSON.stringify(details))
       toast.success("Details saved")
       navigate("/food/delivery/signup/documents")
     } catch (error) {

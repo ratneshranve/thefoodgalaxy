@@ -2,7 +2,7 @@ import { FoodDiningBanner } from '../models/diningBanner.model.js';
 import { v2 as cloudinary } from 'cloudinary';
 
 export const listDiningBanners = async () => {
-    return FoodDiningBanner.find().sort({ sortOrder: 1, createdAt: -1 }).lean();
+    return FoodDiningBanner.find().sort({ sortOrder: 1, createdAt: 1 }).lean();
 };
 
 export const createDiningBannersFromFiles = async (files, meta = {}) => {

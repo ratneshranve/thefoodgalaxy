@@ -4,7 +4,7 @@ import { v2 as cloudinary } from 'cloudinary';
 export const listHeroBanners = async () => {
     return FoodHeroBanner.find()
         .populate('linkedRestaurantIds')
-        .sort({ sortOrder: 1, createdAt: -1 })
+        .sort({ sortOrder: 1, createdAt: 1 })
         .lean()
         .then(banners => banners.map(b => ({
             ...b,
