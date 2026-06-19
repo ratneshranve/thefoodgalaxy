@@ -3071,16 +3071,6 @@ export default function Home() {
                 </AnimatePresence>
                 <div className="absolute inset-0 bg-black/20" />
                 
-                {festBannerImages.length > 1 && (
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-20">
-                    {festBannerImages.map((_, i) => (
-                      <div
-                        key={i}
-                        className={`h-1.5 rounded-full transition-all duration-300 shadow-sm ${bgIndex === i ? 'w-5 bg-white' : 'w-1.5 bg-white/60'}`}
-                      />
-                    ))}
-                  </div>
-                )}
               </div>
             )}
           </div>
