@@ -1380,6 +1380,11 @@ export default function Cart() {
   }
 
   const handleApplyCoupon = async (coupon) => {
+    const hasDiscountedItems = cart.some(item => (item.originalPrice && item.originalPrice > item.price)) || (restaurantData?.discount > 0);
+    if (hasDiscountedItems) {
+      toast.error("This coupon is not applicable on discounted items.");
+      return;
+    }
     if (coupon?.customerGroup === "new" && userOrderCount > 0) {
       toast.error("This coupon is only for first-time users")
       return
@@ -1437,6 +1442,11 @@ export default function Cart() {
   }
 
   const handleApplyCouponCode = async () => {
+    const hasDiscountedItems = cart.some(item => (item.originalPrice && item.originalPrice > item.price)) || (restaurantData?.discount > 0);
+    if (hasDiscountedItems) {
+      toast.error("This coupon is not applicable on discounted items.");
+      return;
+    }
     const inputCode = manualCouponCode.trim().toUpperCase()
     if (!inputCode) {
       toast.error("Enter coupon code")
