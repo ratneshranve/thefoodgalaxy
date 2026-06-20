@@ -159,7 +159,11 @@ export default function SignupStep1() {
       newErrors.vehicleNumber = "Invalid Indian vehicle number format (e.g., MH12AB1234)"
     }
 
-    if (formData.drivingLicenseNumber.trim() && !/^[A-Z]{2}[0-9]{2}[0-9]{4}[0-9]{7}$/.test(formData.drivingLicenseNumber)) {
+    const isEVorBicycle = formData.vehicleType === "ev" || formData.vehicleType === "bicycle"
+    
+    if (!isEVorBicycle && !formData.drivingLicenseNumber.trim()) {
+      newErrors.drivingLicenseNumber = "Driving License is required for this vehicle type"
+    } else if (formData.drivingLicenseNumber.trim() && !/^[A-Z]{2}[0-9]{2}[0-9]{4}[0-9]{7}$/.test(formData.drivingLicenseNumber)) {
       newErrors.drivingLicenseNumber = "Invalid DL format (e.g., MH1220110012345)"
     }
 
@@ -342,7 +346,7 @@ export default function SignupStep1() {
               <option value="bike">Bike</option>
               <option value="scooter">Scooter</option>
               <option value="bicycle">Bicycle</option>
-              <option value="car">Car</option>
+              <option value="ev">EV</option>
             </select>
           </div>
 
@@ -382,7 +386,7 @@ export default function SignupStep1() {
           {/* Driving License Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Driving License Number (Optional)
+              Driving License Number {formData.vehicleType === "ev" || formData.vehicleType === "bicycle" ? "(Optional)" : <span className="text-red-500">*</span>}
             </label>
             <input
               type="text"

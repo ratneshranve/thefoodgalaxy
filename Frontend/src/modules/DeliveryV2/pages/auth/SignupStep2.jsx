@@ -11,9 +11,12 @@ const debugError = (...args) => {}
 
 const createEmptyUploadedDocs = () => ({
   profilePhoto: null,
-  aadharPhoto: null,
+  aadharFrontPhoto: null,
+  aadharBackPhoto: null,
   panPhoto: null,
-  drivingLicensePhoto: null
+  drivingLicenseFrontPhoto: null,
+  drivingLicenseBackPhoto: null,
+  rcPhoto: null
 })
 
 // IndexedDB helpers for persistent file storage
@@ -121,9 +124,12 @@ const sanitizeUploadedDocValue = (value) => {
 
 const sanitizeUploadedDocs = (docs) => ({
   profilePhoto: sanitizeUploadedDocValue(docs?.profilePhoto),
-  aadharPhoto: sanitizeUploadedDocValue(docs?.aadharPhoto),
+  aadharFrontPhoto: sanitizeUploadedDocValue(docs?.aadharFrontPhoto),
+  aadharBackPhoto: sanitizeUploadedDocValue(docs?.aadharBackPhoto),
   panPhoto: sanitizeUploadedDocValue(docs?.panPhoto),
-  drivingLicensePhoto: sanitizeUploadedDocValue(docs?.drivingLicensePhoto)
+  drivingLicenseFrontPhoto: sanitizeUploadedDocValue(docs?.drivingLicenseFrontPhoto),
+  drivingLicenseBackPhoto: sanitizeUploadedDocValue(docs?.drivingLicenseBackPhoto),
+  rcPhoto: sanitizeUploadedDocValue(docs?.rcPhoto)
 })
 
 const compressImageToWebP = (file, maxWidth = 1024, quality = 0.8) => {
@@ -195,15 +201,21 @@ export default function SignupStep2() {
     /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || "")
   const fileInputRefs = useRef({
     profilePhoto: null,
-    aadharPhoto: null,
+    aadharFrontPhoto: null,
+    aadharBackPhoto: null,
     panPhoto: null,
-    drivingLicensePhoto: null
+    drivingLicenseFrontPhoto: null,
+    drivingLicenseBackPhoto: null,
+    rcPhoto: null
   })
   const [documents, setDocuments] = useState({
     profilePhoto: null,
-    aadharPhoto: null,
+    aadharFrontPhoto: null,
+    aadharBackPhoto: null,
     panPhoto: null,
-    drivingLicensePhoto: null
+    drivingLicenseFrontPhoto: null,
+    drivingLicenseBackPhoto: null,
+    rcPhoto: null
   })
   const [uploadedDocs, setUploadedDocs] = useState(() => {
     const saved = localStorage.getItem("deliverySignupDocs")
@@ -227,27 +239,36 @@ export default function SignupStep2() {
     document.body.scrollTop = 0
     
     const loadFiles = async () => {
-      const [prof, aadhar, pan, dl] = await Promise.all([
+      const [prof, aadharFront, aadharBack, pan, dlFront, dlBack, rc] = await Promise.all([
         getFileFromDB("profilePhoto"),
-        getFileFromDB("aadharPhoto"),
+        getFileFromDB("aadharFrontPhoto"),
+        getFileFromDB("aadharBackPhoto"),
         getFileFromDB("panPhoto"),
-        getFileFromDB("drivingLicensePhoto")
+        getFileFromDB("drivingLicenseFrontPhoto"),
+        getFileFromDB("drivingLicenseBackPhoto"),
+        getFileFromDB("rcPhoto")
       ])
       
       setDocuments(prev => ({
         ...prev,
         ...(prof && { profilePhoto: prof }),
-        ...(aadhar && { aadharPhoto: aadhar }),
+        ...(aadharFront && { aadharFrontPhoto: aadharFront }),
+        ...(aadharBack && { aadharBackPhoto: aadharBack }),
         ...(pan && { panPhoto: pan }),
-        ...(dl && { drivingLicensePhoto: dl })
+        ...(dlFront && { drivingLicenseFrontPhoto: dlFront }),
+        ...(dlBack && { drivingLicenseBackPhoto: dlBack }),
+        ...(rc && { rcPhoto: rc })
       }))
 
       setUploadedDocs(prev => ({
         ...prev,
         ...(prof && { profilePhoto: { file: true } }),
-        ...(aadhar && { aadharPhoto: { file: true } }),
+        ...(aadharFront && { aadharFrontPhoto: { file: true } }),
+        ...(aadharBack && { aadharBackPhoto: { file: true } }),
         ...(pan && { panPhoto: { file: true } }),
-        ...(dl && { drivingLicensePhoto: { file: true } })
+        ...(dlFront && { drivingLicenseFrontPhoto: { file: true } }),
+        ...(dlBack && { drivingLicenseBackPhoto: { file: true } }),
+        ...(rc && { rcPhoto: { file: true } })
       }))
     }
     loadFiles()
@@ -390,9 +411,12 @@ export default function SignupStep2() {
     };
 
     appendFileToForm(formData, "profilePhoto", documents.profilePhoto, "profile.webp");
-    appendFileToForm(formData, "aadharPhoto", documents.aadharPhoto, "aadhar.webp");
+    appendFileToForm(formData, "aadharFrontPhoto", documents.aadharFrontPhoto, "aadhar_front.webp");
+    appendFileToForm(formData, "aadharBackPhoto", documents.aadharBackPhoto, "aadhar_back.webp");
     appendFileToForm(formData, "panPhoto", documents.panPhoto, "pan.webp");
-    appendFileToForm(formData, "drivingLicensePhoto", documents.drivingLicensePhoto, "dl.webp");
+    appendFileToForm(formData, "drivingLicenseFrontPhoto", documents.drivingLicenseFrontPhoto, "dl_front.webp");
+    appendFileToForm(formData, "drivingLicenseBackPhoto", documents.drivingLicenseBackPhoto, "dl_back.webp");
+    appendFileToForm(formData, "rcPhoto", documents.rcPhoto, "rc.webp");
 
     // Try to get FCM token before registering
     let fcmToken = null;
@@ -594,9 +618,30 @@ export default function SignupStep2() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <DocumentUpload docType="profilePhoto" label="Profile Photo" required={false} />
-          <DocumentUpload docType="aadharPhoto" label="Aadhar Card Photo" required={false} />
+          <DocumentUpload docType="aadharFrontPhoto" label="Aadhar Card (Front)" required={false} />
+          <DocumentUpload docType="aadharBackPhoto" label="Aadhar Card (Back)" required={false} />
           <DocumentUpload docType="panPhoto" label="PAN Card Photo" required={false} />
-          <DocumentUpload docType="drivingLicensePhoto" label="Driving License Photo" required={false} />
+          
+          {(() => {
+            const raw = localStorage.getItem("deliverySignupDetails");
+            let isDLRequired = true;
+            try {
+              if (raw) {
+                const details = JSON.parse(raw);
+                if (details.vehicleType === "ev" || details.vehicleType === "bicycle") {
+                  isDLRequired = false;
+                }
+              }
+            } catch (e) {}
+            return (
+              <>
+                <DocumentUpload docType="drivingLicenseFrontPhoto" label="Driving License (Front)" required={isDLRequired} />
+                <DocumentUpload docType="drivingLicenseBackPhoto" label="Driving License (Back)" required={isDLRequired} />
+              </>
+            );
+          })()}
+          
+          <DocumentUpload docType="rcPhoto" label="RC (Registration Certificate)" required={false} />
 
           {/* Submit Button */}
           <button

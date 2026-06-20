@@ -750,12 +750,32 @@ export default function JoinRequest() {
                             {viewDetails.documents.aadhar.number && (
                               <p className="text-sm text-slate-700 mb-1">Number: {viewDetails.documents.aadhar.number}</p>
                             )}
-                            {viewDetails.documents.aadhar.document && (
+                            {viewDetails.documents.aadhar.front && (
+                              <a 
+                                href={viewDetails.documents.aadhar.front} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 block"
+                              >
+                                <ExternalLink className="w-3 h-3" /> View Front
+                              </a>
+                            )}
+                            {viewDetails.documents.aadhar.back && (
+                              <a 
+                                href={viewDetails.documents.aadhar.back} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 block mt-1"
+                              >
+                                <ExternalLink className="w-3 h-3" /> View Back
+                              </a>
+                            )}
+                            {!viewDetails.documents.aadhar.front && viewDetails.documents.aadhar.document && (
                               <a 
                                 href={viewDetails.documents.aadhar.document} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 block"
                               >
                                 <ExternalLink className="w-3 h-3" /> View Document
                               </a>
@@ -799,12 +819,32 @@ export default function JoinRequest() {
                                 Expiry: {new Date(viewDetails.documents.drivingLicense.expiryDate).toLocaleDateString('en-GB')}
                               </p>
                             )}
-                            {viewDetails.documents.drivingLicense.document && (
+                            {viewDetails.documents.drivingLicense.front && (
+                              <a 
+                                href={viewDetails.documents.drivingLicense.front} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 block"
+                              >
+                                <ExternalLink className="w-3 h-3" /> View Front
+                              </a>
+                            )}
+                            {viewDetails.documents.drivingLicense.back && (
+                              <a 
+                                href={viewDetails.documents.drivingLicense.back} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 block mt-1"
+                              >
+                                <ExternalLink className="w-3 h-3" /> View Back
+                              </a>
+                            )}
+                            {!viewDetails.documents.drivingLicense.front && viewDetails.documents.drivingLicense.document && (
                               <a 
                                 href={viewDetails.documents.drivingLicense.document} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 block"
                               >
                                 <ExternalLink className="w-3 h-3" /> View Document
                               </a>

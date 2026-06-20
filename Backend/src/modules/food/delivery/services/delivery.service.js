@@ -33,14 +33,29 @@ export const registerDeliveryPartner = async (payload, files) => {
     if (files?.aadharPhoto?.[0]) {
         images.aadharPhoto = await uploadImageBuffer(files.aadharPhoto[0].buffer, 'food/delivery/aadhar');
     }
+    if (files?.aadharFrontPhoto?.[0]) {
+        images.aadharFrontPhoto = await uploadImageBuffer(files.aadharFrontPhoto[0].buffer, 'food/delivery/aadhar');
+    }
+    if (files?.aadharBackPhoto?.[0]) {
+        images.aadharBackPhoto = await uploadImageBuffer(files.aadharBackPhoto[0].buffer, 'food/delivery/aadhar');
+    }
     if (files?.panPhoto?.[0]) {
         images.panPhoto = await uploadImageBuffer(files.panPhoto[0].buffer, 'food/delivery/pan');
     }
-    if (files?.drivingLicensePhoto?.[0]) {
-        images.drivingLicensePhoto = await uploadImageBuffer(
-            files.drivingLicensePhoto[0].buffer,
+    if (files?.drivingLicenseFrontPhoto?.[0]) {
+        images.drivingLicenseFrontPhoto = await uploadImageBuffer(
+            files.drivingLicenseFrontPhoto[0].buffer,
             'food/delivery/license'
         );
+    }
+    if (files?.drivingLicenseBackPhoto?.[0]) {
+        images.drivingLicenseBackPhoto = await uploadImageBuffer(
+            files.drivingLicenseBackPhoto[0].buffer,
+            'food/delivery/license'
+        );
+    }
+    if (files?.rcPhoto?.[0]) {
+        images.rcPhoto = await uploadImageBuffer(files.rcPhoto[0].buffer, 'food/delivery/rc');
     }
 
     const partner = await FoodDeliveryPartner.create({

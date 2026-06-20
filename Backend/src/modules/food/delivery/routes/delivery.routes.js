@@ -11,8 +11,12 @@ const router = express.Router();
 const uploadFields = upload.fields([
     { name: 'profilePhoto', maxCount: 1 },
     { name: 'aadharPhoto', maxCount: 1 },
+    { name: 'aadharFrontPhoto', maxCount: 1 },
+    { name: 'aadharBackPhoto', maxCount: 1 },
     { name: 'panPhoto', maxCount: 1 },
-    { name: 'drivingLicensePhoto', maxCount: 1 },
+    { name: 'drivingLicenseFrontPhoto', maxCount: 1 },
+    { name: 'drivingLicenseBackPhoto', maxCount: 1 },
+    { name: 'rcPhoto', maxCount: 1 },
     { name: 'upiQrCode', maxCount: 1 }
 ]);
 

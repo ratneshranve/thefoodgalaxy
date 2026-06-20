@@ -3856,7 +3856,7 @@ function OrderCard({
                 {statusLabel}
               </span>
               
-              {isPreparing && onCancel && (
+              {/* {isPreparing && onCancel && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -3867,7 +3867,7 @@ function OrderCard({
                 >
                   <X className="w-3 h-3" />
                 </button>
-              )}
+              )} */}
             </div>
           </div>
 

@@ -68,10 +68,22 @@ const deliveryPartnerSchema = new mongoose.Schema(
         aadharPhoto: {
             type: String
         },
+        aadharFrontPhoto: {
+            type: String
+        },
+        aadharBackPhoto: {
+            type: String
+        },
         panPhoto: {
             type: String
         },
-        drivingLicensePhoto: {
+        drivingLicenseFrontPhoto: {
+            type: String
+        },
+        drivingLicenseBackPhoto: {
+            type: String
+        },
+        rcPhoto: {
             type: String
         },
         status: {
