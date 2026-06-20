@@ -246,6 +246,13 @@ export const adminSidebarMenu = [
   }, */
   {
     type: "section",
+    label: "EMPLOYEE MANAGEMENT",
+    items: [
+      { type: "link", label: "Sub Admins", path: "/admin/food/sub-admins", icon: "Users" },
+    ],
+  },
+  {
+    type: "section",
     label: "SYSTEM SETTINGS",
     items: [
       { type: "link", label: "Env Managements", path: "/admin/food/env-managements", icon: "Database" },

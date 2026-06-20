@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom"
 import AdminSidebar from "./AdminSidebar"
 import AdminNavbar from "./AdminNavbar"
 import { API_BASE_URL } from "@food/api/config"
+import { adminAPI } from "@/services/api/index.js"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -25,6 +26,15 @@ export default function AdminLayout() {
     } catch (e) {
       debugError('Error loading sidebar collapsed state:', e)
     }
+
+    // Refresh profile to keep permissions up to date
+    adminAPI.getAdminProfile().then(res => {
+      const admin = res.data?.data?.admin;
+      if (admin) {
+        localStorage.setItem('admin_user', JSON.stringify(admin));
+        window.dispatchEvent(new Event('adminAuthChanged'));
+      }
+    }).catch(e => debugError('Failed to refresh admin profile:', e));
   }, [])
 
   const handleCollapseChange = (collapsed) => {

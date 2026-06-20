@@ -24,15 +24,15 @@ router.get('/business-settings/public', businessSettingsController.getBusinessSe
 // ----- Public Fee Settings (No Admin Required) -----
 router.get('/fee-settings/public', adminController.getFeeSettings);
 
-const requireAdmin = (req, _res, next) => {
-    const user = req.user;
-    if (!user || user.role !== 'ADMIN') {
-        return next(new AuthError('Admin access required'));
-    }
-    return next();
-};
+import { requireAdmin, requireSuperAdmin } from '../../../../core/auth/auth.middleware.js';
 
 router.use(requireAdmin);
+
+// ----- Sub Admins -----
+router.get('/sub-admins', requireSuperAdmin, adminController.getSubAdmins);
+router.post('/sub-admins', requireSuperAdmin, adminController.createSubAdmin);
+router.put('/sub-admins/:id', requireSuperAdmin, adminController.updateSubAdmin);
+router.delete('/sub-admins/:id', requireSuperAdmin, adminController.deleteSubAdmin);
 
 // ----- Broadcast Notifications -----
 router.post('/notifications/broadcast', notificationBroadcastController.createBroadcastNotificationController);

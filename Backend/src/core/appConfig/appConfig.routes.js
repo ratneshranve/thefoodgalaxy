@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/:appName', getAppConfigByName);
 
 // Admin routes
-router.get('/', authMiddleware, requireRoles('ADMIN'), getAppConfigs);
-router.put('/:appName', authMiddleware, requireRoles('ADMIN'), updateAppConfig);
+router.get('/', authMiddleware, requireRoles('ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'), getAppConfigs);
+router.put('/:appName', authMiddleware, requireRoles('ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'), updateAppConfig);
 
 export default router;

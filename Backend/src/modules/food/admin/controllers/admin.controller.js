@@ -1689,3 +1689,54 @@ export async function updateGlobalRestaurantCommissionSettings(req, res, next) {
         next(error);
     }
 }
+
+// ----- Sub Admins -----
+export async function getSubAdmins(req, res, next) {
+    try {
+        const data = await adminService.getSubAdmins(req.query || {});
+        res.status(200).json({ success: true, message: 'Sub Admins fetched successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function createSubAdmin(req, res, next) {
+    try {
+        const created = await adminService.createSubAdmin(req.body || {});
+        res.status(201).json({ success: true, message: 'Sub Admin created successfully', data: created });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateSubAdmin(req, res, next) {
+    try {
+        const { id } = req.params;
+        if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: 'Invalid sub admin id' });
+        }
+        const updated = await adminService.updateSubAdmin(id, req.body || {});
+        if (!updated) {
+            return res.status(404).json({ success: false, message: 'Sub Admin not found' });
+        }
+        res.status(200).json({ success: true, message: 'Sub Admin updated successfully', data: updated });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function deleteSubAdmin(req, res, next) {
+    try {
+        const { id } = req.params;
+        if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: 'Invalid sub admin id' });
+        }
+        const result = await adminService.deleteSubAdmin(id);
+        if (!result) {
+            return res.status(404).json({ success: false, message: 'Sub Admin not found' });
+        }
+        res.status(200).json({ success: true, message: 'Sub Admin deleted successfully' });
+    } catch (error) {
+        next(error);
+    }
+}

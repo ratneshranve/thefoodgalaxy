@@ -17,6 +17,7 @@ import { FoodDeliveryCommissionRule } from '../models/deliveryCommissionRule.mod
 import { FoodFeeSettings } from '../models/feeSettings.model.js';
 import { FeedbackExperience } from '../models/feedbackExperience.model.js';
 import { FoodUser } from '../../../../core/users/user.model.js';
+import { FoodAdmin } from '../../../../core/admin/admin.model.js';
 import { FoodRefreshToken } from '../../../../core/refreshTokens/refreshToken.model.js';
 import { FoodDeliveryCashLimit } from '../models/deliveryCashLimit.model.js';
 import { FoodDeliveryEmergencyHelp } from '../models/deliveryEmergencyHelp.model.js';
@@ -5274,4 +5275,84 @@ export async function updateRestaurantZoneRank(restaurantId, rank) {
     await restaurant.save();
 
     return restaurant;
+}
+
+// ----- Sub Admins -----
+export async function getSubAdmins(query) {
+    const limit = Math.min(Math.max(parseInt(query.limit, 10) || 100, 1), 1000);
+    const page = Math.max(parseInt(query.page, 10) || 1, 1);
+    const skip = (page - 1) * limit;
+
+    const filter = { role: 'SUB_ADMIN' };
+    if (query.search) {
+        const searchRegex = { $regex: query.search, $options: 'i' };
+        filter.$or = [{ name: searchRegex }, { email: searchRegex }];
+    }
+
+    const [subAdmins, total] = await Promise.all([
+        FoodAdmin.find(filter)
+            .select('-password')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        FoodAdmin.countDocuments(filter)
+    ]);
+
+    return { subAdmins, total, page, limit };
+}
+
+export async function createSubAdmin(data) {
+    if (!data.email || !data.password || !data.name) {
+        throw new ValidationError('Email, password, and name are required');
+    }
+
+    const normalizedEmail = data.email.trim().toLowerCase();
+    const existing = await FoodAdmin.findOne({ email: normalizedEmail }).lean();
+    if (existing) {
+        throw new ValidationError('An admin with this email already exists');
+    }
+
+    const newSubAdmin = await FoodAdmin.create({
+        email: normalizedEmail,
+        password: data.password,
+        name: data.name,
+        phone: data.phone || '',
+        role: 'SUB_ADMIN',
+        accessibleModules: Array.isArray(data.accessibleModules) ? data.accessibleModules : []
+    });
+
+    const result = newSubAdmin.toObject();
+    delete result.password;
+    return result;
+}
+
+export async function updateSubAdmin(id, data) {
+    const subAdmin = await FoodAdmin.findOne({ _id: id, role: 'SUB_ADMIN' });
+    if (!subAdmin) {
+        return null;
+    }
+
+    if (data.name !== undefined) subAdmin.name = data.name;
+    if (data.phone !== undefined) subAdmin.phone = data.phone;
+    if (data.accessibleModules !== undefined && Array.isArray(data.accessibleModules)) {
+        subAdmin.accessibleModules = data.accessibleModules;
+    }
+    if (data.isActive !== undefined) {
+        subAdmin.isActive = data.isActive;
+    }
+    if (data.password) {
+        subAdmin.password = data.password;
+    }
+
+    await subAdmin.save();
+
+    const result = subAdmin.toObject();
+    delete result.password;
+    return result;
+}
+
+export async function deleteSubAdmin(id) {
+    const deleted = await FoodAdmin.findOneAndDelete({ _id: id, role: 'SUB_ADMIN' });
+    return deleted !== null;
 }

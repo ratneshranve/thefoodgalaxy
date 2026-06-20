@@ -3,8 +3,15 @@ import { sendError } from '../../utils/response.js';
 import { FoodUser } from '../users/user.model.js';
 
 export const requireAdmin = (req, res, next) => {
-    if (req.user?.role !== 'ADMIN') {
+    if (!['ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'].includes(req.user?.role)) {
         return sendError(res, 403, 'Admin access required');
+    }
+    next();
+};
+
+export const requireSuperAdmin = (req, res, next) => {
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(req.user?.role)) {
+        return sendError(res, 403, 'Super Admin access required');
     }
     next();
 };

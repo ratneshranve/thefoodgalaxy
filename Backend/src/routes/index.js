@@ -53,8 +53,8 @@ router.get('/v1/food/dining/restaurants/:restaurantId/occupied-seats/public', ge
 router.post('/v1/food/dining/bookings', authMiddleware, requireRoles('USER'), createBooking);
 router.get('/v1/food/dining/bookings/my', authMiddleware, requireRoles('USER'), getMyBookings);
 router.post('/v1/food/dining/bookings/:bookingId/review', authMiddleware, requireRoles('USER'), createReview);
-router.get('/v1/food/dining/bookings/restaurant/:restaurantId', authMiddleware, requireRoles('RESTAURANT', 'ADMIN'), getRestaurantBookings);
-router.patch('/v1/food/dining/bookings/:bookingId/status', authMiddleware, requireRoles('RESTAURANT', 'ADMIN'), updateBookingStatus);
+router.get('/v1/food/dining/bookings/restaurant/:restaurantId', authMiddleware, requireRoles('RESTAURANT', 'ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'), getRestaurantBookings);
+router.patch('/v1/food/dining/bookings/:bookingId/status', authMiddleware, requireRoles('RESTAURANT', 'ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'), updateBookingStatus);
 
 router.use('/v1/uploads', uploadRoutes);
 
@@ -62,7 +62,7 @@ router.use('/v1/uploads', uploadRoutes);
 router.get('/v1/food/admin/business-settings/public', businessSettingsController.getBusinessSettings);
 
 router.use('/v1/food/admin/env', envSettingRoutes);
-router.use('/v1/food/admin', authMiddleware, requireRoles('ADMIN'), restaurantAdminRoutes);
+router.use('/v1/food/admin', authMiddleware, requireRoles('ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'), restaurantAdminRoutes);
 router.use('/v1/food/user', authMiddleware, requireRoles('USER'), userRoutes);
 router.use('/v1/food/notifications', authMiddleware, requireRoles('USER', 'RESTAURANT', 'DELIVERY_PARTNER'), notificationRoutes);
 router.use('/v1/food/orders', authMiddleware, requireRoles('USER'), orderUserRoutes);
@@ -71,6 +71,6 @@ router.use('/v1/payments/webhook', webhookRoutes);
 router.use('/v1/fcm-tokens', fcmRoutes);
 router.use('/fcm-tokens', fcmRoutes);
 
-router.get('/v1/admin/queues', authMiddleware, requireRoles('ADMIN'), getQueuesController);
+router.get('/v1/admin/queues', authMiddleware, requireRoles('ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'), getQueuesController);
 
 export default router;

@@ -151,6 +151,12 @@ export const notificationAPI = {
 
 /** Admin API - new backend only (GET /auth/me, PATCH /auth/admin/profile, POST /auth/admin/change-password) */
 export const adminAPI = {
+  // Sub Admins
+  getSubAdmins: (params = {}) => adminClient.get("/food/admin/sub-admins", { params }),
+  createSubAdmin: (body) => adminClient.post("/food/admin/sub-admins", body),
+  updateSubAdmin: (id, body) => adminClient.put(`/food/admin/sub-admins/${id}`, body),
+  deleteSubAdmin: (id) => adminClient.delete(`/food/admin/sub-admins/${id}`),
+
   getSidebarBadges: () =>
     adminClient.get("/food/admin/sidebar-badges"),
   getEnvSettings: () => adminClient.get("/food/admin/env"),

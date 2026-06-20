@@ -94,6 +94,8 @@ const WithdrawMethod = lazy(() => import("@food/pages/admin/transactions/Withdra
 const EmployeeRole = lazy(() => import("@food/pages/admin/employees/EmployeeRole"));
 const AddEmployee = lazy(() => import("@food/pages/admin/employees/AddEmployee"));
 const EmployeeList = lazy(() => import("@food/pages/admin/employees/EmployeeList"));
+// Sub Admins
+const SubAdminsList = lazy(() => import("@food/pages/admin/subAdmins/SubAdminsList"));
 // Business Settings
 const BusinessSetup = lazy(() => import("@food/pages/admin/settings/BusinessSetup"));
 const EmailTemplate = lazy(() => import("@food/pages/admin/settings/EmailTemplate"));
@@ -268,6 +270,7 @@ export default function AdminRouter() {
             <Route path="employee-role" element={<EmployeeRole />} />
             <Route path="employees" element={<EmployeeList />} />
             <Route path="employees/add" element={<AddEmployee />} />
+            <Route path="sub-admins" element={<SubAdminsList />} />
 
             {/* SYSTEM & BUSINESS SETTINGS */}
             <Route path="business-setup" element={<BusinessSetup />} />

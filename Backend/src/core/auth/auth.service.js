@@ -574,6 +574,8 @@ export const getProfile = async (userId, role) => {
       profile = await FoodUser.findById(id).lean();
       break;
     case ROLES.ADMIN:
+    case 'SUPER_ADMIN':
+    case 'SUB_ADMIN':
       profile = await FoodAdmin.findById(id).select("-password").lean();
       break;
     case ROLES.RESTAURANT:

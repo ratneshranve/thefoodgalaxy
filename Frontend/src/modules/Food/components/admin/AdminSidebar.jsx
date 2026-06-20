@@ -107,6 +107,19 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
   const location = useLocation()
   const [searchQuery, setSearchQuery] = useState("")
   const [badges, setBadges] = useState({})
+  const [adminUser, setAdminUser] = useState(null)
+
+  useEffect(() => {
+    const loadAdminUser = () => {
+      try {
+        const userStr = localStorage.getItem('admin_user');
+        if (userStr) setAdminUser(JSON.parse(userStr));
+      } catch (e) {}
+    }
+    loadAdminUser()
+    window.addEventListener('adminAuthChanged', loadAdminUser)
+    return () => window.removeEventListener('adminAuthChanged', loadAdminUser)
+  }, [])
 
   useEffect(() => {
     const fetchBadges = async () => {
@@ -298,16 +311,40 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
   // expandedSections state is initialized above in getInitialStates consolidation
 
 
-  // Filter menu items based on search query
+  // Filter menu items based on search query and sub-admin permissions
   const filteredMenuData = useMemo(() => {
+    let sourceMenu = adminSidebarMenu
+
+    if (adminUser?.role === 'SUB_ADMIN') {
+      const allowed = adminUser.accessibleModules || []
+      sourceMenu = []
+      adminSidebarMenu.forEach((item) => {
+        if (item.type === "section") {
+          const filteredItems = item.items.filter(subItem => {
+            if (subItem.type === "expandable") {
+              return allowed.includes(subItem.label)
+            }
+            return allowed.includes(subItem.label)
+          })
+          if (filteredItems.length > 0) {
+            sourceMenu.push({ ...item, items: filteredItems })
+          }
+        } else if (item.type === "link" || item.type === "expandable") {
+          if (allowed.includes(item.label)) {
+            sourceMenu.push(item)
+          }
+        }
+      })
+    }
+
     if (!searchQuery.trim()) {
-      return adminSidebarMenu
+      return sourceMenu
     }
 
     const query = searchQuery.toLowerCase().trim()
     const filtered = []
 
-    adminSidebarMenu.forEach((item) => {
+    sourceMenu.forEach((item) => {
       if (item.type === "link") {
         if (item.label.toLowerCase().includes(query)) {
           filtered.push(item)
@@ -345,7 +382,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     })
 
     return filtered
-  }, [searchQuery])
+  }, [searchQuery, adminUser])
 
   // Auto-expand sections with matches when searching
   useEffect(() => {
