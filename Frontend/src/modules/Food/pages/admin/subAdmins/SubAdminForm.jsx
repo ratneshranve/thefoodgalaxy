@@ -37,7 +37,16 @@ export default function SubAdminForm({ subAdmin, onClose }) {
       if (item.type === "section") {
         labels.push({ type: "section", label: item.label });
         item.items?.forEach((subItem) => {
-          labels.push({ type: "item", label: subItem.label });
+          if (subItem.type === "expandable") {
+            // Include main parent
+            labels.push({ type: "item", label: subItem.label });
+            // Include sub items for granular permissions
+            subItem.subItems?.forEach((deepSubItem) => {
+              labels.push({ type: "sub-item", label: deepSubItem.label, parent: subItem.label });
+            });
+          } else {
+            labels.push({ type: "item", label: subItem.label });
+          }
         });
       } else {
         labels.push({ type: "item", label: item.label });
@@ -250,14 +259,20 @@ export default function SubAdminForm({ subAdmin, onClose }) {
                   }
 
                   const isChecked = accessibleModules.includes(item.label);
+                  const isSubItem = item.type === "sub-item";
 
                   return (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors cursor-pointer"
+                      className={`flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors cursor-pointer ${
+                        isSubItem ? "ml-8 border-l-2 border-l-gray-200 rounded-l-none" : ""
+                      }`}
                       onClick={() => handleToggleModule(item.label)}
                     >
-                      <span className="text-gray-700 font-medium">{item.label}</span>
+                      <span className={`${isSubItem ? "text-gray-600 text-sm" : "text-gray-700 font-medium"}`}>
+                        {isSubItem && <span className="text-gray-300 mr-2">↳</span>}
+                        {item.label}
+                      </span>
                       <div className="relative inline-flex items-center">
                         <input
                           type="checkbox"
@@ -265,7 +280,7 @@ export default function SubAdminForm({ subAdmin, onClose }) {
                           checked={isChecked}
                           readOnly
                         />
-                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#11b5b8]"></div>
+                        <div className={`w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${isSubItem ? "peer-checked:bg-teal-500 scale-90" : "peer-checked:bg-[#11b5b8]"}`}></div>
                       </div>
                     </div>
                   );

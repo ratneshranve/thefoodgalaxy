@@ -320,12 +320,23 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       sourceMenu = []
       adminSidebarMenu.forEach((item) => {
         if (item.type === "section") {
-          const filteredItems = item.items.filter(subItem => {
+          const filteredItems = item.items.reduce((acc, subItem) => {
             if (subItem.type === "expandable") {
-              return allowed.includes(subItem.label)
+              // Check if they have the main parent permission OR any specific sub-permission
+              const allowedSubItems = (subItem.subItems || []).filter(si => 
+                allowed.includes(subItem.label) || allowed.includes(si.label)
+              )
+              if (allowedSubItems.length > 0) {
+                acc.push({ ...subItem, subItems: allowedSubItems })
+              } else if (allowed.includes(subItem.label)) {
+                // If no specific sub-items allowed but parent is allowed, show all (backwards compatibility)
+                acc.push(subItem)
+              }
+            } else if (allowed.includes(subItem.label)) {
+              acc.push(subItem)
             }
-            return allowed.includes(subItem.label)
-          })
+            return acc
+          }, [])
           if (filteredItems.length > 0) {
             sourceMenu.push({ ...item, items: filteredItems })
           }
