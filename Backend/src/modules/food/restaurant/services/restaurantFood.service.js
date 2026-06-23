@@ -188,7 +188,7 @@ const resolveCategoryForRestaurant = async (context, body = {}) => {
         isActive: { $ne: false }
     };
     if (context.pureVegRestaurant) {
-        baseFilter.foodTypeScope = 'Veg';
+        baseFilter.foodTypeScope = { $in: ['Veg', 'Both'] };
     }
 
     let category = null;
@@ -238,7 +238,7 @@ const resolveCategoryForRestaurant = async (context, body = {}) => {
     if (String(category.approvalStatus || '') !== 'approved') {
         throw new ValidationError('This category is awaiting admin approval');
     }
-    if (context.pureVegRestaurant && String(category.foodTypeScope || '') !== 'Veg') {
+    if (context.pureVegRestaurant && String(category.foodTypeScope || '') === 'Non-Veg') {
         throw new ValidationError('Pure veg restaurants can only use veg categories');
     }
     if (!categoryAllowsFoodType(category.foodTypeScope, foodType)) {
