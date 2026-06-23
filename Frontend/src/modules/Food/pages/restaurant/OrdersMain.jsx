@@ -1761,9 +1761,21 @@ export default function OrdersMain() {
       const currentNewOrder = newOrderRef.current;
       const activePopupOrder = currentPopupOrder || currentNewOrder;
 
+      // Only dismiss the popup if the cancelled order matches the currently active popup order
+      const activeOrderId = resolveOrderActionId(activePopupOrder);
+      const payloadOrderId = resolveOrderActionId(payload);
+
+      // We always want to mark the cancelled order as shown
+      markOrderAsShown(payload);
+
+      // If there is an active popup and it's NOT the order that was just cancelled, do NOT close it!
+      if (activeOrderId && payloadOrderId && activeOrderId !== payloadOrderId) {
+        debugLog("?? Ignoring cancellation event for order", payloadOrderId, "because popup is showing order", activeOrderId);
+        return;
+      }
+
       // Mark as shown so checkOrdersToPopup never re-opens it
       if (activePopupOrder) markOrderAsShown(activePopupOrder);
-      markOrderAsShown(payload);
 
       setShowNewOrderPopup(false);
       setPopupOrder(null);

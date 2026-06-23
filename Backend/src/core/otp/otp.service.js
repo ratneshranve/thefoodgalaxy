@@ -19,7 +19,12 @@ const sendSmsViaMsg91 = async (phone, otp) => {
     try {
         // Normalize phone: strip non-digits, ensure 91 country code prefix
         const digits = String(phone || '').replace(/\D/g, '');
-        const msisdn = digits.startsWith('91') ? digits : `91${digits}`;
+        let msisdn = digits;
+        if (msisdn.length === 10) {
+            msisdn = `91${msisdn}`;
+        } else if (!msisdn.startsWith('91')) {
+            msisdn = `91${msisdn}`;
+        }
 
         // MSG91 API
         const url = new URL('https://control.msg91.com/api/v5/otp');

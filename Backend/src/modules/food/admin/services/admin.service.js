@@ -275,7 +275,7 @@ export async function updateRestaurantComplaint(id, updateData) {
 }
 
 export async function getRestaurants(query) {
-    const limit = Math.min(Math.max(parseInt(query.limit, 10) || 100, 1), 1000);
+    const limit = Math.min(Math.max(parseInt(query.limit, 10) || 100, 1), 50000);
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
     const status = query.status;
@@ -3089,7 +3089,7 @@ export async function rejectRestaurantAddon(addonId, reason) {
 
 // ----- Foods (separate collection) -----
 export async function getFoods(query) {
-    const limit = Math.min(Math.max(parseInt(query.limit, 10) || 100, 1), 1000);
+    const limit = Math.min(Math.max(parseInt(query.limit, 10) || 100, 1), 50000);
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
     const filter = {};

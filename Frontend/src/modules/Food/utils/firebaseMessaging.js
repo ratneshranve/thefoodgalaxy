@@ -305,7 +305,13 @@ function setupPushSoundUnlock() {
       if (!audio) return;
       pushDebugLog(PUSH_DEBUG_PREFIX, "Attempting passive push sound unlock");
       audio.muted = true;
-      await audio.play();
+      audio.volume = 0; // Extra protection for iOS WebView glitch
+      
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        await playPromise;
+      }
+      
       audio.pause();
       audio.currentTime = 0;
       pushSoundUnlocked = true;
@@ -319,6 +325,7 @@ function setupPushSoundUnlock() {
     } finally {
       if (audio) {
         audio.muted = false;
+        audio.volume = 1; // Restore volume
       }
     }
 

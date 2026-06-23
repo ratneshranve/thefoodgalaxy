@@ -11,9 +11,9 @@ function App() {
         path.includes('/terms') ||
         path.includes('/privacy') ||
         path.includes('/support') ||
-        path.startsWith('/restaurant') ||
-        path.startsWith('/delivery') ||
-        path.startsWith('/admin')
+        path.includes('/restaurant') ||
+        path.includes('/delivery') ||
+        path.includes('/admin')
       ) {
         return false
       }
