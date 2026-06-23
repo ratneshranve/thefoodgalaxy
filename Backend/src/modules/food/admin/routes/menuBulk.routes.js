@@ -116,7 +116,14 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
         const categoryMap = {};
 
         for (const section of uniqueSections) {
-            let category = await FoodCategory.findOne({ name: section, restaurantId });
+            let category = await FoodCategory.findOne({
+                name: { $regex: new RegExp(`^${section.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}$`, 'i') },
+                $or: [
+                    { restaurantId },
+                    { restaurantId: null },
+                    { restaurantId: { $exists: false } }
+                ]
+            });
             if (!category) {
                 category = await FoodCategory.create({
                     name: section,
