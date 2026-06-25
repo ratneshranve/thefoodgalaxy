@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useCart } from "@food/context/CartContext";
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
+import { Trash2, ChevronRight } from 'lucide-react';
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -28,7 +29,7 @@ export default function AddToCartAnimation({
   linkTo = '/food/user/cart',
   dynamicBottom = null,
 }) {
-  const { items, itemCount, total, lastAddEvent, lastRemoveEvent, clearCart } = useCart();
+  const { cart, items, itemCount, total, lastAddEvent, lastRemoveEvent, clearCart } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
   const linkRef = useRef(null);
@@ -37,6 +38,11 @@ export default function AddToCartAnimation({
   const removedThumbnailRef = useRef(null);
   const flyingThumbnailRef = useRef(null);
   const prevItemsRef = useRef(items);
+
+  // Get restaurant info from first cart item
+  const restaurantName = cart[0]?.restaurant || "Restaurant";
+  const restaurantImage = cart[0]?.image || "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=200&h=200&fit=crop";
+  const restaurantSlug = restaurantName.toLowerCase().replace(/\s+/g, "-");
 
   // Hide pill on cart pages, order pages, and account page (if enabled)
   const iscartPage = location.pathname === '/cart' ||
@@ -446,50 +452,74 @@ export default function AddToCartAnimation({
             }}
             className={`left-0 right-0 z-[9999] flex justify-center px-4 pb-4 md:pb-6 transition-all duration-300 ease-in-out bg-transparent pointer-events-none ${dynamicBottom || ''}`}
           >
-            {/* The main container */}
-            <div className="bg-red-50/90 backdrop-blur-md rounded-full shadow-2xl p-1.5 flex items-center border border-red-100 pointer-events-auto">
+            {/* The main container - New Design (StickyCartCard style) */}
+            <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-2.5 md:p-3 flex items-center gap-2.5 md:gap-3 border border-gray-100 pointer-events-auto mx-auto w-full max-w-[95vw] md:max-w-sm">
               
-              {/* View Cart Button (Left) */}
+              {/* Item Images Stack */}
+              <div className="flex -space-x-3 md:-space-x-4 flex-shrink-0 ml-1">
+                {cart.slice(0, 3).map((item, i) => (
+                  <div 
+                    key={item.id || i} 
+                    className="w-11 h-11 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white"
+                    style={{ zIndex: 10 - i }}
+                  >
+                    <img
+                      src={item.image || item.imageUrl || restaurantImage}
+                      alt={item.name || "Item"}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+                {cart.length > 3 && (
+                  <div 
+                    className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-gray-50 border-2 border-white flex items-center justify-center text-[11px] font-bold text-gray-500 shadow-sm"
+                    style={{ zIndex: 10 - 3 }}
+                  >
+                    +{cart.length - 3}
+                  </div>
+                )}
+              </div>
+
+              {/* Restaurant Info */}
+              <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
+                <h3 className="font-bold text-gray-900 text-sm md:text-[15px] line-clamp-1 leading-tight mb-1">
+                  {restaurantName}
+                </h3>
+                <button 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/food/user/restaurants/${restaurantSlug}`); }}
+                  className="bg-[#fff0e6] text-[#ff7a29] rounded-full px-2.5 py-0.5 text-[10px] md:text-[11px] font-bold inline-flex items-center gap-0.5 w-fit hover:bg-orange-100 transition-colors"
+                >
+                  Menu <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Checkout Button (Green) */}
               <motion.button
                 ref={linkRef}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  debugLog('View cart clicked, navigating to:', linkTo);
                   navigate(linkTo);
                 }}
-                className="relative overflow-hidden bg-primary text-white rounded-full px-6 py-2.5 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.4)] hover:shadow-[0_0_25px_rgba(220,38,38,0.6)] hover:bg-primary/90 transition-all duration-300 min-w-[130px]"
+                className="bg-[#1da05c] hover:bg-[#188c50] text-white rounded-2xl px-3.5 py-1.5 md:py-2 flex flex-col items-center justify-center shadow-sm transition-colors flex-shrink-0 min-w-[100px] md:min-w-[110px]"
               >
-                {/* Shining Animation */}
-                <motion.div 
-                  className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12"
-                  animate={{ x: ['-150%', '250%'] }}
-                  transition={{ repeat: Infinity, duration: 2.5, ease: "linear", repeatDelay: 0.5 }}
-                />
-                
-                <span className="relative z-10 text-[15px] font-black tracking-wide leading-tight">View Cart</span>
-                <span className="relative z-10 text-[13px] opacity-90 font-medium leading-tight">
-                  {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                <span className="text-[10px] md:text-[11px] font-medium text-white/90 leading-tight mb-0.5">
+                  {itemCount} {itemCount === 1 ? 'item' : 'items'} | ₹{total}
                 </span>
+                <span className="text-[14px] md:text-[15px] font-bold leading-tight">Checkout</span>
               </motion.button>
 
-              {/* Remove Button (Right) */}
+              {/* Delete/Clear Cart Button (Pink) */}
               <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   clearCart();
                 }}
-                className="flex items-center gap-2 pl-3 pr-5 py-2 hover:opacity-80 transition-opacity"
+                className="bg-[#ffe8ea] hover:bg-[#ffd1d6] text-[#ff4b5c] rounded-2xl p-2.5 md:p-3 flex items-center justify-center transition-colors flex-shrink-0 mr-1"
               >
-                <div className="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                  </svg>
-                </div>
-                <span className="font-bold text-[15px] text-primary tracking-wide">Remove</span>
+                <Trash2 className="w-[18px] h-[18px] md:w-5 md:h-5" />
               </button>
-
             </div>
           </motion.div>
         )}

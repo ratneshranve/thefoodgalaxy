@@ -145,9 +145,10 @@ export function refreshToken(refreshToken) {
  * @param {string} platform
  */
 export function logout(refreshToken, fcmToken = null, platform = "web") {
-  if (!refreshToken) return Promise.resolve({ data: { success: true } });
+  if (!refreshToken && !fcmToken) return Promise.resolve({ data: { success: true } });
 
-  const payload = { refreshToken };
+  const payload = {};
+  if (refreshToken) payload.refreshToken = refreshToken;
   if (fcmToken) {
     payload.fcmToken = fcmToken;
     payload.platform = platform;

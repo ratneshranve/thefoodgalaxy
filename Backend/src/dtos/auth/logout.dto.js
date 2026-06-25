@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ValidationError } from '../../core/auth/errors.js';
 
 const schema = z.object({
-    refreshToken: z.string().min(1, 'Refresh token is required'),
+    refreshToken: z.string().optional(),
     fcmToken: z.string().optional(),
     platform: z.enum(['web', 'mobile']).optional()
 });
