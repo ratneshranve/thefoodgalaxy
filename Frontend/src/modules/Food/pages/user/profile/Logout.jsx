@@ -4,7 +4,7 @@ import AnimatedPage from "@food/components/user/AnimatedPage"
 import { Button } from "@food/components/ui/button"
 import { Card, CardContent } from "@food/components/ui/card"
 import { useState } from "react"
-import { authAPI } from "@food/api"
+import { authAPI, userAPI } from "@food/api"
 import { firebaseAuth, ensureFirebaseInitialized } from "@food/firebase"
 import { clearModuleAuth } from "@food/utils/auth"
 const debugLog = (...args) => {}
@@ -34,12 +34,20 @@ export default function Logout() {
               const handlerNames = ["getFcmToken", "getFCMToken", "getPushToken", "getFirebaseToken"];
               for (const handlerName of handlerNames) {
                 try {
-                  const t = await window.flutter_inappwebview.callHandler(handlerName, { module: "user" });
+                  const t = await Promise.race([
+                    window.flutter_inappwebview.callHandler(handlerName, { module: "user" }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 1500))
+                  ]);
                   if (t && typeof t === "string" && t.length > 20) {
                     fcmToken = t.trim();
                     break;
                   }
-                } catch (e) {}
+                } catch (e) {
+                  console.warn(`Bridge handler ${handlerName} failed or timed out`, e);
+                }
+              }
+              if (!fcmToken) {
+                fcmToken = localStorage.getItem("fcm_web_registered_token_user") || null;
               }
             } else {
               fcmToken = localStorage.getItem("fcm_web_registered_token_user") || null;
@@ -48,6 +56,16 @@ export default function Logout() {
         } catch (e) {
           console.warn("Failed to get FCM token during logout", e);
         }
+
+        // Add explicit call to removeFcmToken API before logout
+        if (fcmToken) {
+          try {
+            await userAPI.removeFcmToken(fcmToken, { platform });
+          } catch (e) {
+            console.warn("Failed to remove FCM token directly", e);
+          }
+        }
+
         await authAPI.logout(null, fcmToken, platform)
       } catch (apiError) {
         // Continue with logout even if API call fails (network issues, etc.)

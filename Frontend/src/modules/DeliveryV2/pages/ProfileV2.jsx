@@ -94,21 +94,39 @@ export const ProfileV2 = () => {
       setLogoutSubmitting(true)
       let fcmToken = null;
       let platform = "web";
-      try {
-        if (typeof window !== "undefined" && window.flutter_inappwebview) {
-          platform = "mobile";
-          const handlerNames = ["getFcmToken", "getFCMToken", "getPushToken", "getFirebaseToken"];
-          for (const handlerName of handlerNames) {
-            try {
-              const t = await window.flutter_inappwebview.callHandler(handlerName, { module: "delivery" });
-              if (t && typeof t === "string" && t.length > 20) {
-                fcmToken = t.trim();
-                break;
-              }
-            } catch (e) {}
+      if (typeof window !== "undefined" && window.flutter_inappwebview) {
+        platform = "mobile";
+        const handlerNames = ["getFcmToken", "getFCMToken", "getPushToken", "getFirebaseToken"];
+        for (const handlerName of handlerNames) {
+          try {
+            const t = await Promise.race([
+              window.flutter_inappwebview.callHandler(handlerName, { module: "delivery" }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 1500))
+            ]);
+            if (t && typeof t === "string" && t.length > 20) {
+              fcmToken = t.trim();
+              break;
+            }
+          } catch (e) {
+            console.warn(`Bridge handler ${handlerName} failed or timed out`, e);
           }
         }
-      } catch (e) {}
+        if (!fcmToken) {
+          fcmToken = localStorage.getItem("fcm_web_registered_token_delivery") || null;
+        }
+      } else {
+        fcmToken = localStorage.getItem("fcm_web_registered_token_delivery") || null;
+      }
+      
+      // Add explicit call to removeFcmToken API before logout
+      if (fcmToken) {
+        try {
+          await deliveryAPI.removeFcmToken(fcmToken, platform);
+        } catch (e) {
+          console.warn("Failed to remove FCM token directly", e);
+        }
+      }
+
       await deliveryAPI.logout(null, fcmToken, platform)
     } catch (error) {}
     clearModuleAuth("delivery")
