@@ -870,7 +870,9 @@ export const useRestaurantNotifications = () => {
 
   const playNotificationSound = async (orderData = {}) => {
     try {
-      const usedNativeBridge = await triggerWebViewNativeNotification(orderData);
+      // Temporarily disabled native bridge sound trigger
+      // const usedNativeBridge = await triggerWebViewNativeNotification(orderData);
+      const usedNativeBridge = false;
       if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
         navigator.vibrate([200, 100, 200, 100, 300]);
       }
