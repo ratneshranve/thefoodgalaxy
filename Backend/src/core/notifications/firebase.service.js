@@ -33,7 +33,7 @@ let cachedAccessToken = null;
 let cachedAccessTokenExpiryMs = 0;
 let cachedServiceAccount = null;
 
-const sanitizeString = (value) => String(value ?? '').trim();
+const sanitizeString = (value) => String(value ?? '').trim().replace(/^["']|["']$/g, '');
 
 const toBase64Url = (input) =>
     Buffer.from(JSON.stringify(input))

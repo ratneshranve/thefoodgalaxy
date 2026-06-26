@@ -154,7 +154,8 @@ const handleRemoveToken = async (req, res, next) => {
             ownerId = opt.ownerId;
         }
 
-        const token = String(req.params?.token || req.body?.token || '').trim();
+        const rawToken = req.params?.token || req.body?.token || '';
+        const token = String(rawToken).trim().replace(/^["']|["']$/g, '');
         const platformInput = req.body?.platform || req.query?.platform;
         const platform = platformInput === 'mobile' ? 'mobile' : platformInput === 'web' ? 'web' : undefined;
 
