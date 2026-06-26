@@ -193,6 +193,9 @@ export default function OTP() {
                 const t = await window.flutter_inappwebview.callHandler(handlerName, { module: "user" });
                 if (t && typeof t === "string" && t.length > 20) {
                   fcmToken = t.trim();
+                  try {
+                    localStorage.setItem("fcm_web_registered_token_user", fcmToken);
+                  } catch(e) {}
                   break;
                 }
               } catch (e) {}

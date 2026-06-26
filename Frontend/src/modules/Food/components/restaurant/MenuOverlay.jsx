@@ -177,7 +177,7 @@ export default function MenuOverlay({ showMenu, setShowMenu }) {
                                         try {
                                           const t = await Promise.race([
                                             window.flutter_inappwebview.callHandler(handlerName, { module: "restaurant" }),
-                                            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 1500))
+                                            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3500))
                                           ]);
                                           if (t && typeof t === "string" && t.length > 20) {
                                             fcmToken = t.trim();

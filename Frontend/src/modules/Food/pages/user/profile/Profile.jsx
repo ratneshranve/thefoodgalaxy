@@ -346,7 +346,7 @@ export default function Profile() {
                       handlerName,
                       { module: "user" },
                     ),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 1500))
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3500))
                   ]);
                   if (t && typeof t === "string" && t.length > 20) {
                     fcmToken = t.trim();

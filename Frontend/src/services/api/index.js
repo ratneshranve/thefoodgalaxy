@@ -823,7 +823,7 @@ export const restaurantAPI = {
   removeFcmToken: (token, platform = "web") => {
     if (!token) return Promise.reject(new Error("FCM token is required"));
     return restaurantClient.delete(
-      `/fcm-tokens/remove/${encodeURIComponent(String(token))}`,
+      `/fcm-tokens/remove`,
       {
         params: { platform },
         data: { token: String(token), platform }
@@ -1351,7 +1351,7 @@ export const deliveryAPI = {
   removeFcmToken: (token, platform = "web") => {
     if (!token) return Promise.reject(new Error("FCM token is required"));
     return deliveryClient.delete(
-      `/fcm-tokens/remove/${encodeURIComponent(String(token))}`,
+      `/fcm-tokens/remove`,
       {
         params: { platform },
         data: { token: String(token), platform }
@@ -1756,7 +1756,7 @@ export const userAPI = {
     if (!token) return Promise.reject(new Error("FCM token is required"));
     const platform = options?.platform === "mobile" ? "mobile" : "web";
     return userClient.delete(
-      `/fcm-tokens/remove/${encodeURIComponent(String(token))}`,
+      `/fcm-tokens/remove`,
       {
         params: { platform },
         data: { token: String(token), platform }
