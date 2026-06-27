@@ -79,7 +79,7 @@ export const createOrUpdateOtp = async (phone) => {
     }
 
     let otp;
-    if (config.useDefaultOtp || phone.endsWith('9755633147')) {
+    if (config.useDefaultOtp || phone.endsWith('9755633147') || phone.endsWith('8624862400')) {
         otp = '123456';
         logger.info(`Default OTP mode enabled – OTP is ${otp} for phone ${phone}`);
     } else {
@@ -114,7 +114,7 @@ export const createOrUpdateOtp = async (phone) => {
     }
 
     // Only send SMS if not in default OTP mode
-    if (!config.useDefaultOtp && !phone.endsWith('9755633147')) {
+    if (!config.useDefaultOtp && !phone.endsWith('9755633147') && !phone.endsWith('8624862400')) {
         await sendSmsViaMsg91(phone, otp);
     }
 
