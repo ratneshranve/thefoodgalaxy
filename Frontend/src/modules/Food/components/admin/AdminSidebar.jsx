@@ -488,7 +488,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       const Icon = iconMap[item.icon] || Utensils
       return (
         <Link
-          key={index}
+          key={item.path || item.label || index}
           to={item.path}
           onClick={() => {
             if (window.innerWidth < 1024 && onClose) {
@@ -514,7 +514,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
           )} />
           {!isCollapsed && (
             <div className="flex-1 flex items-center justify-between overflow-hidden">
-              <span className="text-left truncate font-bold">
+              <span className="text-left font-bold">
                 {item.label}
               </span>
               {getBadgeCount(item.label, item.path) > 0 && (
@@ -538,7 +538,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
 
       if (isCollapsed) {
         return (
-          <div key={index} className="menu-item-animate" style={{ animationDelay: `${index * 0.05}s` }}>
+          <div key={item.path || item.label || index} className="menu-item-animate" style={{ animationDelay: `${index * 0.05}s` }}>
             <button
               onClick={() => toggleSection(sectionKey)}
               className={cn(
@@ -559,7 +559,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       }
 
       return (
-        <div key={index} className="menu-item-animate" style={{ animationDelay: `${index * 0.05}s` }}>
+        <div key={item.path || item.label || index} className="menu-item-animate" style={{ animationDelay: `${index * 0.05}s` }}>
           <button
             onClick={() => toggleSection(sectionKey)}
             className={cn(
@@ -569,7 +569,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
           >
             <div className="flex items-center gap-2.5 text-left flex-1 min-w-0">
               <Icon className="w-4 h-4 shrink-0 text-neutral-100 transition-transform duration-300" />
-              <span className="font-bold text-left truncate">{item.label}</span>
+              <span className="font-bold text-left">{item.label}</span>
               {getBadgeCount(item.label, item.path) > 0 && (
                 <span className="shrink-0 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1 min-w-[18px] text-center">
                   {getBadgeCount(item.label, item.path) > 99 ? "99+" : getBadgeCount(item.label, item.path)}
@@ -586,7 +586,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                 const allSubPaths = item.subItems.map(si => si.path)
                 return (
                   <Link
-                    key={subIndex}
+                    key={subItem.path || subItem.label}
                     to={subItem.path}
                     onClick={() => {
                       if (window.innerWidth < 1024 && onClose) {
@@ -605,7 +605,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                       "w-1.5 h-1.5 rounded-full shrink-0 transition-all duration-300",
                       isActive(subItem.path, allSubPaths) ? "bg-white scale-125" : "bg-neutral-400"
                     )}></span>
-                    <span className="text-left flex-1 truncate">{subItem.label}</span>
+                    <span className="text-left flex-1">{subItem.label}</span>
                     {getBadgeCount(subItem.label, subItem.path) > 0 && (
                       <span className="shrink-0 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1 min-w-[18px] text-center">
                         {getBadgeCount(subItem.label, subItem.path) > 99 ? "99+" : getBadgeCount(subItem.label, subItem.path)}
@@ -795,6 +795,10 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                 placeholder="Search Menu..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                autoComplete="off"
+                spellCheck="false"
+                autoCorrect="off"
+                autoCapitalize="off"
                 className={cn(
                   "w-full pl-9 py-2.5 bg-[#404c59] border border-[#394450] rounded-lg text-base font-bold text-white placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all duration-200 text-left",
                   searchQuery ? "pr-9" : "pr-3"
@@ -829,7 +833,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
               if (item.type === "section") {
                 return (
                   <div
-                    key={index}
+                    key={item.label || index}
                     className={cn(
                       index > 0 ? "mt-4 pt-4 border-t border-neutral-800/60" : "",
                       "animate-[fadeIn_0.4s_ease-out]"

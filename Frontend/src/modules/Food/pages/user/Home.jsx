@@ -2729,6 +2729,10 @@ export default function Home() {
     navigate("/food/user/search");
   }, [navigate]);
 
+  const handleVoiceSearchClick = useCallback(() => {
+    navigate("/food/user/search?voice=true");
+  }, [navigate]);
+
   const handleSearchClose = useCallback(() => {
     closeSearch();
     setHeroSearch("");
@@ -3088,6 +3092,7 @@ export default function Home() {
               vegMode={vegMode}
               handleVegModeChange={handleVegModeChange}
               isCategoryStuck={isCategoryStuck}
+              handleVoiceSearchClick={handleVoiceSearchClick}
             />
 
             {activeTab === "food" && (

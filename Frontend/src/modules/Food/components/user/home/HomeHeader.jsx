@@ -33,7 +33,8 @@ export default function HomeHeader({
   placeholders,
   vegMode = false,
   handleVegModeChange,
-  isCategoryStuck = false
+  isCategoryStuck = false,
+  handleVoiceSearchClick
 }) {
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem('food_user_notifications');

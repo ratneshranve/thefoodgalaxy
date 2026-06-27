@@ -62,6 +62,21 @@ export default function ProfessionalSearch() {
     setQuery(transcript)
     addToHistory(transcript)
   })
+
+  // Auto-start voice search if voice=true in URL
+  useEffect(() => {
+    if (searchParams.get("voice") === "true") {
+      // Start listening on next tick to ensure component is fully mounted
+      setTimeout(() => {
+        startListening()
+      }, 100)
+      
+      // Clean up URL parameter
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete("voice")
+      setSearchParams(newParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams, startListening])
   const [categories, setCategories] = useState([])
   const [selectedCategoryId, setSelectedCategoryId] = useState(searchParams.get("cat") || null)
   const [history, setHistory] = useState([])
