@@ -569,8 +569,27 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
         
         // Broadcast order_claimed to every partner who was offered this order
         if (Array.isArray(order.dispatch?.offeredTo)) {
+          const otherPartnerOwners = [];
           for (const offer of order.dispatch.offeredTo) {
             io.to(rooms.delivery(offer.partnerId)).emit('order_claimed', claimedPayload);
+            if (String(offer.partnerId) !== String(deliveryPartnerId)) {
+              otherPartnerOwners.push({ ownerType: 'DELIVERY_PARTNER', ownerId: offer.partnerId });
+            }
+          }
+          
+          if (otherPartnerOwners.length > 0) {
+            void notifyOwnersSafely(
+              otherPartnerOwners,
+              {
+                title: 'Order Accepted',
+                body: `Order #${order.order_id || order.orderId || order._id.toString()} has been accepted by another delivery partner.`,
+                data: {
+                  type: 'order_claimed',
+                  orderId: order._id.toString(),
+                  orderMongoId: order._id?.toString?.() || '',
+                },
+              }
+            );
           }
         }
         io.to('all_delivery').emit('order_claimed', claimedPayload);
