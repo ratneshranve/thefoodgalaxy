@@ -1034,6 +1034,16 @@ export default function Cart() {
 
   // Use backend pricing if available, otherwise fallback to database fee settings
   const subtotal = pricing?.subtotal || cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
+  const orderDistanceKm = useMemo(() => {
+    const rCoords = restaurantData?.location?.coordinates
+    const dCoords = defaultAddress?.location?.coordinates
+    if (!Array.isArray(rCoords) || !Array.isArray(dCoords)) return null
+    if (rCoords.length !== 2 || dCoords.length !== 2) return null
+    const [rLng, rLat] = rCoords
+    const [dLng, dLat] = dCoords
+    return calculateDistance(rLat, rLng, dLat, dLng)
+  }, [restaurantData, defaultAddress])
+
   const fallbackDeliveryFee = (() => {
     if (appliedCoupon?.freeDelivery) {
       return 0
@@ -1044,15 +1054,7 @@ export default function Cart() {
       return 0
     }
 
-    const distanceKm = (() => {
-      const rCoords = restaurantData?.location?.coordinates
-      const dCoords = defaultAddress?.location?.coordinates
-      if (!Array.isArray(rCoords) || !Array.isArray(dCoords)) return null
-      if (rCoords.length !== 2 || dCoords.length !== 2) return null
-      const [rLng, rLat] = rCoords
-      const [dLng, dLat] = dCoords
-      return calculateDistance(rLat, rLng, dLat, dLng)
-    })()
+    const distanceKm = orderDistanceKm
 
     const ranges = Array.isArray(feeSettings.deliveryFeeRanges) ? [...feeSettings.deliveryFeeRanges] : []
     if (ranges.length > 0 && Number.isFinite(distanceKm)) {
@@ -1544,6 +1546,31 @@ export default function Cart() {
       toast.error("Please choose a delivery location to continue")
       openLocationSelector()
       return
+    }
+
+    const ranges = Array.isArray(feeSettings?.deliveryFeeRanges) ? [...feeSettings.deliveryFeeRanges] : []
+    if (ranges.length > 0 && Number.isFinite(orderDistanceKm)) {
+      const sortedRanges = ranges.sort((a, b) => Number(a.min) - Number(b.min))
+      let isWithinDeliveryRange = false
+      for (let i = 0; i < sortedRanges.length; i += 1) {
+        const range = sortedRanges[i]
+        const min = Number(range.min)
+        const max = Number(range.max)
+        const isLastRange = i === sortedRanges.length - 1
+        const inRange = isLastRange
+          ? orderDistanceKm >= min && orderDistanceKm <= max
+          : orderDistanceKm >= min && orderDistanceKm < max
+
+        if (inRange) {
+          isWithinDeliveryRange = true
+          break
+        }
+      }
+
+      if (!isWithinDeliveryRange) {
+        toast.error(`Delivery is not available at this distance (${orderDistanceKm.toFixed(1)} km). Please select a closer address.`)
+        return
+      }
     }
 
     if (isScheduled) {

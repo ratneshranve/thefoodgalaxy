@@ -111,6 +111,11 @@ export async function calculateOrderPricing(userId, dto) {
           break;
         }
       }
+
+      if (Number.isFinite(distanceKm) && !Number.isFinite(matched)) {
+        throw new ValidationError(`Delivery is not available at this distance (${distanceKm.toFixed(1)} km). Please select a closer address.`);
+      }
+
       deliveryFee = Number.isFinite(matched)
         ? matched
         : Number(feeSettings.deliveryFee || 0);
