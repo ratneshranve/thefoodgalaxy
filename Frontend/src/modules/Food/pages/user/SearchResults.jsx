@@ -274,7 +274,7 @@ export default function SearchResults() {
             .map((restaurant) => {
               // Use backend data directly - filter out default values
               let deliveryTime = restaurant.estimatedDeliveryTime || null
-              let distance = restaurant.distance || null
+              let distance = restaurant.distanceText || restaurant.distance || null
               let offer = restaurant.offer || null
 
               // Filter out default values
