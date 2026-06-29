@@ -12,6 +12,16 @@ const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
+const getDefaultDays = () => ({
+  Monday: { isOpen: true, openingTime: "11:00", closingTime: "23:00" },
+  Tuesday: { isOpen: true, openingTime: "11:00", closingTime: "23:00" },
+  Wednesday: { isOpen: true, openingTime: "11:00", closingTime: "23:00" },
+  Thursday: { isOpen: true, openingTime: "11:00", closingTime: "23:00" },
+  Friday: { isOpen: true, openingTime: "11:00", closingTime: "23:00" },
+  Saturday: { isOpen: true, openingTime: "11:00", closingTime: "23:00" },
+  Sunday: { isOpen: true, openingTime: "11:00", closingTime: "23:00" },
+})
+
 // Inline placeholder (no external request, avoids referrer policy / 500 from via.placeholder)
 const PLACEHOLDER_40 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%23e2e8f0' width='40' height='40'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-size='12' font-family='sans-serif'%3E?%3C/text%3E%3C/svg%3E"
 const PLACEHOLDER_128 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Crect fill='%23e2e8f0' width='128' height='128'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-size='32' font-family='sans-serif'%3E?%3C/text%3E%3C/svg%3E"
@@ -135,6 +145,7 @@ export default function RestaurantsList() {
     estimatedDeliveryTime: "",
     openingTime: "",
     closingTime: "",
+    outletTimings: getDefaultDays(),
     isActive: true,
   })
   const [profileImageFile, setProfileImageFile] = useState(null)
@@ -748,6 +759,7 @@ export default function RestaurantsList() {
         estimatedDeliveryTime: "",
         openingTime: "",
         closingTime: "",
+        outletTimings: getDefaultDays(),
         isActive: true,
       }
     }
@@ -781,17 +793,28 @@ export default function RestaurantsList() {
       estimatedDeliveryTime: estimatedDeliveryTimeValue,
       openingTime: openingTimeValue,
       closingTime: closingTimeValue,
+      outletTimings: getDefaultDays(),
       isActive: restaurant.isActive !== false,
     }
   }
 
-  const handleStartEditDetails = () => {
+  const handleStartEditDetails = async () => {
     const source = getDetailsEditSource()
     setDetailsForm(buildDetailsFormFromRestaurant(source))
     setProfileImageFile(null)
     setProfileImagePreview(getPrimaryRestaurantImage(source))
     setIsEditingLocation(true)
     setIsEditingDetails(true)
+    try {
+      const restaurantId = source._id || source.id
+      const res = await restaurantAPI.getOutletTimingsByRestaurantId(restaurantId)
+      const outletTimings = res?.data?.data?.outletTimings || res?.data?.outletTimings
+      if (outletTimings && typeof outletTimings === 'object') {
+        setDetailsForm(prev => ({ ...prev, outletTimings: { ...getDefaultDays(), ...outletTimings } }))
+      }
+    } catch (err) {
+      debugError("Failed to fetch outlet timings", err)
+    }
   }
 
   const handleCancelEditDetails = () => {
@@ -820,18 +843,6 @@ export default function RestaurantsList() {
 
       const normalizedOpeningTime = normalizeTimeValue(detailsForm.openingTime.trim())
       const normalizedClosingTime = normalizeTimeValue(detailsForm.closingTime.trim())
-      const openingMinutes = timeToMinutes(normalizedOpeningTime)
-      const closingMinutes = timeToMinutes(normalizedClosingTime)
-      if (openingMinutes !== null && closingMinutes !== null) {
-        if (openingMinutes === closingMinutes) {
-          alert("Opening time and closing time cannot be same")
-          return
-        }
-        if (closingMinutes < openingMinutes) {
-          alert("Closing time cannot be less than opening time")
-          return
-        }
-      }
 
       const payload = {
         name: detailsForm.name.trim(),
@@ -853,6 +864,11 @@ export default function RestaurantsList() {
 
       const response = await adminAPI.updateRestaurant(restaurantId, payload)
       const updatedRestaurant = response?.data?.data?.restaurant
+
+      // Update outlet timings
+      if (detailsForm.outletTimings) {
+        await adminAPI.updateRestaurantOutletTimings(restaurantId, detailsForm.outletTimings)
+      }
 
       if (updatedRestaurant) {
         setRestaurantDetails(updatedRestaurant)
@@ -1606,13 +1622,63 @@ export default function RestaurantsList() {
                       <label className="block text-xs text-slate-500 mb-1">Primary Contact</label>
                       <input type="text" value={detailsForm.primaryContactNumber} onChange={(e) => setDetailsForm((prev) => ({ ...prev, primaryContactNumber: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
                     </div>
-                    <div>
-                      <label className="block text-xs text-slate-500 mb-1">Opening Time</label>
-                      <input type="text" value={detailsForm.openingTime} onChange={(e) => setDetailsForm((prev) => ({ ...prev, openingTime: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-500 mb-1">Closing Time</label>
-                      <input type="text" value={detailsForm.closingTime} onChange={(e) => setDetailsForm((prev) => ({ ...prev, closingTime: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+                    <div className="md:col-span-2 pt-4 border-t border-slate-100">
+                      <h4 className="text-sm font-medium text-slate-900 mb-3 flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-slate-500" />
+                        Day-wise Outlet Timings
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
+                          <div key={day} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50/50">
+                            <div className="flex items-center gap-2 w-28">
+                              <input
+                                type="checkbox"
+                                checked={detailsForm.outletTimings?.[day]?.isOpen !== false}
+                                onChange={(e) => setDetailsForm(prev => ({
+                                  ...prev,
+                                  outletTimings: {
+                                    ...prev.outletTimings,
+                                    [day]: { ...prev.outletTimings?.[day], isOpen: e.target.checked }
+                                  }
+                                }))}
+                                className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                              />
+                              <span className="text-sm font-medium text-slate-700">{day}</span>
+                            </div>
+                            {detailsForm.outletTimings?.[day]?.isOpen !== false ? (
+                              <div className="flex flex-1 items-center gap-2">
+                                <input
+                                  type="time"
+                                  value={detailsForm.outletTimings?.[day]?.openingTime || "09:00"}
+                                  onChange={(e) => setDetailsForm(prev => ({
+                                    ...prev,
+                                    outletTimings: {
+                                      ...prev.outletTimings,
+                                      [day]: { ...prev.outletTimings?.[day], openingTime: e.target.value }
+                                    }
+                                  }))}
+                                  className="px-2 py-1.5 rounded-md border border-slate-300 text-xs w-24"
+                                />
+                                <span className="text-slate-400 text-xs">to</span>
+                                <input
+                                  type="time"
+                                  value={detailsForm.outletTimings?.[day]?.closingTime || "22:00"}
+                                  onChange={(e) => setDetailsForm(prev => ({
+                                    ...prev,
+                                    outletTimings: {
+                                      ...prev.outletTimings,
+                                      [day]: { ...prev.outletTimings?.[day], closingTime: e.target.value }
+                                    }
+                                  }))}
+                                  className="px-2 py-1.5 rounded-md border border-slate-300 text-xs w-24"
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex-1 text-sm text-red-500 font-medium px-2 py-1.5">Closed</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     <div>
                       <label className="block text-xs text-slate-500 mb-1">Estimated Delivery Time</label>

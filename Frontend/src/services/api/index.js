@@ -1,4 +1,4 @@
-﻿/**
+/**
  * API layer - auth connected to new backend; rest stubbed for UI compatibility.
  */
 
@@ -418,6 +418,8 @@ export const adminAPI = {
   /** Update restaurant location (admin). Body includes lat/lng + address fields. */
   updateRestaurantLocation: (id, body) =>
     adminClient.patch(`/food/admin/restaurants/${String(id)}/location`, body ?? {}),
+  updateRestaurantOutletTimings: (id, outletTimings) =>
+    adminClient.patch(`/food/admin/restaurants/${String(id)}/outlet-timings`, { outletTimings }),
   /** Update restaurant zone rank (admin) */
   updateRestaurantZoneRank: (id, rank) =>
     adminClient.patch(`/food/admin/restaurants/${String(id)}/zone-rank`, { rank }),

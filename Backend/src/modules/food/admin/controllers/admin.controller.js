@@ -13,6 +13,7 @@ import { topupUserWalletByAdmin } from '../../user/services/userWallet.service.j
 import { invalidateCache } from '../../../../middleware/cache.js';
 import { FoodBusinessSettings } from '../models/businessSettings.model.js';
 import { sendRestaurantOnboardingEmail } from '../../../../utils/email.js';
+import { upsertOutletTimingsForRestaurant } from '../../restaurant/services/outletTimings.service.js';
 
 // ----- Customers / Users -----
 export async function getCustomers(req, res, next) {
@@ -463,6 +464,19 @@ export async function updateRestaurantLocation(req, res, next) {
             return res.status(404).json({ success: false, message: 'Restaurant not found' });
         }
         res.status(200).json({ success: true, message: 'Restaurant location updated successfully', data: { restaurant: updated } });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateRestaurantOutletTimings(req, res, next) {
+    try {
+        const { id } = req.params;
+        if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: 'Invalid restaurant id' });
+        }
+        const data = await upsertOutletTimingsForRestaurant(id, req.body?.outletTimings);
+        res.status(200).json({ success: true, message: 'Outlet timings updated successfully', data });
     } catch (error) {
         next(error);
     }
