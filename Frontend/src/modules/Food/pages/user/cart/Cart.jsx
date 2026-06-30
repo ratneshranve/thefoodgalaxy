@@ -193,6 +193,7 @@ export default function Cart() {
   const [showOrderSuccess, setShowOrderSuccess] = useState(false)
   const [orderSuccessSavingsAmount, setOrderSuccessSavingsAmount] = useState(0)
   const [placedOrderId, setPlacedOrderId] = useState(null)
+  const [placedOrder, setPlacedOrder] = useState(null)
   const [selectedAddressId, setSelectedAddressId] = useState(null)
   const [deliveryAddressMode, setDeliveryAddressMode] = useState(() => {
     try {
@@ -1847,6 +1848,7 @@ export default function Cart() {
       if (selectedPaymentMethod === "cash") {
         toast.success("Order placed with Cash on Delivery")
         setPlacedOrderId(order?._id || order?.orderId || order?.id || null)
+        setPlacedOrder(order || null)
         setOrderSuccessSavingsAmount(platformPricingSavings.totalSavings > 0 ? platformPricingSavings.totalSavings : 0)
         if (platformPricingSavings.totalSavings > 0) {
           setCongratssSavingsAmount(platformPricingSavings.totalSavings)
@@ -1873,6 +1875,7 @@ export default function Cart() {
       if (selectedPaymentMethod === "wallet") {
         toast.success("Order placed with Wallet payment")
         setPlacedOrderId(order?._id || order?.orderId || order?.id || null)
+        setPlacedOrder(order || null)
         setOrderSuccessSavingsAmount(platformPricingSavings.totalSavings > 0 ? platformPricingSavings.totalSavings : 0)
         if (platformPricingSavings.totalSavings > 0) {
           setCongratssSavingsAmount(platformPricingSavings.totalSavings)
@@ -1984,6 +1987,7 @@ export default function Cart() {
                 paymentId: verifyResponse.data.data?.payment?.paymentId
               })
               setPlacedOrderId(order._id || order.orderId)
+              setPlacedOrder(order || null)
               setOrderSuccessSavingsAmount(platformPricingSavings.totalSavings > 0 ? platformPricingSavings.totalSavings : 0)
               if (platformPricingSavings.totalSavings > 0) {
                 setCongratssSavingsAmount(platformPricingSavings.totalSavings)
@@ -2113,7 +2117,9 @@ export default function Cart() {
     setCongratssSavingsPercentage(0)
     setCongratssSavingsItems([])
     setOrderSuccessSavingsAmount(0)
-    navigate(`/user/orders/${placedOrderId}?confirmed=true`)
+    navigate(`/user/orders/${placedOrderId}?confirmed=true`, {
+      state: { order: placedOrder },
+    })
   }
 
   // Empty cart state - but don't show if order success or placing order modal is active

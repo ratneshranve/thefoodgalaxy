@@ -45,6 +45,8 @@ export default function UserOrderDetails() {
         let orderData = null
         if (response?.data?.success && response.data.data?.order) {
           orderData = response.data.data.order
+        } else if (response?.data?.success && response.data?.data && (response.data.data._id || response.data.data.orderId || response.data.data.id)) {
+          orderData = response.data.data
         } else if (response?.data?.order && typeof response.data.order === 'object') {
           orderData = response.data.order
         } else {

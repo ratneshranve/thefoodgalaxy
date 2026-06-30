@@ -38,8 +38,9 @@ import { useLocation as useUserLocation } from "@food/hooks/useLocation"
 import DeliveryTrackingMap from "@food/components/user/DeliveryTrackingMap"
 import { orderAPI, restaurantAPI } from "@food/api"
 import { useCompanyName } from "@food/hooks/useCompanyName"
-import { useAuthStore } from "@/core/auth/auth.store"
 import { useUserNotifications } from "@food/hooks/useUserNotifications"
+import useGoogleMapsApiKey from "@food/hooks/useGoogleMapsApiKey"
+import { useJsApiLoader } from "@react-google-maps/api"
 import {
   patchOrderFromSocketPayload,
   socketPayloadNeedsRefetch,
@@ -483,6 +484,8 @@ function normalizeLookupId(value) {
   return raw
 }
 
+const TRACKING_MAP_LIBRARIES = ["geometry", "places"]
+
 export default function OrderTracking() {
   const companyName = useCompanyName()
   const navigate = useNavigate()
@@ -490,17 +493,31 @@ export default function OrderTracking() {
   const { orderId } = useParams()
   const [searchParams] = useSearchParams()
   const lookupIdFromQuery = searchParams.get("id") || searchParams.get("orderId")
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const confirmed = searchParams.get("confirmed") === "true"
   const { getOrderById } = useOrders()
   const { profile, getDefaultAddress } = useProfile()
   const { location: userLiveLocation } = useUserLocation()
 
   const { isConnected: isSocketConnected } = useUserNotifications()
+
+  const checkoutOrderSeedRef = useRef(location.state?.order ?? null)
+
+  const googleMapsApiKey = useGoogleMapsApiKey()
+  useJsApiLoader(
+    {
+      id: "delivery-tracking-map",
+      googleMapsApiKey: googleMapsApiKey || "__pending__",
+      libraries: TRACKING_MAP_LIBRARIES,
+    },
+    [googleMapsApiKey],
+  )
   
-  // State for order data
-  const [order, setOrder] = useState(null)
-  const [loading, setLoading] = useState(true)
+  // State for order data — hydrate from checkout navigation for instant map render
+  const [order, setOrder] = useState(() => {
+    const seed = checkoutOrderSeedRef.current
+    return seed ? transformOrderForTracking(seed) : null
+  })
+  const [loading, setLoading] = useState(() => !checkoutOrderSeedRef.current)
   const [error, setError] = useState(null)
 
   const [showConfirmation, setShowConfirmation] = useState(confirmed)
@@ -618,8 +635,6 @@ export default function OrderTracking() {
   const trackingOrderIdsRef = useRef(new Set())
   const terminalPollStopRef = useRef(false)
   const lookupIdsRef = useRef([])
-  const isInitialPollRequestedRef = useRef(null)
-  const lastPollExecutionRef = useRef(0) // New: Hard throttle for extreme cases
   const lastStatusToastRef = useRef({ key: '', at: 0 })
 
   const ORDER_STATUS_TOAST_ID = 'order-tracking-status-update'
@@ -1022,18 +1037,14 @@ export default function OrderTracking() {
     let requestInProgress = false;
 
     const poll = async (isInitial = false) => {
-      if (!isSubscribed || requestInProgress || !isAuthenticated) return;
+      if (!isSubscribed || requestInProgress) return;
       if (terminalPollStopRef.current && !isInitial) return;
 
-      const now = Date.now();
-      if (isInitial && now - lastPollExecutionRef.current < 1000) return;
-      if (isInitial) lastPollExecutionRef.current = now;
-
-      // Check context immediately to avoid loaders if data exists locally
+      // Use cached order from checkout / order-placed event before network round-trip
       if (isInitial) {
-        const rawContext = getOrderById(orderId);
+        const rawContext = checkoutOrderSeedRef.current || getOrderById(orderId);
         if (rawContext) {
-          setOrder(transformOrderForTracking(rawContext));
+          setOrder((prev) => transformOrderForTracking(rawContext, prev));
           setLoading(false);
         }
       }
@@ -1047,6 +1058,10 @@ export default function OrderTracking() {
 
         if (response.data?.success && response.data.data?.order) {
           finalOrderData = response.data.data.order;
+        } else if (response.data?.success && response.data?.data && (response.data.data._id || response.data.data.orderId || response.data.data.id)) {
+          finalOrderData = response.data.data;
+        } else if (response.data?.success && response.data?.order) {
+          finalOrderData = response.data.order;
         } else if (isInitial) {
           const matchedOrder = await resolveOrderFromList(orderId);
           if (matchedOrder) finalOrderData = matchedOrder;
@@ -1092,23 +1107,19 @@ export default function OrderTracking() {
 
     pollRef.current = poll;
     terminalPollStopRef.current = false;
-
-    if (isInitialPollRequestedRef.current !== orderId) {
-      isInitialPollRequestedRef.current = orderId;
-      poll(true);
-    }
+    poll(true);
 
     return () => {
       isSubscribed = false;
     };
-  }, [orderId, fetchOrderDetailsWithFallback, resolveOrderFromList]);
+  }, [orderId, fetchOrderDetailsWithFallback, resolveOrderFromList, getOrderById]);
 
   // Interval Manager (dynamically adapts based on socket connection state independently)
   useEffect(() => {
     if (!orderId) return;
 
     const tick = () => {
-      if (terminalPollStopRef.current || !isAuthenticated) return;
+      if (terminalPollStopRef.current) return;
       if (document.hidden) return;
       // Delegate to the latest instance of our polling function capturing current state
       if (pollRef.current) pollRef.current(false);
@@ -1126,12 +1137,18 @@ export default function OrderTracking() {
     terminalPollStopRef.current = ui === 'delivered' || ui === 'cancelled'
   }, [order])
 
-  // Post-checkout splash only — real status comes from API / poll / socket.
+  // Post-checkout splash — dismiss quickly once order data is ready
   useEffect(() => {
     if (!confirmed) return
-    const timer1 = setTimeout(() => setShowConfirmation(false), 3000)
-    return () => clearTimeout(timer1)
-  }, [confirmed])
+
+    if (order) {
+      const timer = setTimeout(() => setShowConfirmation(false), 700)
+      return () => clearTimeout(timer)
+    }
+
+    const fallback = setTimeout(() => setShowConfirmation(false), 1800)
+    return () => clearTimeout(fallback)
+  }, [confirmed, order])
 
   // Countdown timer
   useEffect(() => {
@@ -1348,8 +1365,16 @@ export default function OrderTracking() {
     setIsRefreshing(true)
     try {
       const response = await fetchOrderDetailsWithFallback({ force: true })
+      let apiOrder = null;
       if (response.data?.success && response.data.data?.order) {
-        const apiOrder = response.data.data.order
+        apiOrder = response.data.data.order;
+      } else if (response.data?.success && response.data?.data && (response.data.data._id || response.data.data.orderId || response.data.data.id)) {
+        apiOrder = response.data.data;
+      } else if (response.data?.success && response.data?.order) {
+        apiOrder = response.data.order;
+      }
+
+      if (apiOrder) {
 
         // Extract restaurant location coordinates with multiple fallbacks
         let restaurantCoords = null;
@@ -1533,11 +1558,11 @@ export default function OrderTracking() {
               transition={{ delay: 0.2, type: "spring" }}
               className="text-center px-8"
             >
-              <AnimatedCheckmark delay={0.3} />
+              <AnimatedCheckmark delay={0.1} />
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.9 }}
+                transition={{ delay: 0.35 }}
                 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-6"
               >
                 {isScheduledOrder ? "Order Scheduled!" : "Order Confirmed!"}
@@ -1545,24 +1570,13 @@ export default function OrderTracking() {
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.1 }}
+                transition={{ delay: 0.45 }}
                 className="text-gray-600 dark:text-gray-300 mt-2"
               >
                 {isScheduledOrder
                   ? `Scheduled for ${scheduledDateFormatted}`
                   : "Your order has been placed successfully"}
               </motion.p>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.5 }}
-                className="mt-8"
-              >
-                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-sm text-gray-500 mt-3">Loading order details...</p>
-              </motion.div>
-
-
             </motion.div>
           </motion.div>
         )}
