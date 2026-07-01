@@ -5,6 +5,7 @@ dotenv.config();
 export const config = {
     // Basic server config
     port: process.env.PORT || 5000,
+    socketPort: process.env.SOCKET_PORT || 5001,
     host: process.env.HOST || '0.0.0.0',
     nodeEnv: process.env.NODE_ENV || 'development',
 
@@ -94,6 +95,7 @@ export const config = {
 
 export const updateConfig = () => {
     config.port = process.env.PORT || config.port;
+    config.socketPort = process.env.SOCKET_PORT || config.socketPort;
     config.host = process.env.HOST || config.host;
     config.nodeEnv = process.env.NODE_ENV || config.nodeEnv;
     config.mongodbUri = process.env.MONGO_URI || process.env.MONGODB_URI || config.mongodbUri;
