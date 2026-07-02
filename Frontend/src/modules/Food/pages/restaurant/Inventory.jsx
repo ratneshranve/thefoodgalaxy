@@ -2611,7 +2611,7 @@ export default function Inventory() {
 
                           return (
                           <div key={item.id} className="group h-full">
-                            <div className="restaurant-bento-card flex h-full flex-col justify-between gap-3 p-3 sm:p-4">
+                            <div className="restaurant-bento-card flex h-full flex-row items-center justify-between gap-3 p-3 sm:p-4">
                               <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
                                 {item.image && (
                                   <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex-shrink-0 rounded-[20px] overflow-hidden shadow-md border-2 border-white ring-1 ring-slate-100/50">
@@ -2682,7 +2682,7 @@ export default function Inventory() {
                                 </div>
                               </div>
 
-                              <div className="flex shrink-0 flex-col items-center gap-3 sm:gap-4">
+                              <div className="flex shrink-0 flex-col items-center gap-3 sm:gap-4 ml-auto pl-2 border-l border-slate-100">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation()

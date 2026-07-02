@@ -4,7 +4,6 @@ import useRestaurantBackNavigation from "@food/hooks/useRestaurantBackNavigation
 import { ArrowLeft, Star, ChevronRight } from "lucide-react"
 import { restaurantAPI } from "@food/api"
 import { toast } from "sonner"
-import { Input } from "@food/components/ui/input"
 import { Button } from "@food/components/ui/button"
 import {
   Dialog,
@@ -267,7 +266,7 @@ export default function OutletInfo() {
   }
 
   return (
-    <div className="min-h-full bg-gray-50 pb-12">
+    <div className="min-h-full bg-gray-50 pb-12 md:max-w-4xl md:mx-auto md:border-x md:border-gray-200">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="flex items-center gap-3">
@@ -502,7 +501,7 @@ export default function OutletInfo() {
 
       {/* Edit Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="restaurant-modal-inline sm:max-w-md rounded-[24px] p-0 overflow-hidden bg-white shadow-2xl border-0 gap-0">
+        <DialogContent className="w-[calc(100vw-32px)] max-w-[425px] rounded-[24px] p-0 overflow-hidden bg-white shadow-2xl border-0 gap-0 mx-auto">
           <DialogHeader className="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
             <DialogTitle className="text-[19px] font-black text-gray-900 tracking-tight text-left">
               Edit {editSection === 'restaurantName' ? 'Restaurant Name' : editSection === 'basic' ? 'Basic Details' : editSection === 'compliance' ? 'Compliance Details' : 'Bank Details'}
@@ -513,25 +512,25 @@ export default function OutletInfo() {
             {editSection === 'restaurantName' && (
               <div>
                 <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Restaurant Name</label>
-                <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.restaurantName || editFormData.name || ''} onChange={e => setEditFormData({...editFormData, restaurantName: e.target.value})} placeholder="Enter restaurant name" />
+                <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400" value={editFormData.restaurantName || editFormData.name || ''} onChange={e => setEditFormData({...editFormData, restaurantName: e.target.value})} placeholder="Enter restaurant name" />
               </div>
             )}
             {editSection === 'basic' && (
               <>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Owner Name</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.ownerName || ''} onChange={e => setEditFormData({...editFormData, ownerName: e.target.value})} placeholder="Enter owner name" />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400" value={editFormData.ownerName || ''} onChange={e => setEditFormData({...editFormData, ownerName: e.target.value})} placeholder="Enter owner name" />
                 </div>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Primary Contact</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.primaryContactNumber || editFormData.ownerPhone || ''} onChange={e => setEditFormData({...editFormData, primaryContactNumber: e.target.value})} placeholder="Enter contact number" />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400" value={editFormData.primaryContactNumber || editFormData.ownerPhone || ''} onChange={e => setEditFormData({...editFormData, primaryContactNumber: e.target.value})} placeholder="Enter contact number" />
                 </div>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Email</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.email || editFormData.ownerEmail || ''} onChange={e => setEditFormData({...editFormData, email: e.target.value})} placeholder="Enter email address" />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400" value={editFormData.email || editFormData.ownerEmail || ''} onChange={e => setEditFormData({...editFormData, email: e.target.value})} placeholder="Enter email address" />
                 </div>
                 <div className="flex items-center gap-3 mt-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <input type="checkbox" id="pureVeg" checked={!!editFormData.pureVegRestaurant} onChange={e => setEditFormData({...editFormData, pureVegRestaurant: e.target.checked})} className="w-5 h-5 rounded text-[#E91E63] focus:ring-[#E91E63]" />
+                  <input type="checkbox" id="pureVeg" checked={!!editFormData.pureVegRestaurant} onChange={e => setEditFormData({...editFormData, pureVegRestaurant: e.target.checked})} className="w-5 h-5 rounded border-gray-300 text-[#E91E63] focus:ring-[#E91E63]" />
                   <label htmlFor="pureVeg" className="text-[14px] font-bold text-gray-800 cursor-pointer">Pure Veg Restaurant</label>
                 </div>
               </>
@@ -540,19 +539,19 @@ export default function OutletInfo() {
               <>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">PAN Number</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4 uppercase" value={editFormData.panNumber || ''} onChange={e => setEditFormData({...editFormData, panNumber: e.target.value})} placeholder="Enter PAN number" />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400 uppercase" value={editFormData.panNumber || ''} onChange={e => setEditFormData({...editFormData, panNumber: e.target.value})} placeholder="Enter PAN number" />
                 </div>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">GST Number</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4 uppercase" value={editFormData.gstNumber || ''} onChange={e => setEditFormData({...editFormData, gstNumber: e.target.value})} placeholder="Enter GST number (if any)" />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400 uppercase" value={editFormData.gstNumber || ''} onChange={e => setEditFormData({...editFormData, gstNumber: e.target.value})} placeholder="Enter GST number (if any)" />
                 </div>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">FSSAI Number</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.fssaiNumber || ''} onChange={e => setEditFormData({...editFormData, fssaiNumber: e.target.value})} placeholder="Enter FSSAI number" />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400" value={editFormData.fssaiNumber || ''} onChange={e => setEditFormData({...editFormData, fssaiNumber: e.target.value})} placeholder="Enter FSSAI number" />
                 </div>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">FSSAI Expiry</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" type="date" value={editFormData.fssaiExpiry ? new Date(editFormData.fssaiExpiry).toISOString().split('T')[0] : ''} onChange={e => setEditFormData({...editFormData, fssaiExpiry: e.target.value})} />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400" type="date" value={editFormData.fssaiExpiry ? new Date(editFormData.fssaiExpiry).toISOString().split('T')[0] : ''} onChange={e => setEditFormData({...editFormData, fssaiExpiry: e.target.value})} />
                 </div>
               </>
             )}
@@ -560,33 +559,33 @@ export default function OutletInfo() {
               <>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Account Holder</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.accountHolderName || editFormData.nameOnPan || ''} onChange={e => setEditFormData({...editFormData, accountHolderName: e.target.value})} placeholder="Enter account holder name" />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400" value={editFormData.accountHolderName || editFormData.nameOnPan || ''} onChange={e => setEditFormData({...editFormData, accountHolderName: e.target.value})} placeholder="Enter account holder name" />
                 </div>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Account Number</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.accountNumber || ''} onChange={e => setEditFormData({...editFormData, accountNumber: e.target.value})} placeholder="Enter bank account number" />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400" value={editFormData.accountNumber || ''} onChange={e => setEditFormData({...editFormData, accountNumber: e.target.value})} placeholder="Enter bank account number" />
                 </div>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">IFSC Code</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4 uppercase" value={editFormData.ifscCode || ''} onChange={e => setEditFormData({...editFormData, ifscCode: e.target.value})} placeholder="Enter IFSC code" />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400 uppercase" value={editFormData.ifscCode || ''} onChange={e => setEditFormData({...editFormData, ifscCode: e.target.value})} placeholder="Enter IFSC code" />
                 </div>
                 <div>
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">UPI ID</label>
-                  <Input className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-base px-4" value={editFormData.upiId || ''} onChange={e => setEditFormData({...editFormData, upiId: e.target.value})} placeholder="Enter UPI ID (optional)" />
+                  <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400" value={editFormData.upiId || ''} onChange={e => setEditFormData({...editFormData, upiId: e.target.value})} placeholder="Enter UPI ID (optional)" />
                 </div>
               </>
             )}
           </div>
           
-          <div className="px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row gap-3 sm:justify-end">
+          <div className="px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex gap-3">
             <button 
-              className="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors shadow-sm order-2 sm:order-1"
+              className="flex-1 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors shadow-sm"
               onClick={() => setEditModalOpen(false)}
             >
               Cancel
             </button>
             <button 
-              className="w-full sm:w-auto px-5 py-2.5 bg-[#E91E63] text-white rounded-xl font-bold text-sm hover:bg-[#D81B60] transition-colors shadow-sm disabled:opacity-70 flex justify-center items-center order-1 sm:order-2"
+              className="flex-1 px-5 py-2.5 bg-[#E91E63] text-white rounded-xl font-bold text-sm hover:bg-[#D81B60] transition-colors shadow-sm disabled:opacity-70 flex justify-center items-center"
               onClick={handleEditSave} 
               disabled={savingEdit}
             >

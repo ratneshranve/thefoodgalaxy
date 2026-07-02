@@ -16,6 +16,7 @@ import {
 import { DateRangeCalendar } from "@food/components/ui/date-range-calendar"
 import { restaurantAPI } from "@food/api"
 import { useRestaurantNotifications } from "@food/hooks/useRestaurantNotifications"
+import OrderDetails from "./OrderDetails"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -110,6 +111,9 @@ export default function AllOrdersPage() {
   const [startDate, setStartDate] = useState(currentWeekDates.start)
   const [endDate, setEndDate] = useState(currentWeekDates.end)
   const calendarRef = useRef(null)
+  
+  // Side panel state
+  const [selectedOrder, setSelectedOrder] = useState(null)
   
   // Filter states
   const [showFilterPopup, setShowFilterPopup] = useState(false)
@@ -448,9 +452,12 @@ export default function AllOrdersPage() {
   })
 
   return (
-    <div className="restaurant-page min-h-full bg-gray-100">
+    <div className="restaurant-page h-[100dvh] flex flex-col md:flex-row relative overflow-hidden bg-gray-100 md:max-w-5xl md:mx-auto md:border-x md:border-gray-200">
+      
+      {/* Main List Column */}
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 h-full overflow-y-auto ${selectedOrder ? 'hidden md:flex' : 'flex'}`}>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50">
+      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <button
             onClick={goBack}
@@ -592,8 +599,8 @@ export default function AllOrdersPage() {
                 delay: Math.min(index * 0.05, 0.3),
                 layout: { duration: 0.3 }
               }}
-              onClick={() => navigate(`/food/restaurant/orders/${order.id}`, { state: { mongoId: order.mongoId } })}
-              className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setSelectedOrder({ id: order.id, mongoId: order.mongoId })}
+              className={`bg-white border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow ${selectedOrder?.id === order.id ? 'border-blue-500 shadow-sm ring-1 ring-blue-500' : 'border-gray-200'}`}
             >
             {/* Status and Order ID Row */}
             <div className="flex items-start justify-between mb-3">
@@ -670,6 +677,26 @@ export default function AllOrdersPage() {
           </AnimatePresence>
         )}
       </div>
+      </div>
+
+      {/* Side Panel for Order Details */}
+      <AnimatePresence>
+        {selectedOrder && (
+          <motion.div
+            initial={{ x: "100%", opacity: 0.5 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0.5 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="w-full md:w-[450px] lg:w-[500px] border-l border-gray-200 bg-white h-[100dvh] md:h-full z-[100] md:z-auto fixed md:static top-0 right-0 overflow-y-auto flex-shrink-0 shadow-2xl md:shadow-none"
+          >
+            <OrderDetails 
+               idProp={selectedOrder.id} 
+               mongoIdProp={selectedOrder.mongoId} 
+               onClose={() => setSelectedOrder(null)} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Date Range Popup */}
       <AnimatePresence>

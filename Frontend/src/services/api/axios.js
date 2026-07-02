@@ -55,6 +55,41 @@ function clearModuleAuth(module) {
 }
 
 /**
+ * Global Error Formatter
+ * Converts raw technical errors (like 401, 500, AxiosError) into user-friendly messages.
+ */
+function formatApiError(err) {
+  if (err?.response) {
+    const status = err.response.status;
+    
+    // Default to the message provided by backend
+    let friendlyMessage = err.response?.data?.message || err.message;
+    
+    // Override generic or raw technical messages
+    const isGeneric = !friendlyMessage || friendlyMessage.includes('AxiosError') || friendlyMessage.includes('Request failed with status code');
+
+    if (isGeneric || status === 401) {
+      if (status === 401) friendlyMessage = "Incorrect email or password, or session expired.";
+      else if (status === 403) friendlyMessage = "Access denied. You don't have permission.";
+      else if (status === 404) friendlyMessage = "Requested data not found.";
+      else if (status === 429) friendlyMessage = "Too many requests. Please wait a moment.";
+      else if (status >= 500) friendlyMessage = "Server error. Please try again later.";
+      else friendlyMessage = "An unexpected error occurred.";
+    }
+
+    // Mutate safely so that frontend components reading err.response.data.message get the clean text
+    if (!err.response.data) err.response.data = {};
+    err.response.data.message = friendlyMessage;
+    err.message = friendlyMessage;
+  } else if (err?.request) {
+    err.message = "Network error. Please check your internet connection.";
+  } else {
+    err.message = "An unexpected error occurred.";
+  }
+  return err;
+}
+
+/**
  * Factory to create role-specific API clients.
  * Benefit: Isolation of tokens, refresh logic, and error handling.
  */
@@ -133,18 +168,18 @@ function createModuleClient(moduleName) {
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("accessDenied", { detail: { module: moduleName } }));
         }
-        return Promise.reject(err);
+        return Promise.reject(formatApiError(err));
       }
 
       // 401 handling (Unauthorized / Expired)
       if (err?.response?.status !== 401 || !original || original._retry) {
-        return Promise.reject(err);
+        return Promise.reject(formatApiError(err));
       }
 
       const refreshToken = getRefreshToken(moduleName);
       if (!refreshToken) {
         onRefreshFailed();
-        return Promise.reject(err);
+        return Promise.reject(formatApiError(err));
       }
 
       if (isRefreshing) {
@@ -154,7 +189,7 @@ function createModuleClient(moduleName) {
               original.headers.Authorization = `Bearer ${newToken}`;
               resolve(client(original));
             } else {
-              reject(err);
+              reject(formatApiError(err));
             }
           });
         });
@@ -179,13 +214,13 @@ function createModuleClient(moduleName) {
         }
       } catch (_) {
         onRefreshFailed();
-        return Promise.reject(err);
+        return Promise.reject(formatApiError(err));
       } finally {
         isRefreshing = false;
       }
 
       onRefreshFailed();
-      return Promise.reject(err);
+      return Promise.reject(formatApiError(err));
     }
   );
 
@@ -252,6 +287,14 @@ apiClient.interceptors.request.use(
     return config;
   },
   (err) => Promise.reject(err)
+);
+
+// Response Interceptor for Legacy Client
+apiClient.interceptors.response.use(
+  (response) => response,
+  (err) => {
+    return Promise.reject(formatApiError(err));
+  }
 );
 
 export default apiClient;

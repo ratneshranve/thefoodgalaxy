@@ -106,7 +106,7 @@ export default function RestaurantSupport() {
   }
 
   return (
-    <div className="restaurant-page min-h-full bg-slate-50">
+    <div className="restaurant-page min-h-full bg-slate-50 md:max-w-4xl md:mx-auto md:border-x md:border-slate-200">
       <div className="sticky top-0 z-40 bg-white border-b border-slate-200">
         <div className="px-4 py-3 flex items-center gap-3">
           <button

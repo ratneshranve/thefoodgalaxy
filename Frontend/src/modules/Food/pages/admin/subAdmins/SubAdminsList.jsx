@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 import { adminAPI } from "../../../../../services/api/index.js";
 import { toast } from "sonner";
 import SubAdminForm from "./SubAdminForm";
@@ -10,6 +10,11 @@ export default function SubAdminsList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingSubAdmin, setEditingSubAdmin] = useState(null);
+  const [showPasswords, setShowPasswords] = useState({});
+
+  const togglePasswordVisibility = (id) => {
+    setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const fetchSubAdmins = async () => {
     setLoading(true);
@@ -131,6 +136,7 @@ export default function SubAdminsList() {
               <tr>
                 <th className="px-6 py-4 text-sm font-semibold text-gray-600">Name</th>
                 <th className="px-6 py-4 text-sm font-semibold text-gray-600">Email</th>
+                <th className="px-6 py-4 text-sm font-semibold text-gray-600">Password</th>
                 <th className="px-6 py-4 text-sm font-semibold text-gray-600">Phone</th>
                 <th className="px-6 py-4 text-sm font-semibold text-gray-600">Status</th>
                 <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">Actions</th>
@@ -139,13 +145,13 @@ export default function SubAdminsList() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                     Loading...
                   </td>
                 </tr>
               ) : subAdmins.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                     No sub admins found.
                   </td>
                 </tr>
@@ -156,6 +162,20 @@ export default function SubAdminsList() {
                       <div className="font-medium text-gray-800">{admin.name}</div>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{admin.email}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span className="font-mono text-sm tracking-wider">
+                          {showPasswords[admin._id] ? (admin.visiblePassword || <span className="text-xs text-red-500 font-sans font-medium">Encrypted (Reset required)</span>) : "••••••••"}
+                        </span>
+                        <button
+                          onClick={() => togglePasswordVisibility(admin._id)}
+                          className="p-1 text-gray-400 hover:text-[#11b5b8] rounded-md transition-colors"
+                          title={showPasswords[admin._id] ? "Hide password" : "Show password"}
+                        >
+                          {showPasswords[admin._id] ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-gray-600">{admin.phone || "N/A"}</td>
                     <td className="px-6 py-4">
                       <label className="relative inline-flex items-center cursor-pointer">

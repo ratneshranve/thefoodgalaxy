@@ -1464,28 +1464,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                       </button>
                     )}
 
-                    <button
-                      onClick={() => {
-                         if (window.confirm("Are you sure you want to cancel this delivery? You will need to provide a reason.")) {
-                             const reason = window.prompt("Reason for cancellation / Issue:");
-                             if (reason !== null && reason.trim() !== "") {
-                                import('@food/api').then(({ deliveryAPI }) => {
-                                   deliveryAPI.rejectOrder(activeOrder.orderId || activeOrder._id, { reason })
-                                     .then(() => {
-                                        toast.success("Delivery cancelled successfully.");
-                                        setIsModalMinimized(true);
-                                     })
-                                     .catch(() => toast.error("Failed to cancel delivery."));
-                                });
-                             } else if (reason !== null) {
-                                toast.error("Reason is required to cancel delivery.");
-                             }
-                         }
-                      }}
-                      className="w-full mt-4 py-3 text-red-500 font-bold text-[10px] sm:text-xs uppercase tracking-widest bg-white/80 backdrop-blur-sm border border-red-100 hover:bg-red-50 rounded-2xl transition-colors flex justify-center items-center gap-2"
-                    >
-                      Report Issue / Cancel Delivery
-                    </button>
+
                   </div>
                 )}
                 {showVerification && tripStatus !== 'COMPLETED' && (

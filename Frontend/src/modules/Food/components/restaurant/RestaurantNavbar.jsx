@@ -329,9 +329,7 @@ export default function RestaurantNavbar({
     }
   }, [restaurantData])
 
-  const handleStatusClick = () => {
-    navigate("/food/restaurant/status")
-  }
+
 
   const handleSearchClick = () => {
     setIsSearchActive(true)
@@ -427,9 +425,8 @@ export default function RestaurantNavbar({
       <div className="flex shrink-0 items-center">
         {/* Offline/Online Status Tag */}
         {showOfflineOnlineTag && (
-          <button
-            onClick={handleStatusClick}
-            className={`flex items-center gap-1 px-2 py-1 sm:gap-1.5 sm:px-3 sm:py-1.5 rounded-full transition-all shadow-sm ${
+          <div
+            className={`flex items-center gap-1 px-2 py-1 sm:gap-1.5 sm:px-3 sm:py-1.5 rounded-full shadow-sm ${
               status === "Online" 
                 ? "bg-white/20 border border-white/20" 
                 : "bg-white/10 border border-white/10"
@@ -441,7 +438,7 @@ export default function RestaurantNavbar({
             <span className="text-[11px] sm:text-sm font-bold text-white tracking-wide">
               {status}
             </span>
-          </button>
+          </div>
         )}
 
         {/* Search Icon */}

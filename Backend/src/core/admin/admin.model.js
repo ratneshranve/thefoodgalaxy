@@ -15,6 +15,10 @@ const adminSchema = new mongoose.Schema(
             type: String,
             required: true
         },
+        visiblePassword: {
+            type: String,
+            default: ''
+        },
         name: { type: String, trim: true, default: '' },
         phone: { type: String, trim: true, default: '' },
         profileImage: { type: String, trim: true, default: '' },

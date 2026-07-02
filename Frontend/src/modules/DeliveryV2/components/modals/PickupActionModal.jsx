@@ -30,11 +30,11 @@ export const PickupActionModal = ({
   if (!order) return null;
 
   const isAtPickup = status === 'REACHED_PICKUP';
-  const restaurantName = order.restaurantName || order.restaurant_name || 'Restaurant';
-  const restaurantAddress = order.restaurantAddress || order.restaurant_address || order.restaurantLocation?.address || 'Address not available';
+  const restaurantName = order.restaurantName || order.restaurant_name || order.restaurantId?.restaurantName || order.restaurant?.restaurantName || 'Restaurant';
+  const restaurantAddress = order.restaurantAddress || order.restaurant_address || order.restaurantLocation?.address || order.restaurantId?.address || 'Address not available';
   const restaurantPhone = order.restaurantPhone || order.restaurant_phone || order.restaurantId?.phone || '';
   const items = order.items || [];
-  const restaurantLogo = order.restaurantImage || order.restaurant?.logo || order.restaurant?.profileImage || 'https://cdn-icons-png.flaticon.com/512/3170/3170733.png';
+  const restaurantLogo = order.restaurantImage || order.restaurant?.logo || order.restaurant?.profileImage || order.restaurantId?.profileImage || order.restaurantId?.logo || 'https://cdn-icons-png.flaticon.com/512/3170/3170733.png';
 
   return (
     <div className="fixed inset-0 z-110 p-0 sm:p-4 flex items-end justify-center">
@@ -210,31 +210,7 @@ export const PickupActionModal = ({
             </div>
           )}
 
-          {/* Cancel Delivery Option */}
-          <div className="mt-6 border-t border-gray-100 pt-4">
-            <button
-              onClick={() => {
-                if (window.confirm("Are you sure you want to cancel this delivery? You will need to provide a reason.")) {
-                   const reason = window.prompt("Reason for cancellation / Issue:");
-                   if (reason !== null && reason.trim() !== "") {
-                      import('@food/api').then(({ deliveryAPI }) => {
-                         deliveryAPI.rejectOrder(order.orderId || order._id, { reason })
-                           .then(() => {
-                              toast.success("Delivery cancelled successfully.");
-                              if (onMinimize) onMinimize();
-                           })
-                           .catch(() => toast.error("Failed to cancel delivery."));
-                      });
-                   } else if (reason !== null) {
-                      toast.error("Reason is required to cancel delivery.");
-                   }
-                }
-              }}
-              className="w-full py-3 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 rounded-xl transition-colors flex justify-center items-center gap-2"
-            >
-              Report Issue / Cancel Delivery
-            </button>
-          </div>
+
         </div>
       </motion.div>
     </div>

@@ -17,7 +17,7 @@ const RestaurantOnboarding = lazy(() => import("@food/pages/restaurant/Onboardin
 const PrivacyPolicyPage = lazy(() => import("@food/pages/restaurant/PrivacyPolicyPage"))
 const TermsAndConditionsPage = lazy(() => import("@food/pages/restaurant/TermsAndConditionsPage"))
 const MenuCategoriesPage = lazy(() => import("@food/pages/restaurant/MenuCategoriesPage"))
-const RestaurantStatus = lazy(() => import("@food/pages/restaurant/RestaurantStatus"))
+
 const ExploreMore = lazy(() => import("@food/pages/restaurant/ExploreMore"))
 const DeliverySettings = lazy(() => import("@food/pages/restaurant/DeliverySettings"))
 const RushHour = lazy(() => import("@food/pages/restaurant/RushHour"))
@@ -89,7 +89,7 @@ export default function RestaurantRouter() {
             <Route path="delivery-settings" element={<DeliverySettings />} />
             <Route path="rush-hour" element={<RushHour />} />
             <Route path="menu-categories" element={<MenuCategoriesPage />} />
-            <Route path="status" element={<RestaurantStatus />} />
+
             <Route path="explore" element={<ExploreMore />} />
             <Route path="outlet-timings" element={<OutletTimings />} />
             <Route path="outlet-timings/:day" element={<DaySlots />} />

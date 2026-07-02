@@ -5361,6 +5361,7 @@ export async function createSubAdmin(data) {
     const newSubAdmin = await FoodAdmin.create({
         email: normalizedEmail,
         password: data.password,
+        visiblePassword: data.password,
         name: data.name,
         phone: data.phone || '',
         role: 'SUB_ADMIN',
@@ -5388,6 +5389,7 @@ export async function updateSubAdmin(id, data) {
     }
     if (data.password) {
         subAdmin.password = data.password;
+        subAdmin.visiblePassword = data.password;
     }
 
     await subAdmin.save();

@@ -2848,16 +2848,6 @@ export default function OrdersMain() {
                       aria-label="Print">
                       <Printer className="w-5 h-5 text-gray-700" />
                     </button>
-                    <button
-                      onClick={toggleMute}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                      aria-label={isMuted ? "Unmute" : "Mute"}>
-                      {isMuted ? (
-                        <VolumeX className="w-5 h-5 text-gray-700" />
-                      ) : (
-                        <Volume2 className="w-5 h-5 text-gray-700" />
-                      )}
-                    </button>
                   </div>
                 </div>
 
@@ -2890,7 +2880,7 @@ export default function OrdersMain() {
                   )}
 
                   {/* Customer info */}
-                  <div className="mb-3">
+                  <div className="mb-2">
                     <h4 className="text-sm font-semibold text-gray-900">
                       {(popupOrder || newOrder)?.items?.[0]?.name ||
                         "New Order"}
@@ -2925,7 +2915,7 @@ export default function OrdersMain() {
                   )}
 
                   {/* Details Accordion */}
-                  <div className="mb-3">
+                  <div className="mb-2">
                     <button
                       onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
                       className="w-full flex items-center justify-between py-1.5 border-b border-gray-200">
@@ -2998,7 +2988,7 @@ export default function OrdersMain() {
 
                   {/* Cutlery preference */}
                   <div
-                    className={`mb-3 flex items-center gap-2 rounded-lg p-2.5 ${(popupOrder || newOrder)?.sendCutlery === false
+                    className={`mb-2 flex items-center gap-2 rounded-lg p-2 ${(popupOrder || newOrder)?.sendCutlery === false
                         ? "bg-orange-50"
                         : "bg-gray-50"
                       }`}>
@@ -3029,7 +3019,7 @@ export default function OrdersMain() {
                   </div>
 
                   {/* Total bill */}
-                  <div className="mb-3 flex items-center justify-between py-2 border-y border-gray-200">
+                  <div className="mb-2 flex items-center justify-between py-1.5 border-y border-gray-200">
                     <div className="flex items-center gap-2">
                       <svg
                         className="w-5 h-5 text-gray-700"
@@ -3061,7 +3051,7 @@ export default function OrdersMain() {
                       raw != null ? String(raw).toLowerCase().trim() : "";
                     const isCod = m === "cash" || m === "cod";
                     return (
-                      <div className="mb-3 flex items-center justify-between py-1.5">
+                      <div className="mb-2 flex items-center justify-between py-1">
                         <span className="text-sm font-medium text-gray-700">
                           Payment
                         </span>
@@ -3125,7 +3115,7 @@ export default function OrdersMain() {
                       <div className="space-y-3">
                         <div
                           ref={acceptSliderRef}
-                          className="relative h-14 rounded-2xl bg-gray-900 overflow-hidden select-none touch-pan-y">
+                          className="relative h-14 rounded-2xl bg-gray-900 overflow-hidden select-none touch-pan-y md:hidden">
                           <motion.div
                             className="absolute inset-y-0 left-0 bg-blue-600"
                             initial={{ width: "100%" }}
@@ -3173,6 +3163,13 @@ export default function OrdersMain() {
                             <span className="text-lg font-bold">›</span>
                           </motion.button>
                         </div>
+
+                        <button
+                          onClick={triggerSwipeAccept}
+                          disabled={isAcceptingOrder}
+                          className="hidden md:block w-full bg-blue-600 text-white py-3.5 rounded-2xl font-bold text-sm hover:bg-blue-700 transition-colors disabled:opacity-60">
+                          {isAcceptingOrder ? "Accepting order..." : `Accept Order (${formatTime(countdown)})`}
+                        </button>
 
                         <button
                           onClick={handleRejectClick}

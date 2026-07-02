@@ -226,7 +226,7 @@ export default function MenuCategoriesPage() {
   }
 
   return (
-    <div className="min-h-full bg-slate-50 pb-24">
+    <div className="min-h-full bg-slate-50 pb-24 md:max-w-4xl md:mx-auto md:border-x md:border-slate-200">
       <div className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="px-4 py-3 flex items-center gap-3">
           <button onClick={goBack} className="rounded-full p-1 hover:bg-slate-100">

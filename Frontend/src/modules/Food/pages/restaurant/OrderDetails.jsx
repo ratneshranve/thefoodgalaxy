@@ -50,11 +50,13 @@ const formatMoney = (value) => `₹${Number(value || 0).toFixed(2)}`
 const formatDiscount = (value) => `-₹${Math.abs(Number(value || 0)).toFixed(2)}`
 
 
-export default function OrderDetails() {
+export default function OrderDetails({ idProp, mongoIdProp, onClose }) {
   const navigate = useNavigate()
   const goBack = useRestaurantBackNavigation()
-  const { id: orderId } = useParams()
+  const params = useParams()
   const location = useLocation()
+  
+  const orderId = idProp || params.id
   
   // State for order data
   const [orderData, setOrderData] = useState(null)
@@ -79,7 +81,7 @@ export default function OrderDetails() {
           response = await restaurantAPI.getOrderById(orderId)
           if (!response.data?.success) throw new Error('Readable ID fetch failed')
         } catch (e) {
-          const fallbackId = location.state?.mongoId
+          const fallbackId = mongoIdProp || location.state?.mongoId
           if (fallbackId && fallbackId !== orderId) {
             response = await restaurantAPI.getOrderById(fallbackId)
           } else {
@@ -714,10 +716,13 @@ export default function OrderDetails() {
   return (
     <div className="restaurant-page min-h-full bg-gray-100 pb-8">
       {/* Header */}
-      <div className="bg-white  px-4 py-3 sticky top-0 z-50">
+      <div className="bg-white px-4 py-3 sticky top-0 z-[45] border-b border-gray-100 shadow-sm">
         <div className="flex items-center gap-3">
           <button
-            onClick={goBack}
+            onClick={() => {
+              if (onClose) onClose()
+              else goBack()
+            }}
             className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Go back"
           >
