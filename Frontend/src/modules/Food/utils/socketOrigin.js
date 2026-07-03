@@ -16,7 +16,14 @@ export function resolveSocketOrigin() {
       : typeof window !== 'undefined'
         ? window.location.origin
         : undefined;
-    return new URL(backendUrl, base).origin;
+    const origin = new URL(backendUrl, base).origin;
+    
+    // For local development without Nginx reverse proxy
+    if (origin === 'http://localhost:5000') {
+      return 'http://localhost:5001';
+    }
+    
+    return origin;
   } catch {
     const stripped = String(backendUrl)
       .replace(/\/api\/v\d+\/?$/i, '')
