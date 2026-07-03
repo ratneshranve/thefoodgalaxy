@@ -3,12 +3,13 @@ import app from './src/app.js';
 import { config } from './src/config/env.js';
 import { validateConfig } from './src/config/validateEnv.js';
 import { connectDB, disconnectDB } from './src/config/db.js';
-import { connectRedis, closeRedis } from './src/config/redis.js';
+import { connectRedis, closeRedis, getRedisClient } from './src/config/redis.js';
 import { initializeQueues, closeBullMQConnection } from './src/queues/index.js';
 
 import { logger } from './src/utils/logger.js';
 import { initializeFirebaseRealtime } from './src/config/firebase.js';
 import { loadEnvFromDb } from './src/config/envLoader.js';
+import { initRedisEmitter } from './src/config/socket.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10000;
 let server = null;
@@ -56,6 +57,7 @@ const startServer = async () => {
 
         if (config.redisEnabled) {
             await connectRedis();
+            initRedisEmitter(getRedisClient());
         }
         
         // Watchdog recovered stuck orders is moved to scheduler-server.js

@@ -1,4 +1,5 @@
 import { Server } from 'socket.io';
+import { Emitter } from '@socket.io/redis-emitter';
 import { config } from './env.js';
 import { logger } from '../utils/logger.js';
 import { haversineMeters, shouldBroadcastLocation } from '../utils/geo.js';
@@ -6,6 +7,7 @@ import { verifyAccessToken } from '../core/auth/token.util.js';
 import { getFirebaseDB } from './firebase.js';
 
 let io = null;
+let redisEmitter = null;
 
 function logDeliverySocket(message, extra = {}) {
     const suffix = Object.keys(extra).length ? ` ${JSON.stringify(extra)}` : '';
@@ -423,15 +425,28 @@ export const initSocket = async (server) => {
     return io;
 };
 
+export const initRedisEmitter = (redisClient) => {
+    if (redisClient && !redisEmitter) {
+        redisEmitter = new Emitter(redisClient);
+        logger.info('Redis Emitter initialized for API broadcasting.');
+    }
+};
+
 /**
- * Returns the initialized Socket.IO instance.
- * @returns {Server | null}
+ * Returns the initialized Socket.IO instance or Redis Emitter.
+ * @returns {Server | Emitter | null}
  */
 export const getIO = () => {
-    if (!io) {
-        logger.warn('Socket.IO not initialized');
-    }
-    return io;
+    if (io) return io;
+    if (redisEmitter) return redisEmitter;
+    
+    logger.warn('Socket.IO not initialized (No local Server or Redis Emitter)');
+    
+    // Return a mock object to prevent crashes if called when disabled
+    return {
+        to: () => ({ emit: () => {} }),
+        emit: () => {}
+    };
 };
 
 export const rooms = roomNames;
