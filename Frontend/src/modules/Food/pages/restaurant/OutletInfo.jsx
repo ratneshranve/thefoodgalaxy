@@ -266,7 +266,7 @@ export default function OutletInfo() {
   }
 
   return (
-    <div className="min-h-full bg-gray-50 pb-12 md:max-w-4xl md:mx-auto md:border-x md:border-gray-200">
+    <div className="min-h-full bg-gray-50 pb-12">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="flex items-center gap-3">

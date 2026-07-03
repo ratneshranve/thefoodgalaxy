@@ -45,7 +45,7 @@ export default function WithdrawalHistoryPage() {
   }, [])
 
   return (
-    <div className="restaurant-page min-h-full bg-gray-100 md:max-w-4xl md:mx-auto md:border-x md:border-gray-200">
+    <div className="restaurant-page min-h-full bg-gray-100">
       {/* Header */}
       <div className="sticky bg-white top-0 z-40 px-4 py-3 border-b border-gray-200">
         <div className="flex items-center gap-3">

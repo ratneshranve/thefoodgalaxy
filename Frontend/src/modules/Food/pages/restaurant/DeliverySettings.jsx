@@ -203,7 +203,7 @@ export default function DeliverySettings() {
   }
 
   return (
-    <div className="restaurant-page min-h-full bg-gray-100 md:max-w-4xl md:mx-auto md:border-x md:border-gray-200">
+    <div className="restaurant-page min-h-full bg-gray-100">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50">
         <div className="flex items-center gap-3">
@@ -240,17 +240,17 @@ export default function DeliverySettings() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-base font-bold text-gray-900 mb-1.5">Turn on delivery</p>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-bold text-gray-900 mb-1.5 truncate">Turn on delivery</p>
                   <motion.div 
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 origin-left"
                     initial={false}
                     animate={{ scale: deliveryStatus ? 1.05 : 1 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className={`w-2 h-2 rounded-full ${deliveryStatus ? "bg-green-500 animate-pulse" : "bg-gray-600"}`}></div>
-                    <p className="text-sm text-gray-500">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${deliveryStatus ? "bg-green-500 animate-pulse" : "bg-gray-600"}`}></div>
+                    <p className="text-sm text-gray-500 truncate">
                       {deliveryStatus ? "Receiving orders" : "Not receiving orders"}
                     </p>
                   </motion.div>
@@ -262,8 +262,8 @@ export default function DeliverySettings() {
                         exit={{ opacity: 0, y: -5 }}
                         className="text-xs text-orange-600 mt-2 flex items-center gap-1"
                       >
-                        <AlertCircle className="w-3 h-3" />
-                        You are outside outlet timings
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        <span className="truncate">You are outside outlet timings</span>
                       </motion.p>
                     )}
                     {showWarning && deliveryStatus && (
@@ -273,8 +273,8 @@ export default function DeliverySettings() {
                         exit={{ opacity: 0, y: -5 }}
                         className="text-xs text-red-600 mt-2 animate-pulse flex items-center gap-1"
                       >
-                        <AlertCircle className="w-3 h-3" />
-                        Warning: Delivery enabled outside outlet timings!
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        <span className="truncate">Warning: Delivery enabled outside outlet timings!</span>
                       </motion.p>
                     )}
                   </AnimatePresence>
@@ -283,7 +283,7 @@ export default function DeliverySettings() {
                   checked={deliveryStatus}
                   onCheckedChange={handleDeliveryStatusChange}
                   disabled={savingStatus}
-                  className="ml-4 data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300"
+                  className="shrink-0 data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300"
                 />
               </div>
             </CardContent>

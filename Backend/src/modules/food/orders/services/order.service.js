@@ -26,6 +26,7 @@ import {
 import { getIO, rooms } from '../../../../config/socket.js';
 import { addOrderJob } from '../../../../queues/producers/order.producer.js';
 import { fetchPolyline } from '../utils/googleMaps.js';
+import { getDrivingDistances } from '../../../../services/googleMaps.service.js';
 import { getFirebaseDB } from '../../../../config/firebase.js';
 import * as foodTransactionService from './foodTransaction.service.js';
 import * as userWalletService from '../../user/services/userWallet.service.js';
@@ -218,8 +219,22 @@ export async function createOrder(userId, dto) {
   ) {
     const [rLng, rLat] = restaurant.location.coordinates;
     const [dLng, dLat] = dto.address.location.coordinates;
-    const d = haversineKm(rLat, rLng, dLat, dLng);
-    distanceKm = Number.isFinite(d) ? d : null;
+    try {
+      const origin = { lat: rLat, lng: rLng };
+      const dests = [{ id: "delivery", lat: dLat, lng: dLng }];
+      const distances = await getDrivingDistances(origin, dests);
+      const distInfo = distances.get("delivery");
+      
+      if (distInfo && distInfo.distanceValue) {
+        distanceKm = distInfo.distanceValue / 1000;
+      } else {
+        const d = haversineKm(rLat, rLng, dLat, dLng);
+        distanceKm = Number.isFinite(d) ? d : null;
+      }
+    } catch (err) {
+      const d = haversineKm(rLat, rLng, dLat, dLng);
+      distanceKm = Number.isFinite(d) ? d : null;
+    }
   } else {
     console.warn(
       `Food order: distance not available, rider earning set to 0`,

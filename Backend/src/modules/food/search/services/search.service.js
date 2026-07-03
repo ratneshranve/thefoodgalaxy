@@ -1,6 +1,7 @@
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
+import { getDrivingDistances } from '../../../../services/googleMaps.service.js';
 import mongoose from 'mongoose';
 
 /**
@@ -218,23 +219,74 @@ export const searchUnified = async (query = {}, options = {}) => {
             geoDistanceMap = null;
         }
 
+        // Fetch precise driving distances via Google Maps API
+        let drivingDistances = new Map();
+        try {
+            const origin = { lat: userLat, lng: userLng };
+            const dests = [];
+            
+            const uniqueRestMap = new Map();
+            results.forEach(res => {
+                const resId = (res.originalRestaurantId || res._id)?.toString();
+                if (!resId || uniqueRestMap.has(resId)) return;
+                
+                let destLat = null, destLng = null;
+                if (res.location && res.location.latitude && res.location.longitude) {
+                    destLat = res.location.latitude;
+                    destLng = res.location.longitude;
+                } else if (res.location?.coordinates?.length === 2) {
+                    destLng = res.location.coordinates[0];
+                    destLat = res.location.coordinates[1];
+                }
+                
+                if (destLat && destLng) {
+                    dests.push({ id: resId, lat: destLat, lng: destLng });
+                    uniqueRestMap.set(resId, true);
+                }
+            });
+            
+            drivingDistances = await getDrivingDistances(origin, dests);
+        } catch (err) {
+            console.error('[Search-Service] Google Maps API error:', err.message);
+        }
+
         results.forEach(res => {
             const resId = (res.originalRestaurantId || res._id)?.toString();
 
-            // Try precomputed distance from $geoNear first
-            if (geoDistanceMap && resId && geoDistanceMap.has(resId)) {
-                res.distanceScore = geoDistanceMap.get(resId);
-            } else if (res.location && res.location.latitude && res.location.longitude) {
-                // JS fallback for individual results not in geoNear map
-                const dLat = (res.location.latitude - userLat) * Math.PI / 180;
-                const dLon = (res.location.longitude - userLng) * Math.PI / 180;
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                          Math.cos(userLat * Math.PI / 180) * Math.cos(res.location.latitude * Math.PI / 180) *
-                          Math.sin(dLon/2) * Math.sin(dLon/2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                res.distanceScore = 6371 * c;
-            } else {
-                res.distanceScore = 999;
+            let finalDistanceScore = 999;
+            let finalDistanceInfo = null;
+
+            if (drivingDistances.has(resId)) {
+                const distInfo = drivingDistances.get(resId);
+                if (distInfo && distInfo.distanceValue != null) {
+                    finalDistanceScore = distInfo.distanceValue / 1000;
+                    finalDistanceInfo = distInfo;
+                }
+            }
+
+            if (finalDistanceScore === 999) {
+                // Try precomputed distance from $geoNear first
+                if (geoDistanceMap && resId && geoDistanceMap.has(resId)) {
+                    finalDistanceScore = geoDistanceMap.get(resId);
+                } else if (res.location && res.location.latitude && res.location.longitude) {
+                    // JS fallback for individual results not in geoNear map
+                    const dLat = (res.location.latitude - userLat) * Math.PI / 180;
+                    const dLon = (res.location.longitude - userLng) * Math.PI / 180;
+                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                              Math.cos(userLat * Math.PI / 180) * Math.cos(res.location.latitude * Math.PI / 180) *
+                              Math.sin(dLon/2) * Math.sin(dLon/2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    finalDistanceScore = 6371 * c;
+                }
+            }
+
+            res.distanceScore = finalDistanceScore;
+
+            if (finalDistanceInfo) {
+                res.distanceText = finalDistanceInfo.distanceText;
+                res.distanceInfo = finalDistanceInfo;
+            } else if (finalDistanceScore !== 999) {
+                res.distanceText = finalDistanceScore >= 1 ? `${finalDistanceScore.toFixed(1)} km` : `${Math.round(finalDistanceScore * 1000)} m`;
             }
         });
         results.sort((a, b) => (a.distanceScore || 999) - (b.distanceScore || 999));

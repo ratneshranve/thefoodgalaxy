@@ -6,6 +6,7 @@ import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodOfferUsage } from '../../admin/models/offerUsage.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { haversineKm } from './order.helpers.js';
+import { getDrivingDistances } from '../../../../services/googleMaps.service.js';
 
 export async function calculateOrderPricing(userId, dto) {
   const restaurant = await FoodRestaurant.findById(dto.restaurantId)
@@ -60,8 +61,22 @@ export async function calculateOrderPricing(userId, dto) {
   ) {
     const [rLng, rLat] = restaurant.location.coordinates;
     const [dLng, dLat] = dto.deliveryAddress.location.coordinates;
-    const d = haversineKm(rLat, rLng, dLat, dLng);
-    distanceKm = Number.isFinite(d) ? d : null;
+    try {
+      const origin = { lat: rLat, lng: rLng };
+      const dests = [{ id: "delivery", lat: dLat, lng: dLng }];
+      const distances = await getDrivingDistances(origin, dests);
+      const distInfo = distances.get("delivery");
+      
+      if (distInfo && distInfo.distanceValue) {
+        distanceKm = distInfo.distanceValue / 1000;
+      } else {
+        const d = haversineKm(rLat, rLng, dLat, dLng);
+        distanceKm = Number.isFinite(d) ? d : null;
+      }
+    } catch (err) {
+      const d = haversineKm(rLat, rLng, dLat, dLng);
+      distanceKm = Number.isFinite(d) ? d : null;
+    }
   }
   let deliveryFee = 0;
   let deliveryFeeBreakdown = null;

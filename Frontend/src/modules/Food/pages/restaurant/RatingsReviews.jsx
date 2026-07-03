@@ -93,7 +93,7 @@ export default function RatingsReviews() {
   }
 
   return (
-    <div className="restaurant-page min-h-full bg-white overflow-x-hidden pb-8 md:max-w-4xl md:mx-auto md:border-x md:border-gray-200">
+    <div className="restaurant-page min-h-full bg-white overflow-x-hidden pb-8">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50">
         <div className="flex items-center gap-3">

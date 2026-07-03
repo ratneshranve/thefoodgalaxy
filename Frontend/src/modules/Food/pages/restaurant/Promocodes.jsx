@@ -113,7 +113,7 @@ export default function Promocodes() {
   };
 
   return (
-    <div className="min-h-full bg-gray-50 pb-20">
+    <div className="restaurant-page min-h-full bg-gray-50 pb-20">
       {/* Header */}
       <div className="bg-primary px-4 py-4 sticky top-0 z-10 shadow-md">
         <div className="flex items-center gap-3">

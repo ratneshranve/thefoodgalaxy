@@ -374,6 +374,27 @@ export default function SignupStep2() {
       return
     }
 
+    if (!documents.profilePhoto) {
+      toast.error("Profile Photo is required")
+      return
+    }
+    if (!documents.aadharFrontPhoto) {
+      toast.error("Aadhar Card (Front) is required")
+      return
+    }
+    if (!documents.aadharBackPhoto) {
+      toast.error("Aadhar Card (Back) is required")
+      return
+    }
+    if (!documents.panPhoto) {
+      toast.error("PAN Card Photo is required")
+      return
+    }
+    if (!documents.rcPhoto) {
+      toast.error("RC (Registration Certificate) is required")
+      return
+    }
+
     const formData = new FormData()
     formData.append("name", details.name || "")
     formData.append("phone", String(details.phone || "").replace(/\D/g, "").slice(0, 15))
@@ -617,31 +638,15 @@ export default function SignupStep2() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <DocumentUpload docType="profilePhoto" label="Profile Photo" required={false} />
-          <DocumentUpload docType="aadharFrontPhoto" label="Aadhar Card (Front)" required={false} />
-          <DocumentUpload docType="aadharBackPhoto" label="Aadhar Card (Back)" required={false} />
-          <DocumentUpload docType="panPhoto" label="PAN Card Photo" required={false} />
+          <DocumentUpload docType="profilePhoto" label="Profile Photo" required={true} />
+          <DocumentUpload docType="aadharFrontPhoto" label="Aadhar Card (Front)" required={true} />
+          <DocumentUpload docType="aadharBackPhoto" label="Aadhar Card (Back)" required={true} />
+          <DocumentUpload docType="panPhoto" label="PAN Card Photo" required={true} />
           
-          {(() => {
-            const raw = localStorage.getItem("deliverySignupDetails");
-            let isDLRequired = true;
-            try {
-              if (raw) {
-                const details = JSON.parse(raw);
-                if (details.vehicleType === "ev" || details.vehicleType === "bicycle") {
-                  isDLRequired = false;
-                }
-              }
-            } catch (e) {}
-            return (
-              <>
-                <DocumentUpload docType="drivingLicenseFrontPhoto" label="Driving License (Front)" required={isDLRequired} />
-                <DocumentUpload docType="drivingLicenseBackPhoto" label="Driving License (Back)" required={isDLRequired} />
-              </>
-            );
-          })()}
+          <DocumentUpload docType="drivingLicenseFrontPhoto" label="Driving License (Front)" required={false} />
+          <DocumentUpload docType="drivingLicenseBackPhoto" label="Driving License (Back)" required={false} />
           
-          <DocumentUpload docType="rcPhoto" label="RC (Registration Certificate)" required={false} />
+          <DocumentUpload docType="rcPhoto" label="RC (Registration Certificate)" required={true} />
 
           {/* Submit Button */}
           <button

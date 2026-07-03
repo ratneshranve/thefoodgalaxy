@@ -452,7 +452,7 @@ export default function AllOrdersPage() {
   })
 
   return (
-    <div className="restaurant-page h-[100dvh] flex flex-col md:flex-row relative overflow-hidden bg-gray-100 md:max-w-5xl md:mx-auto md:border-x md:border-gray-200">
+    <div className="restaurant-page h-[100dvh] flex flex-col md:flex-row relative overflow-hidden bg-gray-100">
       
       {/* Main List Column */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 h-full overflow-y-auto ${selectedOrder ? 'hidden md:flex' : 'flex'}`}>

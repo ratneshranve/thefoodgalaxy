@@ -669,7 +669,12 @@ export default function Under250() {
     const fetchRestaurantsList = async () => {
       try {
         setLoadingRestaurants(true)
-        const response = await restaurantAPI.getRestaurants(zoneId ? { zoneId } : {})
+        const params = zoneId ? { zoneId } : {}
+        if (location?.latitude && location?.longitude) {
+          params.lat = location.latitude
+          params.lng = location.longitude
+        }
+        const response = await restaurantAPI.getRestaurants(params)
         const restaurantsRaw = Array.isArray(response?.data?.data?.restaurants)
           ? response.data.data.restaurants
           : []
@@ -774,18 +779,20 @@ export default function Under250() {
                 restaurantLocation?.longitude ??
                 (Array.isArray(restaurantLocation?.coordinates) ? restaurantLocation.coordinates[0] : null)
               )
-              const distanceInKm = (
+              const distanceInKm = restaurant?.distanceInKm !== undefined
+                ? restaurant.distanceInKm
+                : ((
                 Number.isFinite(userLat) &&
                 Number.isFinite(userLng) &&
                 Number.isFinite(restaurantLat) &&
                 Number.isFinite(restaurantLng)
               )
                 ? calculateDistance(userLat, userLng, restaurantLat, restaurantLng)
-                : null
+                : null)
               const fallbackDistance =
                 typeof restaurant?.distance === "number"
                   ? formatDistance(restaurant.distance)
-                  : (restaurant?.distance || "")
+                  : (restaurant?.distanceText || restaurant?.distance || "")
 
               return {
                 id: String(restaurantId),
@@ -801,7 +808,7 @@ export default function Under250() {
                 deliveryTime:
                   restaurant?.estimatedDeliveryTime ||
                   (deliveryMinutes ? `${deliveryMinutes} mins` : "30 mins"),
-                distance: distanceInKm !== null ? formatDistance(distanceInKm) : fallbackDistance,
+                distance: restaurant?.distanceText || (distanceInKm !== null ? formatDistance(distanceInKm) : fallbackDistance),
                 distanceInKm,
                 distanceText: restaurant?.distanceText || null,
                 distanceInfo: restaurant?.distanceInfo || null,
