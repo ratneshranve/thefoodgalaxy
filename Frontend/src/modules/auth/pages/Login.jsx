@@ -138,20 +138,27 @@ export default function UnifiedOTPFastLogin() {
 
       const response = await authAPI.verifyOTP(phoneNumber, otpDigits, "login", null, null, "user", null, null, fcmToken, platform)
       const data = response?.data?.data || response?.data || {}
+      // Handle 2-step signup flow where name is required
+      const needsName = data.needsName === true || data.isNewUser === true || (data.user && (!data.user.name || String(data.user.name).trim().length === 0 || String(data.user.name).toLowerCase() === "null"));
+      
+      if (needsName) {
+        setPendingVerify({ phone: phoneNumber, otp: otpDigits, fcmToken, platform })
+        setShowNameModal(true)
+        return
+      }
+
       const accessToken = data.accessToken
       const refreshToken = data.refreshToken || null
       const user = data.user
 
+      if (!accessToken || !user) {
+        throw new Error("Invalid response from server")
+      }
+
       setAuthData("user", accessToken, user, refreshToken)
 
-      // If user has no name, show name modal instead of immediate navigation
-      if (!user.name || user.name.trim() === "") {
-        setTempAuth({ accessToken, user, refreshToken })
-        setShowNameModal(true)
-      } else {
-        toast.success("Welcome back!")
-        navigate("/food/user", { replace: true })
-      }
+      toast.success("Welcome back!")
+      navigate("/food/user", { replace: true })
     } catch (err) {
       const status = err?.response?.status
       let msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || "Invalid OTP. Please try again."
