@@ -698,7 +698,9 @@ export async function rejectOrderDelivery(orderId, deliveryPartnerId, reason = '
   });
 
   void dispatchService
-    .tryAutoAssign(order._id)
+    .tryAutoAssign(order._id, {
+      attempt: Math.max(1, Number(order.dispatch?.dispatchAttempt || 1)),
+    })
     .catch((error) =>
       logger.error(`SmartDispatch: Auto-assign after reject failed: ${error.message}`),
     );

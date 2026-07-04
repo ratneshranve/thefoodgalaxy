@@ -127,6 +127,8 @@ const dispatchSchema = new mongoose.Schema(
             allowOverLimit: { type: Boolean, default: false },
             requiredCashForOrder: { type: Number, default: 0 }
         }],
+        /** Current radius-expansion attempt (1 = first tier, increments every ~20s) */
+        dispatchAttempt: { type: Number, default: 1, min: 1 },
         dispatchingAt: { type: Date }
     },
     { _id: false }

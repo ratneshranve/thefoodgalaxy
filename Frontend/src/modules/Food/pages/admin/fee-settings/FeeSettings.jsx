@@ -22,7 +22,7 @@ export default function FeeSettings() {
     gstOnPlatformFee: "",
     gstOnPackagingFee: "",
     deliveryBonusAmount: "",
-    dispatchRadiusTiers: "2, 4, 6, 8, 10",
+    dispatchRadiusTiers: "2, 4, 6, 8, 15",
   })
   const [loadingFeeSettings, setLoadingFeeSettings] = useState(false)
   const [savingFeeSettings, setSavingFeeSettings] = useState(false)
@@ -63,7 +63,7 @@ export default function FeeSettings() {
           gstOnPlatformFee: "",
           gstOnPackagingFee: "",
           deliveryBonusAmount: "",
-          dispatchRadiusTiers: "2, 4, 6, 8, 10",
+          dispatchRadiusTiers: "2, 4, 6, 8, 15",
         })
       }
     } catch (error) {

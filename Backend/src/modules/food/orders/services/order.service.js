@@ -677,11 +677,12 @@ export async function recoverStuckOrders() {
     if (stuckAssigned.length > 0) {
       logger.info(`Watchdog: Healing ${stuckAssigned.length} stuck assigned orders.`);
       for (const order of stuckAssigned) {
-        // Reset status to unassigned and re-trigger auto-assign
         order.dispatch.status = 'unassigned';
         order.dispatch.deliveryPartnerId = null;
         await order.save();
-        await tryAutoAssign(order._id);
+        await dispatchService.cancelPendingDispatchJob(order._id);
+        const resumeAttempt = Math.max(1, Number(order.dispatch?.dispatchAttempt || 1));
+        await tryAutoAssign(order._id, { attempt: resumeAttempt });
       }
     }
 
@@ -1391,17 +1392,10 @@ export async function updateOrderStatusRestaurant(
             const isAlreadyAccepted = currentDispatchStatus === 'accepted' && order.dispatch?.acceptedAt;
             
             if (!isAlreadyAccepted) {
-              await FoodOrder.findByIdAndUpdate(order._id, {
-                $set: { 'dispatch.status': 'unassigned' },
-                $unset: { 'dispatch.dispatchingAt': '', 'dispatch.deliveryPartnerId': '' },
-              });
-              // Clear offeredTo to restart the hunt fresh
-              await FoodOrder.findByIdAndUpdate(order._id, {
-                $set: { 'dispatch.offeredTo': [] },
-              });
+              await dispatchService.resetDispatchForFreshHunt(order._id);
             }
             
-            await dispatchService.tryAutoAssign(order._id);
+            await dispatchService.tryAutoAssign(order._id, { attempt: 1 });
             // Refresh local order state after assignment search
             order = await FoodOrder.findById(order._id); 
         } catch (err) {
@@ -1883,12 +1877,9 @@ export async function updateOrderStatusAdmin(orderId, adminId, orderStatus, note
         const isAlreadyAccepted = currentDispatchStatus === 'accepted' && order.dispatch?.acceptedAt;
         
         if (!isAlreadyAccepted) {
-          await FoodOrder.findByIdAndUpdate(order._id, {
-            $set: { 'dispatch.status': 'unassigned', 'dispatch.offeredTo': [] },
-            $unset: { 'dispatch.dispatchingAt': '', 'dispatch.deliveryPartnerId': '' },
-          });
+          await dispatchService.resetDispatchForFreshHunt(order._id);
         }
-        await dispatchService.tryAutoAssign(order._id);
+        await dispatchService.tryAutoAssign(order._id, { attempt: 1 });
         order = await FoodOrder.findById(order._id); 
       } catch (err) {
         console.error(`[DEBUG] Auto-assign in updateOrderStatusAdmin failed:`, err);
