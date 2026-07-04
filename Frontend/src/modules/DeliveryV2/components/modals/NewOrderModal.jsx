@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, MapPin, FastForward, Clock, Phone, ChefHat, ChevronDown } from 'lucide-react';
 import { ActionSlider } from '@/modules/DeliveryV2/components/ui/ActionSlider';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
-import { getHaversineDistance, calculateETA } from '@/modules/DeliveryV2/utils/geo';
+import { getHaversineDistance } from '@/modules/DeliveryV2/utils/geo';
 import { getOrderMongoId, getOrderDisplayId, isSameOrder } from '@food/utils/orderDispatchId';
 
 /**
@@ -28,41 +28,89 @@ export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccep
     return () => clearInterval(timer);
   }, [timeLeft, onReject]);
 
-  const { distanceKm, etaMins } = useMemo(() => {
-    if (!order) return { distanceKm: null, etaMins: null };
+  const { pickup, drop, total } = useMemo(() => {
+    const unknown = {
+      pickup: { distanceKm: '??', etaMins: '??' },
+      drop: { distanceKm: '??', etaMins: '??' },
+      total: { distanceKm: '??', etaMins: '??' },
+    };
+    if (!order) return unknown;
 
-    // A. Use provided data if available (Direct distance from socket)
-    const rawDist = order.pickupDistanceKm || order.distanceKm;
-    const rawEta = order.estimatedTime || order.duration || order.eta;
-    
-    if (rawDist != null) {
-      return { 
-        distanceKm: Number(rawDist).toFixed(1), 
-        etaMins: rawEta && rawEta > 0 ? Math.ceil(rawEta) : Math.ceil((rawDist * 1000) / 416) + 5
-      };
+    const resolveRestaurantCoords = () => {
+      const rest = order.restaurantLocation || order.restaurantId?.location || {};
+      let lat = parseFloat(order.restaurant_lat || order.restaurantLat || rest.latitude || rest.lat);
+      let lng = parseFloat(order.restaurant_lng || order.restaurantLng || rest.longitude || rest.lng);
+      if ((Number.isNaN(lat) || Number.isNaN(lng)) && Array.isArray(rest.coordinates) && rest.coordinates.length >= 2) {
+        lng = parseFloat(rest.coordinates[0]);
+        lat = parseFloat(rest.coordinates[1]);
+      }
+      return { lat, lng };
+    };
+
+    const resolveCustomerCoords = () => {
+      const deliveryAddress = order?.deliveryAddress || {};
+      const geoCoords =
+        Array.isArray(deliveryAddress?.location?.coordinates) &&
+        deliveryAddress.location.coordinates.length >= 2
+          ? {
+              lng: parseFloat(deliveryAddress.location.coordinates[0]),
+              lat: parseFloat(deliveryAddress.location.coordinates[1]),
+            }
+          : null;
+      const loc = order.customerLocation || order.deliveryLocation || geoCoords;
+      if (!loc) return { lat: NaN, lng: NaN };
+      return { lat: parseFloat(loc.lat), lng: parseFloat(loc.lng) };
+    };
+
+    const etaFromMeters = (meters, extraMins = 0) =>
+      Math.max(1, Math.ceil(meters / 416) + extraMins);
+
+    const fmtKm = (km) => (km != null && Number.isFinite(km) ? km.toFixed(1) : '??');
+    const fmtMins = (mins) => (mins != null && Number.isFinite(mins) ? mins : '??');
+
+    let pickupDistKm = null;
+    let pickupEta = null;
+    const rawPickup = order.pickupDistanceKm ?? order.distanceKm;
+    if (rawPickup != null) {
+      pickupDistKm = Number(rawPickup);
+      const rawEta = order.estimatedTime || order.duration || order.eta;
+      pickupEta =
+        rawEta && rawEta > 0 ? Math.ceil(rawEta) : etaFromMeters(pickupDistKm * 1000, 5);
+    } else {
+      const { lat: resLat, lng: resLng } = resolveRestaurantCoords();
+      if (riderLocation && !Number.isNaN(resLat) && !Number.isNaN(resLng)) {
+        const distM = getHaversineDistance(riderLocation.lat, riderLocation.lng, resLat, resLng);
+        pickupDistKm = distM / 1000;
+        pickupEta = etaFromMeters(distM, order.prepTime || 5);
+      }
     }
 
-    // B. Calculate from locations (Local calculation fallback)
-    const rest = order.restaurantLocation || order.restaurantId?.location || {};
-    const resLat = parseFloat(order.restaurant_lat || order.restaurantLat || rest.latitude || rest.lat);
-    const resLng = parseFloat(order.restaurant_lng || order.restaurantLng || rest.longitude || rest.lng);
-
-    if (riderLocation && !isNaN(resLat) && !isNaN(resLng)) {
-      const distM = getHaversineDistance(
-        riderLocation.lat, riderLocation.lng,
-        resLat, resLng
-      );
-      const km = distM / 1000;
-      // Assume 25km/h avg for initial estimate (roughly 416m/min)
-      const mins = Math.ceil(distM / 416) + (order.prepTime || 5);
-      
-      return { 
-        distanceKm: km.toFixed(1), 
-        etaMins: mins 
-      };
+    let dropDistKm = null;
+    let dropEta = null;
+    const rawDrop = order.dropDistanceKm ?? order.deliveryDistanceKm;
+    if (rawDrop != null) {
+      dropDistKm = Number(rawDrop);
+      dropEta = order.dropEta ? Math.ceil(order.dropEta) : etaFromMeters(dropDistKm * 1000, 0);
+    } else {
+      const { lat: resLat, lng: resLng } = resolveRestaurantCoords();
+      const { lat: custLat, lng: custLng } = resolveCustomerCoords();
+      if (!Number.isNaN(resLat) && !Number.isNaN(resLng) && !Number.isNaN(custLat) && !Number.isNaN(custLng)) {
+        const distM = getHaversineDistance(resLat, resLng, custLat, custLng);
+        dropDistKm = distM / 1000;
+        dropEta = etaFromMeters(distM, 0);
+      }
     }
 
-    return { distanceKm: '??', etaMins: order.prepTime || 15 };
+    const totalKm =
+      pickupDistKm != null && dropDistKm != null ? pickupDistKm + dropDistKm : null;
+    const totalEta =
+      pickupEta != null && dropEta != null ? pickupEta + dropEta : null;
+
+    return {
+      pickup: { distanceKm: fmtKm(pickupDistKm), etaMins: fmtMins(pickupEta) },
+      drop: { distanceKm: fmtKm(dropDistKm), etaMins: fmtMins(dropEta) },
+      total: { distanceKm: fmtKm(totalKm), etaMins: fmtMins(totalEta) },
+    };
   }, [order, riderLocation]);
 
   if (!order) return null;
@@ -234,21 +282,40 @@ export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccep
           </div>
 
            <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
-             <div className="p-3 sm:p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-2.5 sm:gap-3">
-               <Clock className="w-5 h-5 text-orange-500" />
+             <div className="p-3 sm:p-4 bg-green-50 rounded-2xl border border-green-100 flex items-center gap-2.5 sm:gap-3">
+               <MapPin className="w-5 h-5 text-green-600" />
                <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Time</span>
-                  <span className="text-sm font-bold text-gray-900">{etaMins} MINS</span>
+                  <span className="text-[10px] text-green-600/80 font-bold uppercase tracking-widest">To Restaurant</span>
+                  <span className="text-sm font-bold text-gray-900">{pickup.distanceKm} KM</span>
                </div>
              </div>
-             <div className="p-3 sm:p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-2.5 sm:gap-3">
-               <MapPin className="w-5 h-5 text-gray-400" />
+             <div className="p-3 sm:p-4 bg-green-50 rounded-2xl border border-green-100 flex items-center gap-2.5 sm:gap-3">
+               <Clock className="w-5 h-5 text-green-600" />
                <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Distance</span>
-                  <span className="text-sm font-bold text-gray-900">{distanceKm} KM</span>
+                  <span className="text-[10px] text-green-600/80 font-bold uppercase tracking-widest">Pickup Time</span>
+                  <span className="text-sm font-bold text-gray-900">{pickup.etaMins} MINS</span>
+               </div>
+             </div>
+             <div className="p-3 sm:p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-2.5 sm:gap-3">
+               <MapPin className="w-5 h-5 text-blue-600" />
+               <div className="flex flex-col">
+                  <span className="text-[10px] text-blue-600/80 font-bold uppercase tracking-widest">To Customer</span>
+                  <span className="text-sm font-bold text-gray-900">{drop.distanceKm} KM</span>
+               </div>
+             </div>
+             <div className="p-3 sm:p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-2.5 sm:gap-3">
+               <Clock className="w-5 h-5 text-blue-600" />
+               <div className="flex flex-col">
+                  <span className="text-[10px] text-blue-600/80 font-bold uppercase tracking-widest">Drop Time</span>
+                  <span className="text-sm font-bold text-gray-900">{drop.etaMins} MINS</span>
                </div>
              </div>
           </div>
+          {total.distanceKm !== '??' && (
+            <p className="text-center text-[11px] font-semibold text-gray-500">
+              Total trip ~ {total.distanceKm} KM · ~ {total.etaMins} MINS
+            </p>
+          )}
 
         {/* Action Area */}
           <div className="space-y-4 sm:space-y-6 pt-1 sm:pt-2">
