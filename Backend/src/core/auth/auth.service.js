@@ -116,24 +116,27 @@ export const verifyUserOtpAndLogin = async (
 ) => {
   const trimmedName = typeof name === "string" ? name.trim() : "";
   const existingUser = await FoodUser.findOne({ phone });
+  const needsNamePrompt = !existingUser && !trimmedName;
 
-  // For first-time signup, require name before OTP verification so OTP is not consumed prematurely.
-  if (!existingUser && !trimmedName) {
-    throw new ValidationError("Name is required for first-time signup");
-  }
-
-  const result = await verifyOtp(phone, otp);
+  const result = await verifyOtp(phone, otp, { consume: !needsNamePrompt });
 
   if (!result.valid) {
     throw new AuthError(result.reason || "OTP verification failed");
   }
 
+  // For first-time signup, require name before completing registration.
+  // We return a special flag without consuming the OTP so the frontend can prompt the user.
+  if (needsNamePrompt) {
+    return {
+      isNewUser: true,
+      needsName: true
+    };
+  }
+
   let userDoc = existingUser;
   
   // Ensure user exists and mark as verified on successful OTP.
-  // Check if user is new or hasn't provided a name yet
-  const needsNamePrompt = !userDoc || !userDoc.name || String(userDoc.name).trim() === "" || String(userDoc.name).toLowerCase() === "null";
-  const isNewUser = needsNamePrompt;
+  const isNewUser = !existingUser;
 
   if (!userDoc) {
     userDoc = await FoodUser.create({

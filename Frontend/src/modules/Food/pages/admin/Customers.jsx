@@ -42,67 +42,7 @@ export default function Customers() {
     setCurrentPage(1)
   }, [searchQuery, filters])
 
-  const filteredCustomers = useMemo(() => {
-    let result = [...customers]
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim()
-      result = result.filter(customer =>
-        customer.name?.toLowerCase().includes(query) ||
-        (customer.email || "email not given by client").toLowerCase().includes(query) ||
-        customer.phone?.includes(query)
-      )
-    }
-
-    // Filter by order date when that field is available in the API payload.
-
-    // Filter by joining date
-    if (filters.joiningDate) {
-      result = result.filter(customer => {
-        // Parse joining date from format "17 Oct 2021"
-        const customerDate = new Date(customer.joiningDate)
-        const filterDate = new Date(filters.joiningDate)
-        return customerDate.toDateString() === filterDate.toDateString()
-      })
-    }
-
-    // Filter by status
-    if (filters.status) {
-      if (filters.status === "active") {
-        result = result.filter(customer => customer.status === true)
-      } else if (filters.status === "inactive") {
-        result = result.filter(customer => customer.status === false)
-      }
-    }
-
-    // Sort by options
-    if (filters.sortBy) {
-      if (filters.sortBy === "name-asc") {
-        result.sort((a, b) => a.name.localeCompare(b.name))
-      } else if (filters.sortBy === "name-desc") {
-        result.sort((a, b) => b.name.localeCompare(a.name))
-      } else if (filters.sortBy === "orders-asc") {
-        result.sort((a, b) => a.totalOrder - b.totalOrder)
-      } else if (filters.sortBy === "orders-desc") {
-        result.sort((a, b) => b.totalOrder - a.totalOrder)
-      }
-    }
-
-    // Limit results if "Choose First" is set
-    if (filters.chooseFirst && parseInt(filters.chooseFirst) > 0) {
-      result = result.slice(0, parseInt(filters.chooseFirst))
-    }
-
-    return result
-  }, [customers, searchQuery, filters])
-
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage)
-  
-  const paginatedCustomers = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    return filteredCustomers.slice(startIndex, startIndex + itemsPerPage)
-  }, [filteredCustomers, currentPage])
+  const totalPages = Math.ceil(totalCustomers / itemsPerPage)
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }))
@@ -134,8 +74,8 @@ export default function Customers() {
       try {
         setLoading(true)
         const params = {
-          limit: 1000,
-          page: 1,
+          limit: itemsPerPage,
+          page: currentPage,
           ...(searchQuery && { search: searchQuery }),
           ...(filters.status && { status: filters.status }),
           ...(filters.joiningDate && { joiningDate: filters.joiningDate }),
@@ -173,7 +113,7 @@ export default function Customers() {
       cancelled = true
       clearTimeout(t)
     }
-  }, [searchQuery, filters.status, filters.joiningDate, filters.sortBy, filters.chooseFirst])
+  }, [searchQuery, filters.status, filters.joiningDate, filters.sortBy, filters.chooseFirst, currentPage])
 
   const [searchParams] = useSearchParams()
   const userIdFromUrl = searchParams.get("userId")
@@ -263,7 +203,7 @@ export default function Customers() {
   }
 
   const handleExport = (format) => {
-    if (filteredCustomers.length === 0) {
+    if (customers.length === 0) {
       toast.error("No customers to export")
       return
     }
@@ -272,15 +212,15 @@ export default function Customers() {
     try {
       switch (format) {
         case "csv":
-          exportCustomersToCSV(filteredCustomers, filename)
+          exportCustomersToCSV(customers, filename)
           toast.success("CSV export started")
           break
         case "excel":
-          exportCustomersToExcel(filteredCustomers, filename)
+          exportCustomersToExcel(customers, filename)
           toast.success("Excel export started")
           break
         case "pdf":
-          exportCustomersToPDF(filteredCustomers, filename)
+          exportCustomersToPDF(customers, filename)
           toast.success("PDF download started")
           break
         default:
@@ -410,7 +350,7 @@ export default function Customers() {
               </button>
             </div>
             <div className="text-sm text-slate-600">
-              {loading ? 'Loading...' : `Showing ${filteredCustomers.length} of ${totalCustomers} customers`}
+              {loading ? 'Loading...' : `Showing page ${currentPage} of ${totalPages} (${totalCustomers} customers)`}
             </div>
           </div>
         </div>
@@ -421,7 +361,7 @@ export default function Customers() {
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold text-slate-900">Customer list</h2>
               <span className="px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700">
-                {filteredCustomers.length}
+                {totalCustomers}
               </span>
             </div>
 
@@ -489,14 +429,14 @@ export default function Customers() {
                       <div className="text-sm text-slate-500">Loading customers...</div>
                     </td>
                   </tr>
-                ) : paginatedCustomers.length === 0 ? (
+                ) : customers.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-8 text-center">
                       <div className="text-sm text-slate-500">No customers found</div>
                     </td>
                   </tr>
                 ) : (
-                  paginatedCustomers.map((customer, index) => (
+                  customers.map((customer, index) => (
                     <tr key={customer.id || customer.sl} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-medium text-slate-700">{(currentPage - 1) * itemsPerPage + index + 1}</span>
@@ -602,7 +542,7 @@ export default function Customers() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 mt-4">
               <div className="text-sm text-slate-500">
-                Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredCustomers.length)}</span> of <span className="font-medium">{filteredCustomers.length}</span> results
+                Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalCustomers)}</span> of <span className="font-medium">{totalCustomers}</span> results
               </div>
               <div className="flex items-center gap-2">
                 <button

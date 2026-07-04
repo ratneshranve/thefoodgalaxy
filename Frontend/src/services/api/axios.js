@@ -65,11 +65,13 @@ function formatApiError(err) {
     // Default to the message provided by backend
     let friendlyMessage = err.response?.data?.message || err.message;
     
-    // Override generic or raw technical messages
-    const isGeneric = !friendlyMessage || friendlyMessage.includes('AxiosError') || friendlyMessage.includes('Request failed with status code');
+    // Check if the backend message is generic or raw technical
+    const isGeneric = !err.response?.data?.message || friendlyMessage.includes('AxiosError') || friendlyMessage.includes('Request failed with status code') || friendlyMessage.includes('Unexpected token');
 
-    if (isGeneric || status === 401) {
-      if (status === 401) friendlyMessage = "Incorrect email or password, or session expired.";
+    // Only override if the backend didn't provide a specific, useful message
+    if (isGeneric) {
+      if (status === 400) friendlyMessage = "Invalid request. Please check your inputs.";
+      else if (status === 401) friendlyMessage = "Unauthorized. Please login again.";
       else if (status === 403) friendlyMessage = "Access denied. You don't have permission.";
       else if (status === 404) friendlyMessage = "Requested data not found.";
       else if (status === 429) friendlyMessage = "Too many requests. Please wait a moment.";

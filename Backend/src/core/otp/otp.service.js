@@ -121,7 +121,7 @@ export const createOrUpdateOtp = async (phone) => {
     return otp;
 };
 
-export const verifyOtp = async (phone, otp) => {
+export const verifyOtp = async (phone, otp, options = { consume: true }) => {
     const record = await FoodOtp.findOne({ phone });
     if (!record) {
         return { valid: false, reason: 'OTP not found' };
@@ -142,7 +142,9 @@ export const verifyOtp = async (phone, otp) => {
         return { valid: false, reason: 'Invalid OTP' };
     }
 
-    await record.deleteOne();
+    if (options.consume !== false) {
+        await record.deleteOne();
+    }
     return { valid: true };
 };
 

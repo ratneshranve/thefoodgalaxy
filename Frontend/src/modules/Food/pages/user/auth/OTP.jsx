@@ -225,6 +225,16 @@ export default function OTP() {
       )
       const data = response?.data?.data || response?.data || {}
 
+      const needsName = data.needsName === true || data.isNewUser === true || (data.user && (!data.user.name || String(data.user.name).trim().length === 0 || String(data.user.name).toLowerCase() === "null"));
+
+      if (needsName) {
+        setVerifiedOtp(code6)
+        setShowNameInput(true)
+        setIsLoading(false)
+        submittingRef.current = false
+        return
+      }
+
       const accessToken = data.accessToken
       const refreshToken = data.refreshToken ?? null
       const user = data.user
@@ -234,18 +244,6 @@ export default function OTP() {
       }
       if (!refreshToken) {
         throw new Error("Invalid response from server: missing refresh token")
-      }
-
-      // Check if user needs name prompt (isNewUser flag or missing name)
-      const hasName = user.name && String(user.name).trim().length > 0 && String(user.name).toLowerCase() !== "null";
-      const needsName = data.isNewUser === true || !hasName;
-
-      if (needsName) {
-        setVerifiedOtp(code6)
-        setShowNameInput(true)
-        setIsLoading(false)
-        submittingRef.current = false
-        return
       }
 
       // Clear auth data from sessionStorage
