@@ -65,8 +65,8 @@ export const PickupActionModal = ({
             </div>
             <div>
               <h3 className="text-gray-950 text-lg sm:text-xl font-bold">{restaurantName}</h3>
-              <p className="text-orange-600 text-[11px] font-black uppercase tracking-widest mt-0.5">
-                ORDER #{order.orderId || order._id}
+              <p className="text-blue-600 text-[11px] font-black uppercase tracking-widest mt-0.5">
+                ORDER #{order.order_id || order.orderId || order._id}
               </p>
               <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 mt-1.5">
                 {isAtPickup ? (
@@ -126,7 +126,7 @@ export const PickupActionModal = ({
                 {/* Step 1: Request OTP button — sends OTP to restaurant via socket */}
                 <button
                   onClick={async () => {
-                    const orderId = order._id || order.orderId || order.orderMongoId;
+                    const orderId = order.order_id || order.orderId || order._id || order.orderMongoId;
                     if (!orderId) { toast.error('Order ID missing'); return; }
                     setIsRequestingOtp(true);
                     try {
@@ -146,7 +146,7 @@ export const PickupActionModal = ({
                   {isRequestingOtp ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /><span>Sending...</span></>
                   ) : (
-                    <span>{otpRequested ? '🔔 Resend OTP' : '🔔 Request OTP'} (Order #{order.orderId || order._id})</span>
+                    <span>{otpRequested ? '🔔 Resend OTP' : '🔔 Request OTP'} (Order #{order.order_id || order.orderId || order._id})</span>
                   )}
                 </button>
 

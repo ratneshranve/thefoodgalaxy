@@ -66,7 +66,7 @@ const OtpModal = ({ order, onVerified, onClose }) => {
     return () => clearTimeout(timer);
   }, [order?.deliveryVerification?.dropOtp?.code]);
 
-  const orderId = order.orderId || order._id || 'ORD';
+  const orderId = order.order_id || order.orderId || order._id || 'ORD';
 
   const handleOtpChange = (index, value) => {
     if (value && !/^\d+$/.test(value)) return;
@@ -187,7 +187,7 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const pollingRef = useRef(null);
 
-  const orderId = order.orderId || order._id || 'ORD';
+  const orderId = order.order_id || order.orderId || order._id || 'ORD';
   const amountToCollect = order.pricing?.total || order.amountToCollect || 0;
 
   const checkPaymentSync = useCallback(async () => {

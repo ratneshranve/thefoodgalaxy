@@ -231,7 +231,7 @@ export default function AllOrdersPage() {
     }
     
     return {
-      id: order.orderId || order._id?.toString() || '',
+      id: order.order_id || order.orderId || order._id?.toString() || '',
       status,
       date,
       time,

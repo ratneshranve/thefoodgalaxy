@@ -38,7 +38,7 @@ export default function NewOrderNotification({ order, onClose, onViewOrder }) {
               </div>
               <div>
                 <h3 className="text-white font-bold text-lg">New Order!</h3>
-                <p className="text-white/90 text-sm">Order #{order.orderId}</p>
+                <p className="text-white/90 text-sm">Order #{order.order_id || order.orderId || order._id}</p>
               </div>
             </div>
             <button
