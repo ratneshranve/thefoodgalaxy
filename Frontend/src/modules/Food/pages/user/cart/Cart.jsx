@@ -263,13 +263,13 @@ export default function Cart() {
 
   // Fee settings from database (used for platform fee and GST fallback only)
   const [feeSettings, setFeeSettings] = useState({
-    deliveryFee: 25,
+    deliveryFee: 0,
     deliveryFeeRanges: [],
     freeDeliveryUpTo: 0,
     freeDeliveryThreshold: 149,
-    platformFee: 5,
+    platformFee: 0,
     packagingFee: 0,
-    gstRate: 5,
+    gstRate: 0,
   })
 
 
@@ -1001,13 +1001,13 @@ export default function Cart() {
         const response = await adminAPI.getPublicFeeSettings()
         if (response.data.success && response.data.data.feeSettings) {
           setFeeSettings({
-            deliveryFee: response.data.data.feeSettings.deliveryFee ?? 25,
+            deliveryFee: response.data.data.feeSettings.deliveryFee ?? 0,
             deliveryFeeRanges: response.data.data.feeSettings.deliveryFeeRanges ?? [],
             freeDeliveryUpTo: response.data.data.feeSettings.freeDeliveryUpTo ?? 0,
             freeDeliveryThreshold: response.data.data.feeSettings.freeDeliveryThreshold ?? 149,
-            platformFee: response.data.data.feeSettings.platformFee ?? 5,
+            platformFee: response.data.data.feeSettings.platformFee ?? 0,
             packagingFee: response.data.data.feeSettings.packagingFee ?? 0,
-            gstRate: response.data.data.feeSettings.gstRate ?? 5,
+            gstRate: response.data.data.feeSettings.gstRate ?? 0,
             gstOnDeliveryFee: response.data.data.feeSettings.gstOnDeliveryFee ?? 0,
             gstOnPlatformFee: response.data.data.feeSettings.gstOnPlatformFee ?? 0,
             gstOnPackagingFee: response.data.data.feeSettings.gstOnPackagingFee ?? 0,
