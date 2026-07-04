@@ -471,23 +471,23 @@ export default function UnifiedOTPFastLogin() {
           className="sm:max-w-[425px] rounded-3xl border-none p-0 overflow-hidden bg-white dark:bg-[#1a1a1a]"
           showCloseButton={false}
         >
-          <div className="bg-primary p-8 text-center relative">
+          <div className="bg-primary p-5 sm:p-6 text-center relative">
             <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-white/10 rounded-full blur-2xl" />
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 border border-white/30"
+              className="w-14 h-14 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-3 border border-white/30"
             >
-              <User className="w-10 h-10 text-white" />
+              <User className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </motion.div>
-            <DialogTitle className="text-2xl font-bold text-white mb-2">Almost there!</DialogTitle>
-            <DialogDescription className="text-white/80">
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-white mb-1.5">Almost there!</DialogTitle>
+            <DialogDescription className="text-white/90 text-sm">
               We'd love to know your name to personalize your experience.
             </DialogDescription>
           </div>
 
-          <form onSubmit={handleNameSubmit} className="p-8 pt-6 space-y-6">
-            <div className="space-y-4">
+          <form onSubmit={handleNameSubmit} className="p-5 sm:p-6 pt-4 space-y-4 sm:space-y-5">
+            <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">
                 Full Name
               </Label>
@@ -497,17 +497,17 @@ export default function UnifiedOTPFastLogin() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Enter your name"
-                  className="pl-4 h-14 bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-primary transition-all group-hover:border-primary/30"
+                  className="pl-4 h-12 sm:h-14 bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary transition-all group-hover:border-primary/30"
                   autoFocus
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2.5">
               <Button
                 type="submit"
                 disabled={isUpdatingName}
-                className="w-full h-14 bg-primary hover:bg-[#6b2f57] text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full h-12 sm:h-14 bg-primary hover:bg-[#6b2f57] text-white rounded-xl font-bold text-[15px] sm:text-lg shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 {isUpdatingName ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -522,12 +522,12 @@ export default function UnifiedOTPFastLogin() {
                     setShowNameModal(false)
                     navigate("/food/user", { replace: true })
                   }}
-                  className="text-sm text-gray-400 hover:text-gray-600 transition-colors py-2"
+                  className="text-xs sm:text-sm text-gray-400 hover:text-gray-600 transition-colors py-1.5"
                 >
                   Skip for now
                 </button>
               ) : (
-                <p className="text-xs text-gray-400 text-center">Name is required to complete signup.</p>
+                <p className="text-[11px] sm:text-xs text-gray-400 text-center">Name is required to complete signup.</p>
               )}
             </div>
           </form>
