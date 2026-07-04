@@ -10,6 +10,12 @@ export const apiRateLimiter = rateLimit({
     max: config.nodeEnv === 'development' ? Math.max(config.rateLimitMaxRequests, 2000) : config.rateLimitMaxRequests,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => {
+        const forwarded = req.headers['x-forwarded-for'];
+        const realIp = req.headers['x-real-ip'];
+        const ip = forwarded ? forwarded.split(',')[0].trim() : realIp || req.ip;
+        return ip;
+    },
     message: {
         success: false,
         message: 'Too many requests, please try again later.'
@@ -26,6 +32,12 @@ export const authRateLimiter = rateLimit({
     max: config.nodeEnv === 'development' ? Math.max(config.authRateLimitMax, 100) : config.authRateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => {
+        const forwarded = req.headers['x-forwarded-for'];
+        const realIp = req.headers['x-real-ip'];
+        const ip = forwarded ? forwarded.split(',')[0].trim() : realIp || req.ip;
+        return ip;
+    },
     message: {
         success: false,
         message: 'Too many authentication attempts. Please try again later.'
