@@ -1,6 +1,7 @@
 import { verifyAccessToken } from './token.util.js';
 import { sendError } from '../../utils/response.js';
 import { FoodUser } from '../users/user.model.js';
+import { apiRateLimiter } from '../../middleware/rateLimit.js';
 
 export const requireAdmin = (req, res, next) => {
     if (!['ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'].includes(req.user?.role)) {
@@ -36,11 +37,11 @@ export const authMiddleware = (req, res, next) => {
                 if (!doc || doc.isActive === false) {
                     return sendError(res, 401, 'User account is deactivated');
                 }
-                next();
+                apiRateLimiter(req, res, next);
             }).catch(() => sendError(res, 401, 'Authentication failed'));
             return;
         }
-        return next();
+        apiRateLimiter(req, res, next);
     } catch (error) {
         return sendError(res, 401, 'Invalid or expired token');
     }

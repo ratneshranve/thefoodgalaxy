@@ -11,6 +11,9 @@ export const apiRateLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => {
+        if (req.user && req.user.userId) {
+            return req.user.userId.toString();
+        }
         const forwarded = req.headers['x-forwarded-for'];
         const realIp = req.headers['x-real-ip'];
         const ip = forwarded ? forwarded.split(',')[0].trim() : realIp || req.ip;
