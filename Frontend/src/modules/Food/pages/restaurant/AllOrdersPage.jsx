@@ -212,6 +212,24 @@ export default function AllOrdersPage() {
     const allVeg = items.every(item => item.isVeg !== false)
     if (allVeg && items.length > 0) tags.push('VEG ONLY')
     
+    // Calculate Net Payout for the Restaurant
+    let restaurantPayout = 0;
+    if (order.pricing) {
+        const p = order.pricing;
+        const itemSubtotal = p.subtotal || p.itemsTotal || p.itemSubtotal || 0;
+        const packagingFee = p.packagingFee || 0;
+        const restaurantCommission = p.restaurantCommission || 0;
+        const gstOnItem = p.gstOnItem || 0;
+        const gstOnCommission = p.gstOnCommission || 0;
+        const paymentGatewayFee = p.paymentGatewayFee || 0;
+        const tcs = p.tcs || 0;
+        
+        // Match exact logic from OrderDetails.jsx
+        restaurantPayout = Math.max(0, itemSubtotal + packagingFee - restaurantCommission - gstOnItem - gstOnCommission - paymentGatewayFee - tcs);
+    } else {
+        restaurantPayout = order.pricing?.total || 0;
+    }
+    
     return {
       id: order.orderId || order._id?.toString() || '',
       status,
@@ -221,7 +239,7 @@ export default function AllOrdersPage() {
       address,
       customer: customerName,
       items,
-      totalPrice: order.pricing?.total || 0,
+      totalPrice: restaurantPayout || (order.pricing?.total || 0),
       reason,
       tags: tags.length > 0 ? tags : undefined,
       createdAt: order.createdAt,
@@ -662,7 +680,7 @@ export default function AllOrdersPage() {
 
             {/* Price Footer */}
             <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</span>
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Net Payout</span>
               <span className="text-base font-bold text-gray-900">{formatMoney(order.totalPrice)}</span>
             </div>
 

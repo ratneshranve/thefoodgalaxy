@@ -35,6 +35,18 @@ export default function StatusMonitor() {
     return () => clearInterval(interval);
   }, []);
 
+  // Update selectedItem when data refreshes
+  useEffect(() => {
+    if (selectedItem) {
+      const list = activeTab === 'restaurants' ? data.restaurants : data.deliveryPartners;
+      const updatedItem = list.find(item => item._id === selectedItem._id);
+      if (updatedItem) {
+        // Only update if reference changed to prevent unnecessary re-renders
+        setSelectedItem(updatedItem);
+      }
+    }
+  }, [data, activeTab]);
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     localStorage.setItem('statusMonitorTab', tab);

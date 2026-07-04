@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import useRestaurantBackNavigation from "@food/hooks/useRestaurantBackNavigation"
-import { MapPin, Search, Save, Loader2, ArrowLeft } from "lucide-react"
+import { MapPin, Search, Save, Loader2, ArrowLeft, Navigation } from "lucide-react"
 import { restaurantAPI, zoneAPI } from "@food/api"
 import { loadGoogleMaps as loadGoogleMapsScript } from "@food/utils/googleMapsLoader"
 const debugLog = (...args) => {}
@@ -61,6 +61,7 @@ export default function ZoneSetup() {
   const [mapLoading, setMapLoading] = useState(true)
   const [mapError, setMapError] = useState("")
   const [saving, setSaving] = useState(false)
+  const [fetchingLocation, setFetchingLocation] = useState(false)
   const [restaurantData, setRestaurantData] = useState(null)
   const [locationSearch, setLocationSearch] = useState("")
   const [selectedLocation, setSelectedLocation] = useState(null)
@@ -155,6 +156,7 @@ export default function ZoneSetup() {
           
           // Set selected location
           setSelectedLocation({ lat, lng, address })
+          checkLocationInZone(lat, lng)
         }
       })
       
@@ -185,11 +187,13 @@ export default function ZoneSetup() {
               setSelectedAddress(address)
               setSelectedLocation({ lat, lng, address })
               updateMarker(lat, lng, address)
+              checkLocationInZone(lat, lng)
             } else {
               setLocationSearch(existingAddress)
               setSelectedAddress(existingAddress)
               setSelectedLocation({ lat, lng, address: existingAddress })
               updateMarker(lat, lng, existingAddress)
+              checkLocationInZone(lat, lng)
             }
           })
         } else {
@@ -197,6 +201,7 @@ export default function ZoneSetup() {
           setSelectedAddress(existingAddress)
           setSelectedLocation({ lat, lng, address: existingAddress })
           updateMarker(lat, lng, existingAddress)
+          checkLocationInZone(lat, lng)
         }
       }
     }
@@ -521,6 +526,61 @@ export default function ZoneSetup() {
     }
   }
 
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser")
+      return
+    }
+
+    setFetchingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+        
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setCenter({ lat, lng })
+          mapInstanceRef.current.setZoom(17)
+        }
+        
+        if (geocoderRef.current) {
+          geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === "OK" && results[0]) {
+              const address = results[0].formatted_address
+              setLocationSearch(address)
+              setSelectedAddress(address)
+              setSelectedLocation({ lat, lng, address })
+              updateMarker(lat, lng, address)
+              checkLocationInZone(lat, lng)
+            } else {
+              const address = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+              setLocationSearch(address)
+              setSelectedAddress(address)
+              setSelectedLocation({ lat, lng, address })
+              updateMarker(lat, lng, address)
+              checkLocationInZone(lat, lng)
+            }
+            setFetchingLocation(false)
+          })
+        } else {
+          const address = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+          setLocationSearch(address)
+          setSelectedAddress(address)
+          setSelectedLocation({ lat, lng, address })
+          updateMarker(lat, lng, address)
+          checkLocationInZone(lat, lng)
+          setFetchingLocation(false)
+        }
+      },
+      (error) => {
+        debugError("Error fetching location:", error)
+        alert("Failed to get your current location. Please allow location access in your browser.")
+        setFetchingLocation(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }
+
   return (
     <div className="restaurant-page min-h-full bg-gray-50">
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
@@ -559,10 +619,25 @@ export default function ZoneSetup() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
+            
+            <button
+              onClick={handleUseCurrentLocation}
+              disabled={fetchingLocation || mapLoading}
+              title="Use current location"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              {fetchingLocation ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Navigation className="w-5 h-5" />
+              )}
+              <span className="hidden sm:inline">Current Location</span>
+            </button>
+
             <button
               onClick={handleSaveLocation}
               disabled={!selectedLocation || saving}
-              className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
             >
               {saving ? (
                 <>
