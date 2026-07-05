@@ -6,6 +6,7 @@ import { initSocket } from './src/config/socket.js';
 import { logger } from './src/utils/logger.js';
 import { loadEnvFromDb } from './src/config/envLoader.js';
 import { connectDB, disconnectDB } from './src/config/db.js';
+import { initializeFirebaseRealtime } from './src/config/firebase.js';
 
 const app = express();
 
@@ -18,6 +19,7 @@ const startSocketServer = async () => {
     try {
         await connectDB();
         await loadEnvFromDb();
+        initializeFirebaseRealtime();
 
         const httpServer = http.createServer(app);
 
@@ -52,3 +54,4 @@ const startSocketServer = async () => {
 };
 
 startSocketServer();
+

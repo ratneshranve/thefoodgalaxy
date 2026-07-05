@@ -41,13 +41,12 @@ const gracefulShutdown = async (signal) => {
 const startServer = async () => {
     try {
         validateConfig();
-        initializeFirebaseRealtime();
-
         // 1. Connect to Database (MongoDB)
         await connectDB();
 
         // 1.5 Load Environment Variables from Database overrides
         await loadEnvFromDb();
+        initializeFirebaseRealtime();
 
         // 2. Create HTTP server from Express app
         const httpServer = http.createServer(app);
@@ -118,4 +117,5 @@ const startServer = async () => {
 };
 
 startServer();
+
 
