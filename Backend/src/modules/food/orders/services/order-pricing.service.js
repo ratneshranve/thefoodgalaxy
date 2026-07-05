@@ -38,20 +38,23 @@ export async function calculateOrderPricing(userId, dto) {
   });
   itemDiscountTotal = Math.floor(itemDiscountTotal);
 
-  const feeDoc = await FoodFeeSettings.findOne({ isActive: true })
+  const feeSettings = await FoodFeeSettings.findOne({ isActive: true })
     .sort({ createdAt: -1 })
     .lean();
-  const feeSettings = feeDoc || {
-    deliveryFee: 0,
-    deliveryFeeRanges: [],
-    freeDeliveryUpTo: 0,
-    platformFee: 0,
-    packagingFee: 0,
-    gstRate: 0,
-  };
+  
+  if (!feeSettings) {
+    throw new ValidationError("Fee settings are not configured by admin.");
+  }
 
-  const packagingFee = feeSettings.packagingFee != null ? Number(feeSettings.packagingFee) : 0;
-  const platformFee = feeSettings.platformFee != null ? Number(feeSettings.platformFee) : 0;
+  const packagingFee = feeSettings.packagingFee != null ? Number(feeSettings.packagingFee) : NaN;
+  if (!Number.isFinite(packagingFee)) {
+    throw new ValidationError("Packaging fee is not configured by admin.");
+  }
+
+  const platformFee = feeSettings.platformFee != null ? Number(feeSettings.platformFee) : NaN;
+  if (!Number.isFinite(platformFee)) {
+    throw new ValidationError("Platform fee is not configured by admin.");
+  }
 
   const freeUpTo = Number(feeSettings.freeDeliveryUpTo || 0);
   let distanceKm = null;
@@ -133,9 +136,13 @@ export async function calculateOrderPricing(userId, dto) {
 
       deliveryFee = Number.isFinite(matched)
         ? matched
-        : Number(feeSettings.deliveryFee || 0);
+        : (feeSettings.deliveryFee != null ? Number(feeSettings.deliveryFee) : NaN);
     } else {
-      deliveryFee = Number(feeSettings.deliveryFee || 0);
+      deliveryFee = feeSettings.deliveryFee != null ? Number(feeSettings.deliveryFee) : NaN;
+    }
+    
+    if (!Number.isFinite(deliveryFee)) {
+      throw new ValidationError("Base delivery fee is not configured by admin.");
     }
   }
 
