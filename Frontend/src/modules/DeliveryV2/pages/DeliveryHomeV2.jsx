@@ -34,12 +34,13 @@ import ProfileV2 from '@/modules/DeliveryV2/pages/ProfileV2';
 import { 
   Bell, HelpCircle, AlertTriangle, 
   Wallet, History, User as UserIcon, LayoutGrid,
-  Plus, Minus, Navigation2, Target, Play, CheckCircle2, Clock, ChevronDown,
+  Plus, Minus, Navigation2, Navigation, Target, Play, CheckCircle2, Clock, ChevronDown,
   Contact, Package, Phone, MapPin
 } from 'lucide-react';
 
 import { shouldSendLocationUpdate } from "@delivery/utils/trackingInterval";
 import { getHaversineDistance, calculateETA, calculateHeading } from '@/modules/DeliveryV2/utils/geo';
+import { parseLatLng } from '@/modules/DeliveryV2/hooks/proximity.utils';
 import { useCompanyName } from "@food/hooks/useCompanyName";
 import { useNavigate } from 'react-router-dom';
 import useNotificationInbox from "@food/hooks/useNotificationInbox";
@@ -380,7 +381,58 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     setSimPath(fallbackPath);
   }, [isSimMode, simPath, activeOrder, tripStatus]);
 
-  // Auto-restore modal when status or content changes
+  const openCustomerDropInMaps = useCallback((order) => {
+    if (!order) return;
+
+    const customerCoords =
+      parseLatLng(order.customerLocation) ||
+      parseLatLng(order.customer_location) ||
+      parseLatLng(order.deliveryAddress?.location) ||
+      parseLatLng(order.deliveryAddress);
+
+    const restaurantCoords =
+      parseLatLng(order.restaurantLocation) ||
+      parseLatLng(order.restaurant_location) ||
+      parseLatLng(order.restaurantId?.location) ||
+      parseLatLng(order.restaurantId);
+
+    if (customerCoords && restaurantCoords) {
+      const { lat: rLat, lng: rLng } = restaurantCoords;
+      const { lat: cLat, lng: cLng } = customerCoords;
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&origin=${rLat},${rLng}&destination=${cLat},${cLng}&travelmode=driving`,
+        '_blank',
+      );
+      return;
+    }
+
+    if (customerCoords) {
+      const { lat, lng } = customerCoords;
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,
+        '_blank',
+      );
+      return;
+    }
+
+    const address =
+      order.customerAddress ||
+      order.deliveryAddress?.street ||
+      [
+        order.deliveryAddress?.street,
+        order.deliveryAddress?.additionalDetails,
+        order.deliveryAddress?.city,
+        order.deliveryAddress?.state,
+      ]
+        .filter(Boolean)
+        .join(', ') ||
+      'Customer Location';
+
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`,
+      '_blank',
+    );
+  }, []);
 
   // Auto-restore modal when status or content changes
   useEffect(() => {
@@ -1422,17 +1474,27 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                                     {activeOrder?.deliveryAddress?.address || activeOrder?.deliveryAddress?.street || "Customer Location"}
                                  </p>
                               </div>
-                              {(activeOrder?.userPhone || activeOrder?.deliveryAddress?.phone || activeOrder?.user?.phone) && (
+                              <div className="flex gap-2 shrink-0 mt-1">
+                                {(activeOrder?.userPhone || activeOrder?.deliveryAddress?.phone || activeOrder?.user?.phone) && (
+                                  <button
+                                    onClick={() => {
+                                      const num = activeOrder?.userPhone || activeOrder?.deliveryAddress?.phone || activeOrder?.user?.phone;
+                                      if (num) window.location.href = `tel:${num}`;
+                                    }}
+                                    className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 active:scale-95 transition-all shadow-sm"
+                                  >
+                                    <Phone className="w-4 h-4 fill-current" />
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => {
-                                    const num = activeOrder?.userPhone || activeOrder?.deliveryAddress?.phone || activeOrder?.user?.phone;
-                                    if (num) window.location.href = `tel:${num}`;
-                                  }}
-                                  className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 active:scale-95 transition-all shadow-sm shrink-0 mt-1"
+                                  type="button"
+                                  onClick={() => openCustomerDropInMaps(activeOrder)}
+                                  className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-white shadow-lg active:scale-95 transition-all"
+                                  title="Navigate to customer"
                                 >
-                                  <Phone className="w-4 h-4 fill-current" />
+                                  <Navigation className="w-5 h-5" />
                                 </button>
-                              )}
+                              </div>
                            </div>
 
                            {activeOrder?.items && activeOrder.items.length > 0 && (
