@@ -8,6 +8,8 @@ import {
 import { ActionSlider } from '@/modules/DeliveryV2/components/ui/ActionSlider';
 import { toast } from 'sonner';
 
+import { parseLatLng } from '@/modules/DeliveryV2/hooks/proximity.utils';
+
 /**
  * PickupActionModal - Unified White/Green Theme with Slider Actions.
  * Includes Bill Upload feature prior to pickup.
@@ -33,6 +35,29 @@ export const PickupActionModal = ({
   const restaurantName = order.restaurantName || order.restaurant_name || order.restaurantId?.restaurantName || order.restaurant?.restaurantName || 'Restaurant';
   const restaurantAddress = order.restaurantAddress || order.restaurant_address || order.restaurantLocation?.address || order.restaurantId?.address || 'Address not available';
   const restaurantPhone = order.restaurantPhone || order.restaurant_phone || order.restaurantId?.phone || '';
+  const restaurantCoords =
+    parseLatLng(order.restaurantLocation) ||
+    parseLatLng(order.restaurantId?.location) ||
+    parseLatLng(order.restaurant_location);
+
+  const openRestaurantInMaps = () => {
+    if (restaurantCoords) {
+      const { lat, lng } = restaurantCoords;
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,
+        '_blank',
+      );
+      return;
+    }
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurantAddress)}`,
+      '_blank',
+    );
+  };
+
+  const distanceLabel = Number.isFinite(distanceToTarget)
+    ? `${(distanceToTarget / 1000).toFixed(1)} km • ${eta || '--'} min to Store`
+    : 'Locating your position...';
   const items = order.items || [];
   const restaurantLogo = order.restaurantImage || order.restaurant?.logo || order.restaurant?.profileImage || order.restaurantId?.profileImage || order.restaurantId?.logo || 'https://cdn-icons-png.flaticon.com/512/3170/3170733.png';
 
@@ -73,7 +98,7 @@ export const PickupActionModal = ({
                   <span className="text-green-600">Reached Location √</span>
                 ) : (
                   <span className="text-orange-500">
-                    {(distanceToTarget / 1000).toFixed(1)} km • {eta || '--'} min to Store
+                    {distanceLabel}
                   </span>
                 )}
               </p>
@@ -90,7 +115,7 @@ export const PickupActionModal = ({
               </button>
             )}
             <button 
-              onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurantAddress)}`, '_blank')}
+              onClick={openRestaurantInMaps}
               className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-white shadow-lg"
             >
               <Navigation className="w-5 h-5" />

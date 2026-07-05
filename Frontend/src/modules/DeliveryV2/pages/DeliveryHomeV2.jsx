@@ -565,6 +565,30 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [isOnline, setRiderLocation, isSimMode]);
 
+  // Refresh GPS when returning from external apps (e.g. Google Maps)
+  useEffect(() => {
+    if (!isOnline || isSimMode) return;
+
+    const refreshLocation = () => {
+      if (document.hidden) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude: lat, longitude: lng, heading } = pos.coords;
+          setRiderLocation({ lat, lng, heading: heading || 0 });
+        },
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 },
+      );
+    };
+
+    document.addEventListener('visibilitychange', refreshLocation);
+    window.addEventListener('focus', refreshLocation);
+    return () => {
+      document.removeEventListener('visibilitychange', refreshLocation);
+      window.removeEventListener('focus', refreshLocation);
+    };
+  }, [isOnline, isSimMode, setRiderLocation]);
+
   // Online heartbeat: keep rider visible in admin map / availability without per-tick HTTP.
   useEffect(() => {
     if (!isOnline) return;

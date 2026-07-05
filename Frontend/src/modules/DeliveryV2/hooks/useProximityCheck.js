@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
-import { calculateDistance } from '@/modules/DeliveryV2/hooks/proximity.utils';
+import { calculateDistance, parseLatLng } from '@/modules/DeliveryV2/hooks/proximity.utils';
 
 /**
  * useProximityCheck - Professional hook for dynamic range monitoring.
  * Ensures rider can only advance based on Admin-defined ranges.
- * 
+ *
  * @returns {Object} { distanceToTarget, isWithinRange, actionLimit }
  */
 export const useProximityCheck = () => {
@@ -14,48 +14,55 @@ export const useProximityCheck = () => {
   const tripStatus = useDeliveryStore((state) => state.tripStatus);
   const settings = useDeliveryStore((state) => state.settings);
 
-  // Determine current target based on trip state
   const targetLocation = useMemo(() => {
     if (!activeOrder) return null;
-    
-    // If heading to pickup or arrived at pickup, target is restaurant
+
     if (['PICKING_UP', 'REACHED_PICKUP'].includes(tripStatus)) {
-      return activeOrder.restaurantLocation || activeOrder.restaurant_location;
+      return (
+        parseLatLng(activeOrder.restaurantLocation) ||
+        parseLatLng(activeOrder.restaurant_location) ||
+        parseLatLng(activeOrder.restaurantId?.location) ||
+        parseLatLng(activeOrder.restaurantId)
+      );
     }
-    
-    // If heading to drop or arrived at drop, target is customer
+
     if (['PICKED_UP', 'REACHED_DROP'].includes(tripStatus)) {
-      return activeOrder.customerLocation || activeOrder.customer_location;
+      return (
+        parseLatLng(activeOrder.customerLocation) ||
+        parseLatLng(activeOrder.customer_location) ||
+        parseLatLng(activeOrder.deliveryAddress?.location) ||
+        parseLatLng(activeOrder.deliveryAddress)
+      );
     }
-    
+
     return null;
   }, [activeOrder, tripStatus]);
 
-  // Determine current range limit from admin settings
+  const riderPoint = useMemo(() => parseLatLng(riderLocation), [riderLocation]);
+
   const actionLimit = useMemo(() => {
     if (tripStatus === 'PICKING_UP') return settings.pickupRangeLimit || 500;
     if (tripStatus === 'PICKED_UP') return settings.deliveryRangeLimit || 500;
     return 500;
   }, [tripStatus, settings]);
 
-  // Calculate real-time distance
   const distanceToTarget = useMemo(() => {
-    if (!riderLocation || !targetLocation) return Infinity;
-    
+    if (!riderPoint || !targetLocation) return Infinity;
+
     return calculateDistance(
-      riderLocation.lat,
-      riderLocation.lng,
+      riderPoint.lat,
+      riderPoint.lng,
       targetLocation.lat,
-      targetLocation.lng
+      targetLocation.lng,
     );
-  }, [riderLocation, targetLocation]);
+  }, [riderPoint, targetLocation]);
 
-  // Dev mode bypass
-  const isDevMode = import.meta.env.VITE_APP_MODE === 'developer' || 
-                    import.meta.env.VITE_ENABLE_RANGE_BYPASS === 'true' ||
-                    import.meta.env.DEV;
+  const isDevMode =
+    import.meta.env.VITE_APP_MODE === 'developer' ||
+    import.meta.env.VITE_ENABLE_RANGE_BYPASS === 'true' ||
+    import.meta.env.DEV;
 
-  const isWithinRange = isDevMode ? true : (distanceToTarget <= actionLimit);
+  const isWithinRange = isDevMode ? true : distanceToTarget <= actionLimit;
 
   return {
     distanceToTarget,
