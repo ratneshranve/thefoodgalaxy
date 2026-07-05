@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { FoodOrder } from '../models/order.model.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodFeeSettings } from '../../admin/models/feeSettings.model.js';
+import { FoodBusinessSettings } from '../../admin/models/businessSettings.model.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodOfferUsage } from '../../admin/models/offerUsage.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
@@ -9,6 +10,11 @@ import { haversineKm } from './order.helpers.js';
 import { getDrivingDistances } from '../../../../services/googleMaps.service.js';
 
 export async function calculateOrderPricing(userId, dto) {
+  const businessSettings = await FoodBusinessSettings.findOne().select('maintenanceMode').lean();
+  if (businessSettings?.maintenanceMode) {
+    throw new ValidationError('Ordering is temporarily unavailable due to maintenance. Please try again later.');
+  }
+
   const restaurant = await FoodRestaurant.findById(dto.restaurantId)
     .select("status location itemDiscounts")
     .lean();
@@ -113,7 +119,7 @@ export async function calculateOrderPricing(userId, dto) {
           continue;
         }
         const inRange = isLast
-          ? distanceKm >= min && distanceKm <= max
+          ? distanceKm >= min
           : distanceKm >= min && distanceKm < max;
         if (inRange) {
           matched = fee;
@@ -131,7 +137,21 @@ export async function calculateOrderPricing(userId, dto) {
       }
 
       if (Number.isFinite(distanceKm) && !Number.isFinite(matched)) {
-        throw new ValidationError(`Delivery is not available at this distance (${distanceKm.toFixed(1)} km). Please select a closer address.`);
+        const lastRange = ranges[ranges.length - 1];
+        const lastFee = lastRange && Number.isFinite(Number(lastRange.fee))
+          ? Number(lastRange.fee)
+          : null;
+        matched =
+          lastFee ??
+          (feeSettings.deliveryFee != null ? Number(feeSettings.deliveryFee) : 0);
+        if (Number.isFinite(matched)) {
+          deliveryFeeBreakdown = {
+            source: 'distance',
+            distanceKm,
+            fee: matched,
+            fallback: true,
+          };
+        }
       }
 
       deliveryFee = Number.isFinite(matched)

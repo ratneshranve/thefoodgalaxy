@@ -7,6 +7,7 @@ import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
 import { FoodZone } from '../../admin/models/zone.model.js';
 import { FoodFeeSettings } from '../../admin/models/feeSettings.model.js';
+import { FoodBusinessSettings } from '../../admin/models/businessSettings.model.js';
 import { ValidationError, ForbiddenError, NotFoundError } from '../../../../core/auth/errors.js';
 import { buildPaginationOptions, buildPaginatedResult, parseQueryLimit, parseQueryPage } from '../../../../utils/helpers.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
@@ -128,6 +129,11 @@ export async function calculateOrder(userId, dto) {
 
 // ----- Create order -----
 export async function createOrder(userId, dto) {
+  const businessSettings = await FoodBusinessSettings.findOne().select('maintenanceMode').lean();
+  if (businessSettings?.maintenanceMode) {
+    throw new ValidationError('Ordering is temporarily unavailable due to maintenance. Please try again later.');
+  }
+
   const restaurant = await FoodRestaurant.findById(dto.restaurantId)
     .select("status restaurantName zoneId location isAcceptingOrders")
     .lean();

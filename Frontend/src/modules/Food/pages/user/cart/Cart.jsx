@@ -128,6 +128,7 @@ export default function Cart() {
   const [isLoadingWallet, setIsLoadingWallet] = useState(false)
   const [onlinePaymentOnly, setOnlinePaymentOnly] = useState(false)
   const [maxCodAmount, setMaxCodAmount] = useState(0)
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -138,6 +139,7 @@ export default function Cart() {
           const codLimit = Number(response.data.data.maxCodAmount) || 0;
           setOnlinePaymentOnly(isOnlineOnly)
           setMaxCodAmount(codLimit)
+          setMaintenanceMode(!!response.data.data.maintenanceMode)
         }
       } catch (error) {
         debugError("Error fetching business settings:", error)
@@ -1067,7 +1069,7 @@ export default function Cart() {
         const fee = Number(range.fee)
         const isLastRange = i === sortedRanges.length - 1
         const inRange = isLastRange
-          ? distanceKm >= min && distanceKm <= max
+          ? distanceKm >= min
           : distanceKm >= min && distanceKm < max
 
         if (inRange) return fee
@@ -1543,35 +1545,15 @@ export default function Cart() {
 
 
   const handlePlaceOrder = async () => {
+    if (maintenanceMode) {
+      toast.error("Ordering is temporarily unavailable due to maintenance. Please try again later.")
+      return
+    }
+
     if (!hasSavedAddress) {
       toast.error("Please choose a delivery location to continue")
       openLocationSelector()
       return
-    }
-
-    const ranges = Array.isArray(feeSettings?.deliveryFeeRanges) ? [...feeSettings.deliveryFeeRanges] : []
-    if (ranges.length > 0 && Number.isFinite(orderDistanceKm)) {
-      const sortedRanges = ranges.sort((a, b) => Number(a.min) - Number(b.min))
-      let isWithinDeliveryRange = false
-      for (let i = 0; i < sortedRanges.length; i += 1) {
-        const range = sortedRanges[i]
-        const min = Number(range.min)
-        const max = Number(range.max)
-        const isLastRange = i === sortedRanges.length - 1
-        const inRange = isLastRange
-          ? orderDistanceKm >= min && orderDistanceKm <= max
-          : orderDistanceKm >= min && orderDistanceKm < max
-
-        if (inRange) {
-          isWithinDeliveryRange = true
-          break
-        }
-      }
-
-      if (!isWithinDeliveryRange) {
-        toast.error(`Delivery is not available at this distance (${orderDistanceKm.toFixed(1)} km). Please select a closer address.`)
-        return
-      }
     }
 
     if (isScheduled) {

@@ -154,3 +154,49 @@ export async function updateBusinessSettings(req, res, next) {
         next(error);
     }
 }
+
+export async function updateBusinessToggles(req, res, next) {
+    try {
+        const {
+            onlinePaymentOnly,
+            maxCodAmount,
+            maintenanceMode,
+            customerRegistration,
+            restaurantRegistration,
+            deliveryRegistration,
+        } = req.body || {};
+
+        let settings = await FoodBusinessSettings.findOne();
+        if (!settings) {
+            settings = await FoodBusinessSettings.create({
+                companyName: 'Appzeto',
+                email: 'admin@appzeto.com',
+            });
+        }
+
+        if (onlinePaymentOnly !== undefined) {
+            settings.onlinePaymentOnly = Boolean(onlinePaymentOnly);
+        }
+        if (maxCodAmount !== undefined) {
+            settings.maxCodAmount = Number(maxCodAmount) || 0;
+        }
+        if (maintenanceMode !== undefined) {
+            settings.maintenanceMode = Boolean(maintenanceMode);
+        }
+        if (customerRegistration !== undefined) {
+            settings.customerRegistration = Boolean(customerRegistration);
+        }
+        if (restaurantRegistration !== undefined) {
+            settings.restaurantRegistration = Boolean(restaurantRegistration);
+        }
+        if (deliveryRegistration !== undefined) {
+            settings.deliveryRegistration = Boolean(deliveryRegistration);
+        }
+
+        await settings.save();
+        const payload = settings.toObject ? settings.toObject() : settings;
+        return sendResponse(res, 200, 'Toggle settings updated successfully', payload);
+    } catch (error) {
+        next(error);
+    }
+}

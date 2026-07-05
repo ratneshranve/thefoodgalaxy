@@ -679,6 +679,8 @@ export const adminAPI = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+  updateBusinessToggles: (body) =>
+    adminClient.patch("/food/admin/business-settings/toggles", body ?? {}),
 };
 
 /** Restaurant API - OTP login via new backend; no email/password. */

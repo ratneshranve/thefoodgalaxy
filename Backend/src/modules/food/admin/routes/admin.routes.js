@@ -143,6 +143,7 @@ router.put('/referral-settings', adminController.createOrUpdateReferralSettings)
 // ----- Business Settings -----
 router.get('/business-settings/public', businessSettingsController.getBusinessSettings); // Public endpoint
 router.get('/business-settings', businessSettingsController.getBusinessSettings);
+router.patch('/business-settings/toggles', businessSettingsController.updateBusinessToggles);
 router.patch('/business-settings', upload.fields([
     { name: 'logo', maxCount: 1 },
     { name: 'favicon', maxCount: 1 },
