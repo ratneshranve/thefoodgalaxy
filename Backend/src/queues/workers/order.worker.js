@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import { Worker } from 'bullmq';
 import { config } from '../../config/env.js';
+import { connectDB, disconnectDB } from '../../config/db.js';
+import { loadEnvFromDb } from '../../config/envLoader.js';
+import { initializeFirebaseRealtime } from '../../config/firebase.js';
 import { logger } from '../../utils/logger.js';
 import { connectRedis, closeRedis, getRedisClient } from '../../config/redis.js';
 import { initRedisEmitter } from '../../config/socket.js';
@@ -18,6 +21,13 @@ const startOrderWorker = async () => {
         logger.info('BullMQ is disabled. Order worker not started.');
         return null;
     }
+
+    logger.info(`[Bootstrap] Starting order worker bullmqEnabled=${config.bullmqEnabled} redisEnabled=${config.redisEnabled}`);
+
+    await connectDB();
+    await loadEnvFromDb();
+    initializeFirebaseRealtime();
+    logger.info('[Bootstrap] Order worker initialized MongoDB, env overrides, and Firebase');
 
     if (config.redisEnabled) {
         logger.info('[Bootstrap] Order worker connecting Redis client for socket emitter support');
@@ -49,6 +59,7 @@ if (worker) {
     const shutdown = async () => {
         await worker.close();
         await closeRedis();
+        await disconnectDB();
         process.exit(0);
     };
     process.on('SIGTERM', shutdown);
