@@ -61,27 +61,42 @@ function clearModuleAuth(module) {
 function formatApiError(err) {
   if (err?.response) {
     const status = err.response.status;
-    
-    // Default to the message provided by backend
-    let friendlyMessage = err.response?.data?.message || err.message;
-    
-    // Check if the backend message is generic or raw technical
-    const isGeneric = !err.response?.data?.message || friendlyMessage.includes('AxiosError') || friendlyMessage.includes('Request failed with status code') || friendlyMessage.includes('Unexpected token');
+    const responseData = err.response.data;
+    const backendMessage =
+      responseData && typeof responseData === "object" && !Array.isArray(responseData)
+        ? responseData.message
+        : null;
 
-    // Only override if the backend didn't provide a specific, useful message
+    // Default to the message provided by backend when it is a structured JSON payload.
+    let friendlyMessage = backendMessage || err.message;
+
+    // Check if the backend message is generic or raw technical.
+    const isGeneric =
+      !backendMessage ||
+      friendlyMessage.includes("AxiosError") ||
+      friendlyMessage.includes("Request failed with status code") ||
+      friendlyMessage.includes("Unexpected token") ||
+      friendlyMessage.includes("<html");
+
+    // Only override if the backend didn't provide a specific, useful message.
     if (isGeneric) {
       if (status === 400) friendlyMessage = "Invalid request. Please check your inputs.";
       else if (status === 401) friendlyMessage = "Unauthorized. Please login again.";
       else if (status === 403) friendlyMessage = "Access denied. You don't have permission.";
       else if (status === 404) friendlyMessage = "Requested data not found.";
       else if (status === 429) friendlyMessage = "Too many requests. Please wait a moment.";
+      else if (status === 502) friendlyMessage = "Server is temporarily unavailable. Please try again in a moment.";
       else if (status >= 500) friendlyMessage = "Server error. Please try again later.";
       else friendlyMessage = "An unexpected error occurred.";
     }
 
-    // Mutate safely so that frontend components reading err.response.data.message get the clean text
-    if (!err.response.data) err.response.data = {};
-    err.response.data.message = friendlyMessage;
+    // Normalize response data so downstream UI code can always read .message safely.
+    if (!responseData || typeof responseData !== "object" || Array.isArray(responseData)) {
+      err.response.data = { message: friendlyMessage, raw: responseData };
+    } else {
+      err.response.data.message = friendlyMessage;
+    }
+
     err.message = friendlyMessage;
   } else if (err?.request) {
     err.message = "Network error. Please check your internet connection.";
@@ -300,3 +315,4 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
+

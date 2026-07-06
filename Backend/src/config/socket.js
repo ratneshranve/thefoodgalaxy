@@ -45,6 +45,9 @@ const roomNames = {
  * @returns {Promise<Server>}
  */
 export const initSocket = async (server) => {
+    logger.info(
+        `[SocketInit] initSocket called redisEnabled=${config.redisEnabled} redisUrlPresent=${Boolean(config.redisUrl)} socketCorsOrigin=${config.socketCorsOrigin}`
+    );
     io = new Server(server, {
         cors: {
             origin: config.socketCorsOrigin,
@@ -429,7 +432,15 @@ export const initRedisEmitter = (redisClient) => {
     if (redisClient && !redisEmitter) {
         redisEmitter = new Emitter(redisClient);
         logger.info('Redis Emitter initialized for API broadcasting.');
+        return;
     }
+
+    if (!redisClient) {
+        logger.warn('[SocketInit] initRedisEmitter called without a Redis client');
+        return;
+    }
+
+    logger.info('[SocketInit] Redis emitter already initialized; reusing existing emitter');
 };
 
 /**
@@ -440,7 +451,9 @@ export const getIO = () => {
     if (io) return io;
     if (redisEmitter) return redisEmitter;
     
-    logger.warn('Socket.IO not initialized (No local Server or Redis Emitter)');
+    logger.warn(
+        `[SocketInit] Socket.IO not initialized (No local Server or Redis Emitter). redisEnabled=${config.redisEnabled} redisUrlPresent=${Boolean(config.redisUrl)} pid=${process.pid}`
+    );
     
     // Return a mock object to prevent crashes if called when disabled
     return {

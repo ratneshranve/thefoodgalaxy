@@ -14,7 +14,7 @@ export const uploadImageBuffer = async (buffer, folder = 'uploads') => {
 
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-            { folder, resource_type: 'image' },
+            { folder, resource_type: 'image', type: 'upload', access_mode: 'public' },
             (error, result) => {
                 if (error) {
                     return reject(error);
@@ -34,7 +34,7 @@ export const uploadImageBufferDetailed = async (buffer, folder = 'uploads') => {
 
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-            { folder, resource_type: 'image' },
+            { folder, resource_type: 'image', type: 'upload', access_mode: 'public' },
             (error, result) => {
                 if (error) {
                     return reject(error);
@@ -54,7 +54,7 @@ export const uploadVideoBuffer = async (buffer, folder = 'uploads') => {
 
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-            { folder, resource_type: 'video' },
+            { folder, resource_type: 'video', type: 'upload', access_mode: 'public' },
             (error, result) => {
                 if (error) {
                     return reject(error);
@@ -229,4 +229,5 @@ export const buildRawDownloadUrlFromFileUrl = (fileUrl, options = {}) => {
         flags: 'attachment'
     });
 };
+
 

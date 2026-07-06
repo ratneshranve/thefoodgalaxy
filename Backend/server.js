@@ -41,6 +41,9 @@ const gracefulShutdown = async (signal) => {
 const startServer = async () => {
     try {
         validateConfig();
+        logger.info(
+            `[Bootstrap] Starting API server with socketMode=external redisEnabled=${config.redisEnabled} bullmqEnabled=${config.bullmqEnabled} host=${config.host} port=${config.port} socketPort=${config.socketPort}`
+        );
         // 1. Connect to Database (MongoDB)
         await connectDB();
 
@@ -51,12 +54,16 @@ const startServer = async () => {
         // 2. Create HTTP server from Express app
         const httpServer = http.createServer(app);
 
-        // Socket initialized in socket-server.js
+        logger.info('[Bootstrap] Local Socket.IO init skipped in API server; expecting socket-server.js or Redis emitter for broadcasts');
 
 
         if (config.redisEnabled) {
+            logger.info('[Bootstrap] Redis is enabled for API server; connecting Redis client for socket emitter/queues');
             await connectRedis();
             initRedisEmitter(getRedisClient());
+            logger.info('[Bootstrap] Redis emitter setup attempted from API server');
+        } else {
+            logger.warn('[Bootstrap] Redis is disabled in API server; getIO() will warn unless socket events stay inside socket-server.js');
         }
         
         // Watchdog recovered stuck orders is moved to scheduler-server.js

@@ -17,6 +17,9 @@ app.get('/health', (req, res) => {
 
 const startSocketServer = async () => {
     try {
+        logger.info(
+            `[Bootstrap] Starting dedicated socket server redisEnabled=${config.redisEnabled} host=${config.host || '127.0.0.1'} socketPort=${config.socketPort || 5001}`
+        );
         await connectDB();
         await loadEnvFromDb();
         initializeFirebaseRealtime();
@@ -24,9 +27,13 @@ const startSocketServer = async () => {
         const httpServer = http.createServer(app);
 
         if (config.redisEnabled) {
+            logger.info('[Bootstrap] Redis is enabled for dedicated socket server; connecting Redis client');
             await connectRedis();
+        } else {
+            logger.warn('[Bootstrap] Redis is disabled for dedicated socket server; sockets will run in local in-memory mode only');
         }
 
+        logger.info('[Bootstrap] Initializing Socket.IO infrastructure on dedicated socket server');
         await initSocket(httpServer);
 
         const port = config.socketPort || 5001;

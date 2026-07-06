@@ -23,6 +23,7 @@ const feeSettingsSchema = new mongoose.Schema(
         gstOnPlatformFee: { type: Number, min: 0, max: 100, default: 0 },
         gstOnPackagingFee: { type: Number, min: 0, max: 100, default: 0 },
         deliveryBonusAmount: { type: Number, min: 0, default: 0 },
+        dispatchRadiusExpansionEnabled: { type: Boolean, default: true },
         dispatchRadiusTiers: { type: [Number], default: [2, 4, 6, 8, 15] },
         globalRestaurantCommission: { type: Number, min: 0, default: 0 },
         globalGstOnItem: { type: Number, min: 0, max: 100, default: 0 },
@@ -38,4 +39,5 @@ const feeSettingsSchema = new mongoose.Schema(
 feeSettingsSchema.index({ isActive: 1, createdAt: -1 });
 
 export const FoodFeeSettings = mongoose.model('FoodFeeSettings', feeSettingsSchema);
+
 

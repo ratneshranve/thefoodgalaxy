@@ -46,16 +46,25 @@ async function filterPartnersByCashLimit(partners = [], options = {}) {
   }));
 }
 
-async function getRadiusTiers() {
+async function getDispatchRadiusConfig() {
   const feeSettings = await FoodFeeSettings.findOne({ isActive: true }).lean();
-  const tiers = feeSettings?.dispatchRadiusTiers;
-  if (Array.isArray(tiers) && tiers.length > 0) {
-    return tiers.map(Number).filter((n) => Number.isFinite(n) && n > 0);
-  }
-  return DEFAULT_RADIUS_TIERS;
+  const tiers = Array.isArray(feeSettings?.dispatchRadiusTiers) && feeSettings.dispatchRadiusTiers.length > 0
+    ? feeSettings.dispatchRadiusTiers.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+    : DEFAULT_RADIUS_TIERS;
+
+  return {
+    tiers: tiers.length > 0 ? tiers : DEFAULT_RADIUS_TIERS,
+    expansionEnabled: feeSettings?.dispatchRadiusExpansionEnabled !== false,
+  };
 }
 
-function getMaxKmForAttempt(attempt, radiusTiers) {
+function getMaxKmForAttempt(attempt, radiusTiers, expansionEnabled = true) {
+  if (!Array.isArray(radiusTiers) || radiusTiers.length === 0) {
+    return DEFAULT_RADIUS_TIERS[DEFAULT_RADIUS_TIERS.length - 1];
+  }
+  if (!expansionEnabled) {
+    return radiusTiers[radiusTiers.length - 1];
+  }
   const index = Math.min(Math.max(1, attempt) - 1, radiusTiers.length - 1);
   return radiusTiers[index];
 }
@@ -296,14 +305,16 @@ export async function tryAutoAssign(orderId, options = {}) {
     const isCashOrder = paymentMethod === 'cash';
     const requiredAmount = isCashOrder ? Number(order?.pricing?.total || 0) : 0;
 
-    const radiusTiers = await getRadiusTiers();
-    const maxKm = getMaxKmForAttempt(attempt, radiusTiers);
-    const isMaxTier = attempt >= radiusTiers.length;
+    const dispatchRadiusConfig = await getDispatchRadiusConfig();
+    const radiusTiers = dispatchRadiusConfig.tiers;
+    const expansionEnabled = dispatchRadiusConfig.expansionEnabled;
+    const maxKm = getMaxKmForAttempt(attempt, radiusTiers, expansionEnabled);
+    const isMaxTier = !expansionEnabled || attempt >= radiusTiers.length;
     const isPhase2 = attempt >= 4;
     const isPhase3 = attempt >= 6;
 
     logger.info(
-      `[Dispatch] Order ${order._id} attempt=${attempt} maxKm=${maxKm} forceNotify=${forceNotify}`,
+      `[Dispatch] Order ${order._id} attempt=${attempt} maxKm=${maxKm} expansionEnabled=${expansionEnabled} forceNotify=${forceNotify}`,
     );
 
     const { partners } = await listNearbyOnlineDeliveryPartners(order.restaurantId, {
@@ -491,9 +502,10 @@ export async function resendDeliveryNotificationRestaurant(orderId, restaurantId
   const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
   const requiredAmount = paymentMethod === 'cash' ? Number(order?.pricing?.total || 0) : 0;
 
-  const radiusTiers = await getRadiusTiers();
+  const dispatchRadiusConfig = await getDispatchRadiusConfig();
+  const radiusTiers = dispatchRadiusConfig.tiers;
   const currentAttempt = resolveDispatchAttempt(order, {});
-  const previewMaxKm = getMaxKmForAttempt(currentAttempt, radiusTiers);
+  const previewMaxKm = getMaxKmForAttempt(currentAttempt, radiusTiers, dispatchRadiusConfig.expansionEnabled);
 
   const preview = await listNearbyOnlineDeliveryPartners(order.restaurantId, {
     maxKm: previewMaxKm,
@@ -562,3 +574,5 @@ export async function resetDispatchForFreshHunt(orderId) {
     },
   });
 }
+
+

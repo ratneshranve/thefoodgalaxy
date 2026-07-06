@@ -22,6 +22,7 @@ export default function FeeSettings() {
     gstOnPlatformFee: "",
     gstOnPackagingFee: "",
     deliveryBonusAmount: "",
+    dispatchRadiusExpansionEnabled: true,
     dispatchRadiusTiers: "2, 4, 6, 8, 15",
   })
   const [loadingFeeSettings, setLoadingFeeSettings] = useState(false)
@@ -47,7 +48,8 @@ export default function FeeSettings() {
           gstOnPlatformFee: response.data.data.feeSettings.gstOnPlatformFee ?? "",
           gstOnPackagingFee: response.data.data.feeSettings.gstOnPackagingFee ?? "",
           deliveryBonusAmount: response.data.data.feeSettings.deliveryBonusAmount ?? "",
-          dispatchRadiusTiers: response.data.data.feeSettings.dispatchRadiusTiers?.join(", ") ?? "2, 4, 6, 8, 10",
+          dispatchRadiusExpansionEnabled: response.data.data.feeSettings.dispatchRadiusExpansionEnabled !== false,
+          dispatchRadiusTiers: response.data.data.feeSettings.dispatchRadiusTiers?.join(", ") ?? "2, 4, 6, 8, 15",
         })
       } else if (response.data.success && response.data.data.feeSettings === null) {
         // Not configured yet - keep empty fields (no defaults).
@@ -63,6 +65,7 @@ export default function FeeSettings() {
           gstOnPlatformFee: "",
           gstOnPackagingFee: "",
           deliveryBonusAmount: "",
+          dispatchRadiusExpansionEnabled: true,
           dispatchRadiusTiers: "2, 4, 6, 8, 15",
         })
       }
@@ -95,6 +98,7 @@ export default function FeeSettings() {
         gstOnPlatformFee: feeSettings.gstOnPlatformFee === "" ? undefined : Number(feeSettings.gstOnPlatformFee),
         gstOnPackagingFee: feeSettings.gstOnPackagingFee === "" ? undefined : Number(feeSettings.gstOnPackagingFee),
         deliveryBonusAmount: feeSettings.deliveryBonusAmount === "" ? undefined : Number(feeSettings.deliveryBonusAmount),
+        dispatchRadiusExpansionEnabled: Boolean(feeSettings.dispatchRadiusExpansionEnabled),
         dispatchRadiusTiers: feeSettings.dispatchRadiusTiers ? feeSettings.dispatchRadiusTiers.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n)) : undefined,
         isActive: true,
       })
@@ -116,7 +120,8 @@ export default function FeeSettings() {
             gstOnPlatformFee: saved.gstOnPlatformFee ?? "",
             gstOnPackagingFee: saved.gstOnPackagingFee ?? "",
             deliveryBonusAmount: saved.deliveryBonusAmount ?? "",
-            dispatchRadiusTiers: saved.dispatchRadiusTiers?.join(", ") ?? "2, 4, 6, 8, 10",
+            dispatchRadiusExpansionEnabled: saved.dispatchRadiusExpansionEnabled !== false,
+            dispatchRadiusTiers: saved.dispatchRadiusTiers?.join(", ") ?? "2, 4, 6, 8, 15",
           })
         }
       } else {
@@ -623,6 +628,35 @@ export default function FeeSettings() {
                   </p>
                 </div>
 
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700">
+                        Dispatch Radius Expansion
+                      </label>
+                      <p className="text-xs text-slate-500 mt-1">
+                        When enabled, rider alerts expand by attempt using the configured tiers. When disabled, alerts go to all riders within the final radius immediately.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFeeSettings({
+                        ...feeSettings,
+                        dispatchRadiusExpansionEnabled: !feeSettings.dispatchRadiusExpansionEnabled,
+                      })}
+                      className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
+                        feeSettings.dispatchRadiusExpansionEnabled ? "bg-green-600" : "bg-slate-300"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                          feeSettings.dispatchRadiusExpansionEnabled ? "translate-x-8" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
                 {/* Dispatch Radius Tiers */}
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700">
@@ -633,10 +667,10 @@ export default function FeeSettings() {
                     value={feeSettings.dispatchRadiusTiers}
                     onChange={(e) => setFeeSettings({ ...feeSettings, dispatchRadiusTiers: e.target.value })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
-                    placeholder="2, 4, 6, 8, 10"
+                    placeholder="2, 4, 6, 8, 15"
                   />
                   <p className="text-xs text-slate-500">
-                    Comma-separated list of distance ranges for rider dispatch
+                    Comma-separated list of radius steps used when expansion is enabled
                   </p>
                 </div>
               </div>
@@ -647,3 +681,4 @@ export default function FeeSettings() {
     </div>
   )
 }
+

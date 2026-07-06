@@ -1942,6 +1942,8 @@ export async function upsertFeeSettings(body) {
         if (body.deliveryBonusAmount === null) $unset.deliveryBonusAmount = 1;
         else if (body.deliveryBonusAmount !== undefined) $set.deliveryBonusAmount = body.deliveryBonusAmount;
 
+        if (body.dispatchRadiusExpansionEnabled !== undefined) $set.dispatchRadiusExpansionEnabled = body.dispatchRadiusExpansionEnabled;
+
         if (body.dispatchRadiusTiers === null) $unset.dispatchRadiusTiers = 1;
         else if (body.dispatchRadiusTiers !== undefined) $set.dispatchRadiusTiers = body.dispatchRadiusTiers;
 
@@ -1970,6 +1972,7 @@ export async function upsertFeeSettings(body) {
     if (body.gstOnPlatformFee !== undefined && body.gstOnPlatformFee !== null) payload.gstOnPlatformFee = body.gstOnPlatformFee;
     if (body.gstOnPackagingFee !== undefined && body.gstOnPackagingFee !== null) payload.gstOnPackagingFee = body.gstOnPackagingFee;
     if (body.deliveryBonusAmount !== undefined && body.deliveryBonusAmount !== null) payload.deliveryBonusAmount = body.deliveryBonusAmount;
+    if (body.dispatchRadiusExpansionEnabled !== undefined) payload.dispatchRadiusExpansionEnabled = body.dispatchRadiusExpansionEnabled;
     if (body.dispatchRadiusTiers !== undefined && body.dispatchRadiusTiers !== null) payload.dispatchRadiusTiers = body.dispatchRadiusTiers;
 
     const created = await FoodFeeSettings.create(payload);
@@ -5403,3 +5406,4 @@ export async function deleteSubAdmin(id) {
     const deleted = await FoodAdmin.findOneAndDelete({ _id: id, role: 'SUB_ADMIN' });
     return deleted !== null;
 }
+
