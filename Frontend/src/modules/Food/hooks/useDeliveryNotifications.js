@@ -901,11 +901,12 @@ export const useDeliveryNotifications = () => {
         debugLog('?? Ignored play_notification_sound - rider is offline');
         return;
       }
-      const normalizedData = {
+      const normalizedData = normalizeIncomingOrder({
         orderId: data?.orderId || data?.order_id,
         orderMongoId: data?.orderMongoId || data?.order_mongo_id,
         ...data
-      };
+      });
+      setNewOrder(normalizedData);
       // Force immediate buzz for notification events, even if dedupe would skip.
       activeOrderRef.current = normalizedData || { id: Date.now() };
       playNotificationSound(normalizedData);
@@ -913,7 +914,6 @@ export const useDeliveryNotifications = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
         showBackgroundOrderNotification(normalizedData);
       }
-      handleIncomingOrderAlert(normalizedData);
     });
 
     socketRef.current.on('order_ready', (orderData) => {
@@ -986,15 +986,20 @@ export const useDeliveryNotifications = () => {
     // Backend emits 'order_claimed' when another delivery boy accepts an offered order
     socketRef.current.on('order_claimed', (data) => {
       const claimedMongoId = getOrderMongoId(data) || data?.orderId || data?.order_id;
+      const activeOrderRefId = getOrderMongoId(activeOrderRef.current) || activeOrderRef.current?.orderId || activeOrderRef.current?._id;
+      const isCurrentAlertOrder = Boolean(claimedMongoId && activeOrderRefId && String(claimedMongoId) == String(activeOrderRefId));
       debugLog('?? order_claimed received - order taken by another partner:', {
         raw: data,
         claimedMongoId,
         claimedBy: data?.claimedBy,
-        activeOrderRefId: getOrderMongoId(activeOrderRef.current) || activeOrderRef.current?.orderId || activeOrderRef.current?._id,
+        activeOrderRefId,
+        isCurrentAlertOrder,
       });
-      stopAlertLoop();
-      activeOrderRef.current = null;
-      setNewOrder(null);
+      if (isCurrentAlertOrder) {
+        stopAlertLoop();
+        activeOrderRef.current = null;
+        setNewOrder(null);
+      }
       if (claimedMongoId) {
         setClaimedOrderId({
           orderId: claimedMongoId,
