@@ -33,6 +33,7 @@ import * as foodTransactionService from './foodTransaction.service.js';
 import * as userWalletService from '../../user/services/userWallet.service.js';
 import { calculateOrderPricing } from './order-pricing.service.js';
 import * as dispatchService from './order-dispatch.service.js';
+import { clearDeliveryOffersForOrder } from './order-dispatch.firebase.js';
 import * as deliveryService from './order-delivery.service.js';
 import * as paymentService from './order-payment.service.js';
 import {
@@ -1334,6 +1335,7 @@ export async function updateOrderStatusRestaurant(
           for (const offer of order.dispatch.offeredTo) {
             io.to(rooms.delivery(offer.partnerId)).emit('order_claimed', claimedPayload);
           }
+          void clearDeliveryOffersForOrder(order);
       }
     }
 
@@ -1864,6 +1866,9 @@ export async function updateOrderStatusAdmin(orderId, adminId, orderStatus, note
 
     if (String(orderStatus).includes('cancel') || String(orderStatus) === 'delivered') {
       await dispatchService.cancelPendingDispatchJob(order._id);
+      if (String(orderStatus).includes('cancel')) {
+        void clearDeliveryOffersForOrder(order);
+      }
     }
 
     // Real-time: delivery request / ready notifications.

@@ -21,6 +21,7 @@ import {
 import { fetchPolyline } from '../utils/googleMaps.js';
 import * as foodTransactionService from './foodTransaction.service.js';
 import * as dispatchService from './order-dispatch.service.js';
+import { clearDeliveryOffersForOrder } from './order-dispatch.firebase.js';
 import {
   buildOrderIdentityFilter,
   emitDeliveryDropOtpToUser,
@@ -595,6 +596,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
         io.to('all_delivery').emit('order_claimed', claimedPayload);
         logger.info(`[DeliveryDispatch] Broadcasted order_claimed specifically and globally for order ${order._id.toString()}`);
 
+        void clearDeliveryOffersForOrder(order, { includeAssignedPartner: true });
       }
 
       await notifyOwnerSafely(

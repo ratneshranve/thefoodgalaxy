@@ -14,6 +14,7 @@ import {
 } from '@food/utils/orderDispatchId';
 import { isValidSocketOrigin, resolveSocketOrigin } from '@food/utils/socketOrigin';
 import { DeliveryNotificationContext } from '../context/DeliveryNotificationContext';
+import { subscribeDeliveryPartnerOffers } from '@food/realtimeTracking';
 
 const shouldLogDeliverySocket = () => {
   if (typeof window === 'undefined') return import.meta.env.DEV;
@@ -204,6 +205,8 @@ export const useDeliveryNotifications = () => {
   const userInteractedRef = useRef(false);
   const lastAlertAtByOrderRef = useRef(new Map());
   const lastBrowserNotificationAtByOrderRef = useRef(new Map());
+  const lastFirebaseOfferAtByOrderRef = useRef(new Map());
+  const prevFirebaseOfferKeysRef = useRef(new Set());
   
   // Step 2: All state hooks (unconditional)
   const [newOrder, setNewOrder] = useState(null);
@@ -1140,6 +1143,80 @@ export const useDeliveryNotifications = () => {
       void recoverDeliveryState();
     }
   }, [deliveryPartnerId, deliverySessionToken, joinDeliveryRoomIfPossible, recoverDeliveryState]);
+
+  useEffect(() => {
+    if (!deliveryPartnerId) return undefined;
+
+    debugLog('Subscribing to Firebase delivery partner offers', { deliveryPartnerId });
+
+    const unsubscribe = subscribeDeliveryPartnerOffers(
+      deliveryPartnerId,
+      (offersMap = {}) => {
+        if (!isRiderOnline()) return;
+
+        const currentKeys = new Set(Object.keys(offersMap || {}));
+
+        for (const previousKey of prevFirebaseOfferKeysRef.current) {
+          if (!currentKeys.has(previousKey)) {
+            const activeKey =
+              getOrderMongoId(activeOrderRef.current) ||
+              activeOrderRef.current?.orderId ||
+              activeOrderRef.current?._id;
+            if (activeKey && String(activeKey) === String(previousKey)) {
+              debugLog('Firebase offer removed for active alert order', { orderId: previousKey });
+              stopAlertLoop();
+              activeOrderRef.current = null;
+              setNewOrder(null);
+            }
+            setClaimedOrderId({
+              orderId: previousKey,
+              orderMongoId: previousKey,
+              claimedBy: 'claimed',
+            });
+          }
+        }
+        prevFirebaseOfferKeysRef.current = currentKeys;
+
+        Object.entries(offersMap || {}).forEach(([orderMongoId, offerData]) => {
+          if (!offerData || typeof offerData !== 'object') return;
+
+          const offerStatus = String(offerData.status || 'offered').toLowerCase();
+          if (offerStatus !== 'offered') return;
+
+          const offeredAt = Number(offerData.offeredAt || offerData.last_updated || 0);
+          const lastSeen = lastFirebaseOfferAtByOrderRef.current.get(orderMongoId) || 0;
+          if (!offeredAt || offeredAt <= lastSeen) return;
+
+          lastFirebaseOfferAtByOrderRef.current.set(orderMongoId, offeredAt);
+
+          const normalized = normalizeIncomingOrder({
+            ...offerData,
+            orderMongoId,
+            _id: offerData._id || orderMongoId,
+            source: 'firebase',
+          });
+
+          debugLog('New order offer received via Firebase', {
+            orderMongoId,
+            orderId: normalized?.orderId,
+            offeredAt,
+          });
+
+          setNewOrder(normalized);
+          handleIncomingOrderAlert(normalized);
+        });
+      },
+      (error) => {
+        debugWarn('Firebase delivery-offer listener error:', error?.message || error);
+      },
+    );
+
+    return () => {
+      debugLog('Unsubscribing Firebase delivery partner offers', { deliveryPartnerId });
+      prevFirebaseOfferKeysRef.current = new Set();
+      unsubscribe();
+    };
+  }, [deliveryPartnerId, handleIncomingOrderAlert, stopAlertLoop]);
 
   // Helper functions
   const clearNewOrder = () => {

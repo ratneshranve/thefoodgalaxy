@@ -17,6 +17,11 @@ import {
   notifyOwnerSafely,
   notifyOwnersSafely,
 } from './order.helpers.js';
+import {
+  clearDeliveryOffersForOrder,
+  publishDeliveryOfferToFirebase,
+  removeDeliveryOffersForPartners,
+} from './order-dispatch.firebase.js';
 
 function upsertPartnerOffer(order, entry) {
   if (!order.dispatch.offeredTo) order.dispatch.offeredTo = [];
@@ -225,12 +230,18 @@ export async function tryAutoAssign(orderId, options = {}) {
 
     // Broadcast to all eligible riders in this tier
     logger.info(`[Dispatch] Broadcasting order ${order._id} to ${eligible.length} riders at ${maxKm}km.`);
+    const offeredAt = Date.now();
     for (const p of eligible) {
+      const eventPayload = { ...payload, pickupDistanceKm: p.distanceKm, attempt, maxKm };
       const roomName = rooms.delivery(p.partnerId);
       if (io) {
-        const eventPayload = { ...payload, pickupDistanceKm: p.distanceKm };
         io.to(roomName).emit('new_order_available', eventPayload);
       }
+      void publishDeliveryOfferToFirebase(p.partnerId, order._id.toString(), {
+        ...eventPayload,
+        type: 'new_order_available',
+        offeredAt,
+      });
     }
 
     // FCM Push for background/closed apps
@@ -313,9 +324,11 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
   } else if (order.dispatch?.status === 'unassigned') {
     // Broadcast timeout: Mark ALL currently 'offered' riders as 'timeout'
     let updated = false;
+    const timedOutPartnerIds = [];
     for (const entry of (order.dispatch?.offeredTo || [])) {
       if (entry.action === 'offered') {
         entry.action = 'timeout';
+        if (entry?.partnerId) timedOutPartnerIds.push(String(entry.partnerId));
         updated = true;
       }
     }
@@ -323,6 +336,7 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
     if (updated) {
       logger.info(`[Dispatch] Marked broadcasted offers as timeout for order ${orderId}. Advancing cycle.`);
       await order.save();
+      void removeDeliveryOffersForPartners(timedOutPartnerIds, String(order._id));
     }
 
     const attempt = options.attempt || 1;

@@ -22,6 +22,26 @@ function getOrderTrackingPath(orderId) {
   return `active_orders/${sanitizeRealtimeKey(orderId)}`;
 }
 
+function getDeliveryPartnerOffersPath(deliveryPartnerId) {
+  return `delivery_partner_offers/${sanitizeRealtimeKey(deliveryPartnerId)}`;
+}
+
+export function subscribeDeliveryPartnerOffers(deliveryPartnerId, onChange, onError) {
+  if (!deliveryPartnerId || typeof onChange !== 'function') return () => {};
+  ensureFirebaseInitialized({ enableAuth: false, enableRealtimeDb: true });
+  const path = getDeliveryPartnerOffersPath(deliveryPartnerId);
+  const unsub = onValue(
+    ref(firebaseRealtimeDb, path),
+    (snapshot) => {
+      onChange(snapshot.val() || {}, path);
+    },
+    (error) => {
+      if (typeof onError === 'function') onError(error, path);
+    },
+  );
+  return unsub;
+}
+
 export function subscribeOrderTracking(orderId, onChange, onError) {
   if (!orderId || typeof onChange !== 'function') return () => {};
   // Keep auth disabled on tracking pages to avoid identitytoolkit
