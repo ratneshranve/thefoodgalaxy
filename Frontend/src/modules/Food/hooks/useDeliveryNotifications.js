@@ -536,6 +536,35 @@ export const useDeliveryNotifications = () => {
     };
   }, [playNotificationSound, showBackgroundOrderNotification, recoverDeliveryState]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const onDeliveryFcmAlert = (event) => {
+      const detail = event?.detail || {};
+      debugLog('Received delivery FCM alert bridge', detail);
+      if (!isRiderOnline()) {
+        debugLog('Ignored delivery FCM alert bridge because rider is offline');
+        return;
+      }
+
+      const hintedOrder = normalizeIncomingOrder({
+        orderId: detail?.orderId || detail?.orderMongoId,
+        orderMongoId: detail?.orderMongoId || detail?.orderId,
+      });
+
+      if (hintedOrder && (hintedOrder.orderId || hintedOrder.orderMongoId)) {
+        setNewOrder(hintedOrder);
+      }
+
+      void recoverDeliveryState();
+    };
+
+    window.addEventListener('delivery-fcm-order-alert', onDeliveryFcmAlert);
+    return () => {
+      window.removeEventListener('delivery-fcm-order-alert', onDeliveryFcmAlert);
+    };
+  }, [recoverDeliveryState]);
+
   // Track user interaction — mark gesture only; never play alert.mp3 during unlock (iOS leak)
   useEffect(() => {
     const handleUserInteraction = async () => {
