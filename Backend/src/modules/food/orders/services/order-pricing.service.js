@@ -5,20 +5,31 @@ import { FoodFeeSettings } from '../../admin/models/feeSettings.model.js';
 import { FoodBusinessSettings } from '../../admin/models/businessSettings.model.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodOfferUsage } from '../../admin/models/offerUsage.model.js';
+import { FoodZone } from '../../admin/models/zone.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { haversineKm } from './order.helpers.js';
 import { getDrivingDistances } from '../../../../services/googleMaps.service.js';
 
 export async function calculateOrderPricing(userId, dto) {
-  const businessSettings = await FoodBusinessSettings.findOne().select('maintenanceMode').lean();
-  if (businessSettings?.maintenanceMode) {
-    throw new ValidationError('Ordering is temporarily unavailable due to maintenance. Please try again later.');
-  }
-
   const restaurant = await FoodRestaurant.findById(dto.restaurantId)
-    .select("status location itemDiscounts")
+    .select("status location itemDiscounts zoneId")
     .lean();
   if (!restaurant) throw new ValidationError("Restaurant not found");
+
+  const businessSettings = await FoodBusinessSettings.findOne().select('maintenanceMode').lean();
+  if (businessSettings?.maintenanceMode) {
+    let isIndore = false;
+    if (restaurant.zoneId) {
+      const zone = await FoodZone.findById(restaurant.zoneId).select('name').lean();
+      if (zone && zone.name && zone.name.toLowerCase() === 'indore') {
+        isIndore = true;
+      }
+    }
+    if (!isIndore) {
+      throw new ValidationError('Ordering is temporarily unavailable due to maintenance. Please try again later.');
+    }
+  }
+
   if (restaurant.status !== "approved")
     throw new ValidationError("Restaurant not available");
 

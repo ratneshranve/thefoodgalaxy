@@ -20,6 +20,8 @@ import {
 const NOTIFICATION_BATCH_SIZE = 50;
 const DISPATCH_RETRY_DELAY_MS = 20000;
 const DISPATCH_LOCK_RETRY_MS = 5000;
+const DISPATCH_LOCK_TIMEOUT_MS = 20000;
+const PARTNER_SEARCH_LIMIT = 50;
 const DEFAULT_RADIUS_TIERS = [2, 4, 6, 8, 15];
 
 async function batchedNotifyOwnersSafely(targets, payload) {
@@ -261,7 +263,8 @@ export async function updateDispatchSettings(dispatchMode, adminId) {
 }
 
 export async function tryAutoAssign(orderId, options = {}) {
-  const lockTimeout = 20000;
+  const lockTimeout = DISPATCH_LOCK_TIMEOUT_MS;
+  const staleLockBefore = new Date(Date.now() - lockTimeout);
 
   const dispatchableStatuses = new Set([
     'confirmed',
@@ -280,10 +283,13 @@ export async function tryAutoAssign(orderId, options = {}) {
         {
           'dispatch.status': 'assigned',
           'dispatch.acceptedAt': { $exists: false },
-          'dispatch.assignedAt': { $lt: new Date(Date.now() - lockTimeout) }
+          'dispatch.assignedAt': { $lt: staleLockBefore }
         }
       ],
-      'dispatch.dispatchingAt': { $exists: false }
+      $or: [
+        { 'dispatch.dispatchingAt': { $exists: false } },
+        { 'dispatch.dispatchingAt': { $lt: staleLockBefore } },
+      ],
     },
     {
       $set: { 'dispatch.dispatchingAt': new Date() }
@@ -319,7 +325,7 @@ export async function tryAutoAssign(orderId, options = {}) {
 
     const { partners } = await listNearbyOnlineDeliveryPartners(order.restaurantId, {
       maxKm,
-      limit: 10000,
+      limit: PARTNER_SEARCH_LIMIT,
       requiredAmount: 0,
       allowOverLimitFallback: true,
     });
@@ -397,8 +403,6 @@ export async function tryAutoAssign(orderId, options = {}) {
       }
     }
 
-    await notifyPartners(order, order.restaurantId, targets);
-
     const offeredToEntries = targets.map((p) => ({
       partnerId: p.partnerId,
       at: new Date(),
@@ -412,6 +416,8 @@ export async function tryAutoAssign(orderId, options = {}) {
     order.dispatch.dispatchAttempt = attempt;
     order.dispatch.offeredTo = mergeOfferedToEntries(order.dispatch?.offeredTo, offeredToEntries);
     await order.save();
+
+    await notifyPartners(order, order.restaurantId, targets);
 
     await scheduleDispatchTimeoutJob(
       order._id.toString(),
@@ -509,7 +515,7 @@ export async function resendDeliveryNotificationRestaurant(orderId, restaurantId
 
   const preview = await listNearbyOnlineDeliveryPartners(order.restaurantId, {
     maxKm: previewMaxKm,
-    limit: 10000,
+    limit: PARTNER_SEARCH_LIMIT,
     requiredAmount,
     allowOverLimitFallback: true,
   });

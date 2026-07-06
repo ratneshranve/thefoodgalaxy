@@ -1,4 +1,13 @@
 import { logger } from '../../utils/logger.js';
+import { connectDB } from '../../config/db.js';
+
+let isDBConnected = false;
+
+async function ensureDB() {
+    if (isDBConnected) return;
+    await connectDB();
+    isDBConnected = true;
+}
 
 /**
  * BullMQ processor for order lifecycle jobs.
@@ -7,6 +16,8 @@ import { logger } from '../../utils/logger.js';
  * @param {import('bullmq').Job} job
  */
 export const processOrderJob = async (job) => {
+    await ensureDB();
+
     const data = job?.data || {};
     const action = data.action || 'unknown';
     const orderId = data.orderId || '';
