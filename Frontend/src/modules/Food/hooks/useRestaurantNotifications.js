@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useContext } from 'react';
 import io from 'socket.io-client';
 import { API_BASE_URL } from '@food/api/config';
+import { isValidSocketOrigin, resolveSocketOrigin } from '@food/utils/socketOrigin';
 import { restaurantAPI } from '@food/api';
 import alertSound from '@food/assets/audio/alert.mp3';
 import { dispatchNotificationInboxRefresh } from '@food/hooks/useNotificationInbox';
@@ -591,22 +592,16 @@ export const useRestaurantNotifications = () => {
       return; // Don't try to connect with invalid URL
     }
     
-    // Construct Socket.IO URL
-    // IMPORTANT: Socket.IO server is on the origin (not /api/v1).
-    // Our API baseURL is typically like: http://localhost:5000/api/v1
-    // So for sockets we always connect to: http://localhost:5000
-    let socketOrigin = backendUrl;
-    try {
-      socketOrigin = new URL(backendUrl).origin;
-    } catch {
-      socketOrigin = String(backendUrl || "")
-        .replace(/\/api\/v\d+\/?$/i, "")
-        .replace(/\/api\/?$/i, "")
-        .replace(/\/+$/, "");
-    }
+    // Backend uses a dedicated Socket.IO server; resolve shared socket origin.
+    const socketUrl = resolveSocketOrigin();
 
-    // Backend uses default namespace; rooms handle role separation.
-    const socketUrl = `${socketOrigin}`;
+    if (!isValidSocketOrigin(socketUrl)) {
+      debugError('? CRITICAL: Invalid Socket.IO origin resolved for restaurant:', socketUrl);
+      debugError('?? API_BASE_URL:', API_BASE_URL);
+      setIsConnected(false);
+      if (typeof window !== 'undefined') window.restaurantSocketConnected = false;
+      return;
+    }
     
     // Validate socket URL format
     try {

@@ -1,37 +1,80 @@
 import { API_BASE_URL } from '@food/api/config';
 
+const SOCKET_PORT =
+  typeof import.meta !== 'undefined' && import.meta.env?.VITE_SOCKET_PORT
+    ? String(import.meta.env.VITE_SOCKET_PORT).trim()
+    : '5001';
+
+const SOCKET_BASE_URL =
+  typeof import.meta !== 'undefined' && import.meta.env?.VITE_SOCKET_BASE_URL
+    ? String(import.meta.env.VITE_SOCKET_BASE_URL).trim().replace(/\/$/, '')
+    : '';
+
+function stripApiPath(url) {
+  return String(url || '')
+    .replace(/\/api\/v\d+\/?$/i, '')
+    .replace(/\/api\/?$/i, '')
+    .replace(/\/+$/, '');
+}
+
+function toSocketOriginFromApi(apiUrl) {
+  const base = stripApiPath(apiUrl);
+  const fallbackBase =
+    typeof window !== 'undefined' ? window.location.origin : undefined;
+
+  const parsed = new URL(base, fallbackBase);
+
+  if (!SOCKET_PORT) {
+    return parsed.origin;
+  }
+
+  if (parsed.port === SOCKET_PORT) {
+    return parsed.origin;
+  }
+
+  parsed.port = SOCKET_PORT;
+  return parsed.origin;
+}
+
 /**
- * Socket.IO server runs on the HTTP origin (not /api/v1).
- * e.g. VITE_API_BASE_URL=http://localhost:5000/api/v1 → http://localhost:5000
+ * Socket.IO runs on a dedicated server in this project.
+ * Example: API=http://localhost:5000/api/v1 -> Socket=http://localhost:5001
+ * You can override explicitly with VITE_SOCKET_BASE_URL.
  */
 export function resolveSocketOrigin() {
-  let backendUrl = API_BASE_URL || '';
+  if (SOCKET_BASE_URL) {
+    return SOCKET_BASE_URL;
+  }
+
+  const backendUrl = API_BASE_URL || '';
   if (!String(backendUrl).trim()) {
-    return typeof window !== 'undefined' ? window.location.origin : '';
+    if (typeof window === 'undefined') return '';
+    try {
+      const parsed = new URL(window.location.origin);
+      if (SOCKET_PORT && parsed.port !== SOCKET_PORT) {
+        parsed.port = SOCKET_PORT;
+      }
+      return parsed.origin;
+    } catch {
+      return window.location.origin;
+    }
   }
 
   try {
-    const base = String(backendUrl).startsWith('http')
-      ? undefined
-      : typeof window !== 'undefined'
-        ? window.location.origin
-        : undefined;
-    const origin = new URL(backendUrl, base).origin;
-    
-    // For local development without Nginx reverse proxy
-    if (origin === 'http://localhost:5000') {
-      return 'http://localhost:5001';
-    }
-    
-    return origin;
+    return toSocketOriginFromApi(backendUrl);
   } catch {
-    const stripped = String(backendUrl)
-      .replace(/\/api\/v\d+\/?$/i, '')
-      .replace(/\/api\/?$/i, '')
-      .replace(/\/+$/, '');
+    const stripped = stripApiPath(backendUrl);
+    if (!stripped.startsWith('http')) return typeof window !== 'undefined' ? window.location.origin : '';
 
-    if (stripped.startsWith('http')) return stripped;
-    return typeof window !== 'undefined' ? window.location.origin : '';
+    try {
+      const parsed = new URL(stripped);
+      if (SOCKET_PORT && parsed.port !== SOCKET_PORT) {
+        parsed.port = SOCKET_PORT;
+      }
+      return parsed.origin;
+    } catch {
+      return stripped;
+    }
   }
 }
 
