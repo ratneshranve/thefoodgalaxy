@@ -112,7 +112,7 @@ export async function updateDispatchSettings(dispatchMode, adminId) {
 }
 
 export async function tryAutoAssign(orderId, options = {}) {
-  const attempt = options.attempt || 1;
+  let attempt = options.attempt || 1;
   const lockTimeout = 20000; // 20 seconds lock interval
 
   const dispatchableStatuses = new Set([
@@ -149,91 +149,56 @@ export async function tryAutoAssign(orderId, options = {}) {
   }
 
   try {
-    const offeredIds = (order.dispatch?.offeredTo || []).map(o => o.partnerId.toString());
     const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
     const isCashOrder = paymentMethod === 'cash';
     const requiredAmount = isCashOrder ? Number(order?.pricing?.total || 0) : 0;
-    
+
     // RADIUS EXPANSION LOGIC
     const feeSettings = await FoodFeeSettings.findOne({ isActive: true }).lean();
     let radiusTiers = feeSettings?.dispatchRadiusTiers || [];
     if (!radiusTiers.length) {
-      radiusTiers = [2, 4, 6, 8, 10]; // fallback
+      radiusTiers = [2, 4, 6, 8, 10, 15]; // Exact tiers requested: 2, 4, 6, 8, 10, 15
     }
-    const maxKm = radiusTiers[Math.min(attempt - 1, radiusTiers.length - 1)];
+
+    // CYCLE RESTART LOGIC: If we exceeded the maximum tiers, restart the cycle from 2km
+    if (attempt > radiusTiers.length) {
+      logger.info(`[Dispatch] Order ${order._id}: All ${radiusTiers.length} tiers exhausted (attempt was ${attempt}). Restarting cycle from 2km.`);
+      attempt = 1;
+      order.dispatch.offeredTo = []; // Clear history so all riders get a fresh chance
+      order.dispatch.dispatchAttempt = 1;
+      await order.save();
+    }
+
+    const maxKm = radiusTiers[attempt - 1];
 
     const searchOptions = {
       maxKm,
-      limit: 10000, // No artificial limit, fetch all in the radius
+      limit: 10000, // Fetch all in the radius
       requiredAmount: 0,
       allowOverLimitFallback: true,
     };
-    const { partners } = await listNearbyOnlineDeliveryPartners(order.restaurantId, searchOptions);
     
-    // TIERED ALERT LOGIC
-    // Phase 2: Broadcast to all (Attempt 4+)
-    // Phase 3: Admin Alert (Attempt 6+ or roughly 2 mins)
-    const isPhase2 = attempt >= 4;
-    const isPhase3 = attempt >= 6; // ~2 minutes (20s * 6)
+    logger.info(`[Dispatch] Order ${order._id} attempt=${attempt} maxKm=${maxKm}`);
+    const { partners } = await listNearbyOnlineDeliveryPartners(order.restaurantId, searchOptions);
 
-    if (isPhase3) {
-      logger.error(`[CRITICAL] Order ${order._id} unassigned for ${attempt} mins. Triggering Admin Alert (Phase 3).`);
-      // Notify Admin via Push (Web/Mobile)
-      try {
-        await notifyOwnersSafely(
-          [{ ownerType: 'ADMIN', ownerId: 'GLOBAL' }], // Use GLOBAL or specific admin group if defined
-          {
-            title: 'Unassigned Order Crisis!',
-            body: `Order #${order.order_id || order._id} has not been picked up for 5+ minutes. Manual intervention required!`,
-            data: { type: 'admin_alert_unassigned', orderId: order._id.toString() }
-          }
-        );
-      } catch (err) {
-        logger.warn(`Admin notification failed: ${err.message}`);
-      }
-    }
-
+    const offeredIds = (order.dispatch?.offeredTo || []).map(o => o.partnerId.toString());
     const eligible = partners.filter(p => !offeredIds.includes(p.partnerId.toString()));
 
     if (eligible.length === 0) {
-      logger.info(`tryAutoAssign: No NEW eligible partners in ${maxKm}km for order ${order._id}. Restarting hunt...`);
+      logger.info(`[Dispatch] No NEW eligible partners in ${maxKm}km for order ${order._id} (Attempt ${attempt}). Advancing to next tier.`);
       
-      // If we ran out of new eligible partners, we might want to re-offer to everyone (Phase 2 style)
-      const io = getIO();
-      if (io && partners.length > 0) {
-        const payload = buildDeliverySocketPayload(order, order.restaurantId);
-        for (const p of partners) {
-          const roomName = rooms.delivery(p.partnerId);
-          io.to(roomName).emit('new_order_available', { ...payload, pickupDistanceKm: p.distanceKm });
-        }
-        
-        // Also send FCM push for riders with app in background/closed
-        const reNotifyList = partners.map(p => ({
-          ownerType: 'DELIVERY_PARTNER',
-          ownerId: p.partnerId,
-        }));
-        try {
-          await notifyOwnersSafely(
-            reNotifyList,
-            {
-              title: '🚴 Order Still Waiting!',
-              body: `Order #${order.order_id || order._id} needs a delivery partner. Accept now!`,
-              dataOnly: true,
-              data: { type: 'new_order', orderId: order._id.toString() },
-            },
-          );
-        } catch (err) {
-          logger.warn(`Re-broadcast push notifications failed: ${err.message}`);
-        }
-      }
+      // No new riders in this radius. Advance to the next tier immediately.
+      order.dispatch.status = 'unassigned';
+      order.dispatch.deliveryPartnerId = null;
+      await order.save();
 
-      // Re-queue itself to keep trying
+      // Re-queue to check the next tier after a short delay (20s)
       await addOrderJob({
         action: 'DISPATCH_TIMEOUT_CHECK',
         orderMongoId: order._id.toString(),
         orderId: order._id.toString(),
         attempt: attempt + 1
-      }, { delay: 20000 }); // Retry faster (20s) if no one found
+      }, { delay: 20000 });
 
       return order;
     }
@@ -241,76 +206,37 @@ export async function tryAutoAssign(orderId, options = {}) {
     const io = getIO();
     const payload = buildDeliverySocketPayload(order, order.restaurantId);
 
-    // No batching limit - send to ALL eligible riders in the current radius
-    const phase1Batch = eligible;
-
-    if (isPhase2) {
-      // PHASE 2 BROADCAST: Notify everyone remaining
-      logger.info(`[Phase 2] Broadcasting order ${order._id} to ${eligible.length} riders.`);
-      for (const p of eligible) {
-        const roomName = rooms.delivery(p.partnerId);
-        if (io) {
-          const eventPayload = { ...payload, pickupDistanceKm: p.distanceKm };
-          io.to(roomName).emit('new_order_available', eventPayload);
-        }
-      }
-      
-      // Phase 2 also needs FCM push for riders with app in background/closed
-      const phase2NotifyList = eligible.map(p => ({
-        ownerType: 'DELIVERY_PARTNER',
-        ownerId: p.partnerId,
-      }));
-      try {
-        await notifyOwnersSafely(
-          phase2NotifyList,
-          {
-            title: '🚴 New Order Nearby!',
-            body: `Order #${order.order_id || order._id} is waiting. Be the first to accept!`,
-            dataOnly: true,
-            data: { type: 'new_order', orderId: order._id.toString() },
-          },
-        );
-      } catch (err) {
-        logger.warn(`Phase 2 push notifications failed: ${err.message}`);
-      }
-    } else {
-      // PHASE 1: Offer to top few nearby riders (avoid single-partner bottleneck).
-      const lead = phase1Batch[0];
-      if (lead) {
-        logger.info(`[Phase 1] Offering order ${order._id} to ${phase1Batch.length} riders (lead ${lead.partnerId}, ${lead.distanceKm}km)`);
-      }
-
-      for (const p of phase1Batch) {
-        const roomName = rooms.delivery(p.partnerId);
-        if (io) {
-          const eventPayload = { ...payload, pickupDistanceKm: p.distanceKm };
-          io.to(roomName).emit('new_order_available', eventPayload);
-        }
-      }
-
-      // Send push notifications to ALL riders in the batch (not just lead)
-      // so riders whose socket is disconnected or app is in background also get triggered
-      const notifyList = phase1Batch.map(p => ({
-        ownerType: 'DELIVERY_PARTNER',
-        ownerId: p.partnerId,
-      }));
-      try {
-        await notifyOwnersSafely(
-          notifyList,
-          {
-            title: '🚴 New Order Nearby!',
-            body: `Order #${order.order_id || order._id} is waiting. Be the first to accept!`,
-            dataOnly: true,
-            data: { type: 'new_order', orderId: order._id.toString() },
-          },
-        );
-      } catch (err) {
-        logger.warn(`Push notifications failed for batch: ${err.message}`);
+    // Broadcast to all eligible riders in this tier
+    logger.info(`[Dispatch] Broadcasting order ${order._id} to ${eligible.length} riders at ${maxKm}km.`);
+    for (const p of eligible) {
+      const roomName = rooms.delivery(p.partnerId);
+      if (io) {
+        const eventPayload = { ...payload, pickupDistanceKm: p.distanceKm };
+        io.to(roomName).emit('new_order_available', eventPayload);
       }
     }
 
-    const partnersToRecord = isPhase2 ? eligible : phase1Batch;
-    const offeredToEntries = partnersToRecord.map(p => ({
+    // FCM Push for background/closed apps
+    const notifyList = eligible.map(p => ({
+      ownerType: 'DELIVERY_PARTNER',
+      ownerId: p.partnerId,
+    }));
+    try {
+      await notifyOwnersSafely(
+        notifyList,
+        {
+          title: '🚴 New Order Nearby!',
+          body: `Order #${order.order_id || order._id} is waiting. Be the first to accept!`,
+          dataOnly: true,
+          data: { type: 'new_order', orderId: order._id.toString() },
+        },
+      );
+    } catch (err) {
+      logger.warn(`Push notifications failed for batch: ${err.message}`);
+    }
+
+    // Record offers
+    const offeredToEntries = eligible.map(p => ({
       partnerId: p.partnerId,
       at: new Date(),
       action: 'offered',
@@ -323,7 +249,7 @@ export async function tryAutoAssign(orderId, options = {}) {
     order.dispatch.offeredTo.push(...offeredToEntries);
     await order.save();
 
-    // Re-check in 20s
+    // Re-check in 20s if no one accepts
     await addOrderJob({
       action: 'DISPATCH_TIMEOUT_CHECK',
       orderMongoId: order._id.toString(),
@@ -339,31 +265,48 @@ export async function tryAutoAssign(orderId, options = {}) {
   }
 }
 
-
 export async function processDispatchTimeout(orderId, partnerId, options = {}) {
   const order = await FoodOrder.findById(orderId);
   if (!order) return;
+
+  if (order.dispatch?.status === 'accepted') {
+    return; // Already accepted, stop hunting.
+  }
 
   const stillAssigned = order.dispatch?.status === 'assigned' &&
     String(order.dispatch?.deliveryPartnerId) === String(partnerId) &&
     !order.dispatch?.acceptedAt;
 
   if (stillAssigned) {
-    logger.info(`Dispatch timeout for partner ${partnerId} on order ${orderId}. Re-trying hunt...`);
+    logger.info(`[Dispatch] Timeout for assigned partner ${partnerId} on order ${orderId}. Moving to next tier.`);
     const offer = order.dispatch.offeredTo.find(
       o => String(o.partnerId) === String(partnerId) && o.action === 'offered'
     );
     if (offer) offer.action = 'timeout';
-
+    
     order.dispatch.status = 'unassigned';
     order.dispatch.deliveryPartnerId = null;
     await order.save();
     
     const attempt = options.attempt || (order.dispatch?.offeredTo?.length || 0) + 1;
     await tryAutoAssign(orderId, { attempt });
+
   } else if (order.dispatch?.status === 'unassigned') {
-    // If it's already unassigned (e.g. from a previous timeout), just keep hunting
-    const attempt = options.attempt || (order.dispatch?.offeredTo?.length || 0) + 1;
+    // Broadcast timeout: Mark ALL currently 'offered' riders as 'timeout'
+    let updated = false;
+    for (const entry of (order.dispatch?.offeredTo || [])) {
+      if (entry.action === 'offered') {
+        entry.action = 'timeout';
+        updated = true;
+      }
+    }
+    
+    if (updated) {
+      logger.info(`[Dispatch] Marked broadcasted offers as timeout for order ${orderId}. Advancing cycle.`);
+      await order.save();
+    }
+
+    const attempt = options.attempt || 1;
     await tryAutoAssign(orderId, { attempt });
   }
 }
