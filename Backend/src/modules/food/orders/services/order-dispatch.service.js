@@ -54,7 +54,7 @@ async function filterPartnersByCashLimit(partners = [], options = {}) {
 
 async function listNearbyOnlineDeliveryPartners(
   restaurantId,
-  { maxKm = 15, limit = 25, requiredAmount = 0, allowOverLimitFallback = true } = {},
+  { maxKm = 15, limit = null, requiredAmount = 0, allowOverLimitFallback = true } = {},
 ) {
   const rId = (restaurantId?._id || restaurantId).toString();
   const restaurant = await FoodRestaurant.findById(rId)
@@ -62,8 +62,6 @@ async function listNearbyOnlineDeliveryPartners(
     .lean();
 
   if (!restaurant?.location?.coordinates?.length) {
-    // Restaurant has no GPS coordinates — cannot calculate distance to riders.
-    // Return empty so no one gets notified until restaurant sets their location.
     logger.warn(`listNearbyOnlineDeliveryPartners: Restaurant ${rId} has no location coordinates. Skipping dispatch.`);
     return { restaurant: null, partners: [] };
   }
@@ -77,33 +75,50 @@ async function listNearbyOnlineDeliveryPartners(
 
   const scored = [];
   const allowedStatuses = ['approved'];
-  const STALE_GPS_MS = 10 * 60 * 1000;
 
   for (const p of allOnline) {
     if (!allowedStatuses.includes(p.status)) continue;
 
-    // Skip riders with no GPS data or stale location — they cannot be distance-verified
-    const isStale = !p.lastLocationAt || (Date.now() - new Date(p.lastLocationAt).getTime()) > STALE_GPS_MS;
-    if (p.lastLat == null || p.lastLng == null || isStale) {
+    const hasCoords = p.lastLat != null && p.lastLng != null;
+
+    if (hasCoords) {
+      const d = haversineKm(rLat, rLng, p.lastLat, p.lastLng);
+      if (Number.isFinite(d) && d <= maxKm) {
+        scored.push({
+          partnerId: p._id,
+          distanceKm: d,
+          status: p.status,
+          locationUnknown: false,
+        });
+      }
       continue;
     }
 
-    const d = haversineKm(rLat, rLng, p.lastLat, p.lastLng);
-    if (Number.isFinite(d) && d <= maxKm) {
-      scored.push({ partnerId: p._id, distanceKm: d, status: p.status });
-    }
+    // Riders without GPS still receive offers — distance cannot be verified.
+    scored.push({
+      partnerId: p._id,
+      distanceKm: null,
+      status: p.status,
+      locationUnknown: true,
+    });
   }
 
-  scored.sort((a, b) => a.distanceKm - b.distanceKm);
-  const picked = scored.slice(0, Math.max(1, limit));
+  scored.sort((a, b) => {
+    if (a.distanceKm == null && b.distanceKm == null) return 0;
+    if (a.distanceKm == null) return 1;
+    if (b.distanceKm == null) return -1;
+    return a.distanceKm - b.distanceKm;
+  });
 
-  // No fallback — if no riders found in radius, return empty.
-  // The tiered dispatch will expand radius on next attempt automatically.
+  const picked = Number.isFinite(limit) && limit > 0
+    ? scored.slice(0, limit)
+    : scored;
+
   if (picked.length === 0) {
     return { partners: [] };
   }
 
-  const final = picked.filter(p => p.status === 'approved');
+  const final = picked.filter((p) => p.status === 'approved');
 
   const cashEligibleFinal = await filterPartnersByCashLimit(final, {
     requiredAmount,
@@ -111,6 +126,56 @@ async function listNearbyOnlineDeliveryPartners(
   });
 
   return { partners: cashEligibleFinal };
+}
+
+async function notifyDeliveryPartnerOffer({
+  partner,
+  order,
+  payload,
+  attempt,
+  maxKm,
+  offeredAt,
+  io,
+}) {
+  const eventPayload = {
+    ...payload,
+    pickupDistanceKm: partner.distanceKm ?? null,
+    locationUnknown: Boolean(partner.locationUnknown),
+    attempt,
+    maxKm,
+  };
+
+  const firebaseOk = await publishDeliveryOfferToFirebase(
+    partner.partnerId,
+    order._id.toString(),
+    {
+      ...eventPayload,
+      type: 'new_order_available',
+      offeredAt,
+      channel: 'firebase',
+    },
+  );
+
+  if (!firebaseOk) {
+    const roomName = rooms.delivery(partner.partnerId);
+    if (io) {
+      io.to(roomName).emit('new_order_available', {
+        ...eventPayload,
+        channel: 'socket_fallback',
+      });
+      logger.info(
+        `[Dispatch] Firebase unavailable — socket fallback for partner ${partner.partnerId} order ${order._id}`,
+      );
+      return { firebase: false, socket: true };
+    }
+
+    logger.warn(
+      `[Dispatch] Offer delivery failed for partner ${partner.partnerId} order ${order._id} (Firebase and socket unavailable)`,
+    );
+    return { firebase: false, socket: false };
+  }
+
+  return { firebase: true, socket: false };
 }
 
 export async function getDispatchSettings() {
@@ -195,7 +260,6 @@ export async function tryAutoAssign(orderId, options = {}) {
 
     const searchOptions = {
       maxKm,
-      limit: 10000, // Fetch all in the radius
       requiredAmount: 0,
       allowOverLimitFallback: true,
     };
@@ -228,21 +292,27 @@ export async function tryAutoAssign(orderId, options = {}) {
     const io = getIO();
     const payload = buildDeliverySocketPayload(order, order.restaurantId);
 
-    // Broadcast to all eligible riders in this tier
+    // Broadcast to ALL eligible riders in this tier (Firebase first, socket fallback).
     logger.info(`[Dispatch] Broadcasting order ${order._id} to ${eligible.length} riders at ${maxKm}km.`);
     const offeredAt = Date.now();
-    for (const p of eligible) {
-      const eventPayload = { ...payload, pickupDistanceKm: p.distanceKm, attempt, maxKm };
-      const roomName = rooms.delivery(p.partnerId);
-      if (io) {
-        io.to(roomName).emit('new_order_available', eventPayload);
-      }
-      void publishDeliveryOfferToFirebase(p.partnerId, order._id.toString(), {
-        ...eventPayload,
-        type: 'new_order_available',
-        offeredAt,
-      });
-    }
+    const notifyResults = await Promise.all(
+      eligible.map((partner) =>
+        notifyDeliveryPartnerOffer({
+          partner,
+          order,
+          payload,
+          attempt,
+          maxKm,
+          offeredAt,
+          io,
+        }),
+      ),
+    );
+    const firebaseCount = notifyResults.filter((result) => result.firebase).length;
+    const socketFallbackCount = notifyResults.filter((result) => result.socket).length;
+    logger.info(
+      `[Dispatch] Order ${order._id} notify summary: firebase=${firebaseCount}, socket_fallback=${socketFallbackCount}, total=${eligible.length}`,
+    );
 
     // FCM Push for background/closed apps
     const notifyList = eligible.map(p => ({
@@ -361,7 +431,6 @@ async function resendDeliveryNotificationForOrder(order) {
   const requiredAmount = paymentMethod === 'cash' ? Number(order?.pricing?.total || 0) : 0;
   const preview = await listNearbyOnlineDeliveryPartners(order.restaurantId, {
     maxKm: RESEND_SEARCH_RADIUS_KM,
-    limit: 10000,
     requiredAmount,
     allowOverLimitFallback: true,
   });

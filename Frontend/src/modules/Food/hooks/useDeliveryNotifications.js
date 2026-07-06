@@ -207,6 +207,7 @@ export const useDeliveryNotifications = () => {
   const lastBrowserNotificationAtByOrderRef = useRef(new Map());
   const lastFirebaseOfferAtByOrderRef = useRef(new Map());
   const prevFirebaseOfferKeysRef = useRef(new Set());
+  const firebaseDeliveryOffersHealthyRef = useRef(true);
   
   // Step 2: All state hooks (unconditional)
   const [newOrder, setNewOrder] = useState(null);
@@ -369,6 +370,13 @@ export const useDeliveryNotifications = () => {
       showBackgroundOrderNotification(orderData);
     }
   }, [playNotificationSound, showBackgroundOrderNotification, startAlertLoop]);
+
+  const shouldUseSocketOrderFallback = useCallback((orderData = {}) => {
+    const channel = String(orderData?.channel || '').toLowerCase();
+    if (channel === 'socket_fallback') return true;
+    if (!firebaseDeliveryOffersHealthyRef.current) return true;
+    return false;
+  }, []);
 
   const recoverDeliveryState = useCallback(async () => {
     if (!deliveryPartnerId) return;
@@ -897,9 +905,14 @@ export const useDeliveryNotifications = () => {
       debugLog('New order received via socket', {
         orderId: orderData?.orderId || orderData?.orderMongoId || orderData?._id,
         dispatchStatus: orderData?.dispatch?.status,
+        channel: orderData?.channel,
       });
       if (!isRiderOnline()) {
         debugLog('?? Ignored new_order - rider is offline');
+        return;
+      }
+      if (!shouldUseSocketOrderFallback(orderData)) {
+        debugLog('Ignored socket new_order — Firebase is the primary channel');
         return;
       }
       const normalized = normalizeIncomingOrder(orderData);
@@ -907,7 +920,7 @@ export const useDeliveryNotifications = () => {
       handleIncomingOrderAlert(normalized);
     });
 
-    // Listen for priority-based order notifications (new_order_available)
+    // Socket fallback for dispatch offers when Firebase publish fails on the server.
     socketRef.current.on('new_order_available', (orderData) => {
       const normalized = normalizeIncomingOrder(orderData);
       debugLog('New order available received via socket', {
@@ -916,9 +929,14 @@ export const useDeliveryNotifications = () => {
         normalizedMongoId: normalized?.orderMongoId,
         phase: orderData?.phase || 'unknown',
         dispatchStatus: orderData?.dispatch?.status,
+        channel: orderData?.channel,
       });
       if (!isRiderOnline()) {
         debugLog('?? Ignored new_order_available - rider is offline');
+        return;
+      }
+      if (!shouldUseSocketOrderFallback(orderData)) {
+        debugLog('Ignored socket new_order_available — Firebase is the primary channel');
         return;
       }
       setNewOrder(normalized);
@@ -1122,7 +1140,7 @@ export const useDeliveryNotifications = () => {
         socketRef.current = null;
       }
     };
-  }, [deliveryPartnerId, deliverySessionToken, handleIncomingOrderAlert, joinDeliveryRoomIfPossible, playNotificationSound, recoverDeliveryState, reconnectSocketWithToken, showBackgroundOrderNotification, startAlertLoop, stopAlertLoop]);
+  }, [deliveryPartnerId, deliverySessionToken, handleIncomingOrderAlert, joinDeliveryRoomIfPossible, playNotificationSound, recoverDeliveryState, reconnectSocketWithToken, shouldUseSocketOrderFallback, showBackgroundOrderNotification, startAlertLoop, stopAlertLoop]);
 
   useEffect(() => {
     if (!deliveryPartnerId) {
@@ -1153,6 +1171,7 @@ export const useDeliveryNotifications = () => {
       deliveryPartnerId,
       (offersMap = {}) => {
         if (!isRiderOnline()) return;
+        firebaseDeliveryOffersHealthyRef.current = true;
 
         const currentKeys = new Set(Object.keys(offersMap || {}));
 
@@ -1207,6 +1226,7 @@ export const useDeliveryNotifications = () => {
         });
       },
       (error) => {
+        firebaseDeliveryOffersHealthyRef.current = false;
         debugWarn('Firebase delivery-offer listener error:', error?.message || error);
       },
     );
