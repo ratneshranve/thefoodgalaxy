@@ -18,9 +18,9 @@ import {
   notifyOwnersSafely,
 } from './order.helpers.js';
 import {
-  clearDeliveryOffersForOrder,
   publishDeliveryOfferToFirebase,
   removeDeliveryOffersForPartners,
+  clearDeliveryOffersForOrder,
 } from './order-dispatch.firebase.js';
 
 function upsertPartnerOffer(order, entry) {
@@ -293,26 +293,25 @@ export async function tryAutoAssign(orderId, options = {}) {
     const payload = buildDeliverySocketPayload(order, order.restaurantId);
 
     // Broadcast to ALL eligible riders in this tier (Firebase first, socket fallback).
-    logger.info(`[Dispatch] Broadcasting order ${order._id} to ${eligible.length} riders at ${maxKm}km.`);
-    const offeredAt = Date.now();
-    const notifyResults = await Promise.all(
-      eligible.map((partner) =>
-        notifyDeliveryPartnerOffer({
-          partner,
-          order,
-          payload,
-          attempt,
-          maxKm,
-          offeredAt,
-          io,
-        }),
-      ),
-    );
-    const firebaseCount = notifyResults.filter((result) => result.firebase).length;
-    const socketFallbackCount = notifyResults.filter((result) => result.socket).length;
-    logger.info(
-      `[Dispatch] Order ${order._id} notify summary: firebase=${firebaseCount}, socket_fallback=${socketFallbackCount}, total=${eligible.length}`,
-    );
+    logger.info(`[PM2 LOG] [Dispatch] Broadcasting order ${order._id} to ${eligible.length} riders at ${maxKm}km.`);
+    for (const p of eligible) {
+      const roomName = rooms.delivery(p.partnerId);
+      const eventPayload = { ...payload, pickupDistanceKm: p.distanceKm };
+
+      // 1. Firebase RTDB (Primary Frontend Channel)
+      const fbSuccess = await publishDeliveryOfferToFirebase(p.partnerId, order._id.toString(), eventPayload);
+      if (fbSuccess) {
+        logger.info(`[PM2 LOG] [Firebase DB] Published order ${order._id} to rider ${p.partnerId}`);
+      } else {
+        logger.warn(`[PM2 LOG] [Firebase DB] Failed to publish order ${order._id} to rider ${p.partnerId}`);
+      }
+
+      // 2. Socket.IO (Fallback)
+      if (io) {
+        io.to(roomName).emit('new_order_available', eventPayload);
+        logger.info(`[PM2 LOG] [Socket.IO] Emitted order ${order._id} to room ${roomName}`);
+      }
+    }
 
     // FCM Push for background/closed apps
     const notifyList = eligible.map(p => ({
@@ -388,25 +387,34 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
     order.dispatch.deliveryPartnerId = null;
     await order.save();
     
+    await removeDeliveryOffersForPartners([partnerId], orderId);
+    logger.info(`[PM2 LOG] [Firebase DB] Removed timed-out offer from rider ${partnerId}`);
+
     const attempt = options.attempt || (order.dispatch?.offeredTo?.length || 0) + 1;
     await tryAutoAssign(orderId, { attempt });
 
   } else if (order.dispatch?.status === 'unassigned') {
     // Broadcast timeout: Mark ALL currently 'offered' riders as 'timeout'
     let updated = false;
-    const timedOutPartnerIds = [];
+    const timeoutPartnerIds = [];
+
     for (const entry of (order.dispatch?.offeredTo || [])) {
       if (entry.action === 'offered') {
         entry.action = 'timeout';
-        if (entry?.partnerId) timedOutPartnerIds.push(String(entry.partnerId));
+        timeoutPartnerIds.push(entry.partnerId.toString());
         updated = true;
       }
     }
     
     if (updated) {
-      logger.info(`[Dispatch] Marked broadcasted offers as timeout for order ${orderId}. Advancing cycle.`);
+      logger.info(`[PM2 LOG] [Dispatch] Marked broadcasted offers as timeout for order ${orderId}. Advancing cycle.`);
       await order.save();
-      void removeDeliveryOffersForPartners(timedOutPartnerIds, String(order._id));
+
+      // Remove from Firebase RTDB so the frontend popup closes if it hasn't already
+      if (timeoutPartnerIds.length > 0) {
+        await removeDeliveryOffersForPartners(timeoutPartnerIds, orderId);
+        logger.info(`[PM2 LOG] [Firebase DB] Cleaned up offers for ${timeoutPartnerIds.length} timed-out riders.`);
+      }
     }
 
     const attempt = options.attempt || 1;
