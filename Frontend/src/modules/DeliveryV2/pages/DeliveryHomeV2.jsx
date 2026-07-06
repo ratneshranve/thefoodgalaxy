@@ -771,6 +771,42 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     prevIncomingOrderRef.current = incomingOrder;
   }, [incomingOrder]);
 
+  useEffect(() => {
+    const popupOrderId = getOrderMongoId(incomingOrder) || getOrderAcceptId(incomingOrder) || null;
+    const popupVisible = Boolean(!isModalMinimized && incomingOrder);
+    debugDeliveryPopup('popup state snapshot', {
+      popupVisible,
+      isModalMinimized,
+      popupOrderId,
+      selectedIncomingId,
+      queueSize: incomingOrders.length,
+      queueIds: incomingOrders.map((item) => getOrderMongoId(item) || getOrderAcceptId(item)),
+      hasActiveOrder: Boolean(activeOrder),
+      showVerification,
+      socketConnected: isSocketConnected,
+      riderOnline: isOnline,
+    });
+  }, [incomingOrder, incomingOrders, selectedIncomingId, isModalMinimized, activeOrder, showVerification, isSocketConnected, isOnline]);
+
+  useEffect(() => {
+    if (!incomingOrder) {
+      debugDeliveryPopup('popup closed - no incoming order available', {
+        isModalMinimized,
+        selectedIncomingId,
+        queueSize: incomingOrders.length,
+      });
+      return;
+    }
+
+    debugDeliveryPopup('popup order ready for modal render', {
+      popupOrderId: getOrderMongoId(incomingOrder) || getOrderAcceptId(incomingOrder),
+      displayId: getOrderAcceptId(incomingOrder),
+      isModalMinimized,
+      queueSize: incomingOrders.length,
+      selectedIncomingId,
+    });
+  }, [incomingOrder, isModalMinimized, incomingOrders.length, selectedIncomingId]);
+
   const dismissCurrentIncomingOrder = useCallback(() => {
     if (!incomingOrder) {
       setIncomingOrders([]);
@@ -1426,7 +1462,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       </div>
 
       {/* OVERLAYS (Persistent if active) - Outside flex container to avoid clipping and z-index issues */}
-      {(currentTab === 'feed' || activeOrder) && (
+      {(currentTab === 'feed' || activeOrder || incomingOrder || showVerification || isModalMinimized) && (
         <AnimatePresence>
           {!isModalMinimized && (
             <motion.div

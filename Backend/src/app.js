@@ -39,7 +39,42 @@ app.get('/ready', (_req, res) => {
 
 // Security & parsing middlewares
 app.use(helmet({
-    contentSecurityPolicy: { directives: { defaultSrc: ["'self'"] } },
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "'unsafe-eval'",
+                'https://maps.googleapis.com',
+                'https://maps.gstatic.com',
+                'https://checkout.razorpay.com',
+                'blob:'
+            ],
+            scriptSrcElem: [
+                "'self'",
+                "'unsafe-inline'",
+                'https://maps.googleapis.com',
+                'https://maps.gstatic.com',
+                'https://checkout.razorpay.com',
+                'blob:'
+            ],
+            connectSrc: [
+                "'self'",
+                'https://maps.googleapis.com',
+                'https://maps.gstatic.com',
+                'https://api.razorpay.com',
+                'https://checkout.razorpay.com',
+                'wss:',
+                'ws:'
+            ],
+            frameSrc: [
+                "'self'",
+                'https://api.razorpay.com',
+                'https://checkout.razorpay.com'
+            ]
+        }
+    },
     hsts: config.nodeEnv === 'production' ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
     xssFilter: true,
     noSniff: true,
