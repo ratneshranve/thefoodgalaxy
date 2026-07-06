@@ -9,7 +9,7 @@ import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js'
 import { logger } from '../../../../utils/logger.js';
 import { config } from '../../../../config/env.js';
 import { getIO, rooms } from '../../../../config/socket.js';
-import { addOrderJob } from '../../../../queues/producers/order.producer.js';
+import { addOrderJob, cancelDispatchTimeoutJob } from '../../../../queues/producers/order.producer.js';
 import {
   buildDeliverySocketPayload,
   buildOrderIdentityFilter,
@@ -432,4 +432,25 @@ export async function resendDeliveryNotificationRestaurant(orderId, restaurantId
     connectedSocketCount,
     dispatchStatus: refreshed?.dispatch?.status || 'unassigned',
   };
+}
+
+/** Cancel any queued dispatch timeout job for an order. */
+export async function cancelPendingDispatchJob(orderId) {
+  await cancelDispatchTimeoutJob(String(orderId));
+}
+
+/** Reset dispatch hunt state when restaurant first accepts an order. */
+export async function resetDispatchForFreshHunt(orderId) {
+  await cancelDispatchTimeoutJob(String(orderId));
+  await FoodOrder.findByIdAndUpdate(orderId, {
+    $set: {
+      'dispatch.status': 'unassigned',
+      'dispatch.dispatchAttempt': 1,
+      'dispatch.offeredTo': [],
+    },
+    $unset: {
+      'dispatch.dispatchingAt': '',
+      'dispatch.deliveryPartnerId': '',
+    },
+  });
 }
