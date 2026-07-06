@@ -637,7 +637,7 @@ export async function getOrderById(
         verified: Boolean(drop.verified),
       },
     };
-    if (!drop.verified && secret) {
+    if (secret && !["delivered", "cancelled_by_user", "cancelled_by_restaurant", "cancelled_by_admin", "dead"].includes(order.orderStatus)) {
       out.handoverOtp = secret;
     }
     return out;
@@ -773,7 +773,6 @@ export async function resyncState(userId, role) {
       // Re-add handover OTP if order is picked up
       if (
         (order.deliveryState?.currentPhase === "at_drop" || order.orderStatus === "picked_up") &&
-        !order.deliveryVerification?.dropOtp?.verified &&
         order.deliveryOtp
       ) {
         out.handoverOtp = order.deliveryOtp;

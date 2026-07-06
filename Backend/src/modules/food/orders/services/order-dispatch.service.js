@@ -255,7 +255,7 @@ export async function tryAutoAssign(orderId, options = {}) {
       await order.save();
     }
 
-    const maxKm = radiusTiers[attempt - 1];
+    const maxKm = options.blastAll ? 99999 : radiusTiers[attempt - 1];
     order.dispatch.dispatchAttempt = attempt;
 
     const searchOptions = {
@@ -427,7 +427,7 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
 }
 
 
-const RESEND_SEARCH_RADIUS_KM = 15;
+const RESEND_SEARCH_RADIUS_KM = 99999;
 
 async function resendDeliveryNotificationForOrder(order) {
   const activeStatuses = ['confirmed', 'preparing', 'ready_for_pickup', 'ready'];
@@ -455,7 +455,7 @@ async function resendDeliveryNotificationForOrder(order) {
   order.dispatch.offeredTo = [];
   await order.save();
 
-  await tryAutoAssign(order._id, { attempt: 1 });
+  await tryAutoAssign(order._id, { attempt: 1, blastAll: true });
 
   const refreshed = await FoodOrder.findById(order._id)
     .select('dispatch.offeredTo dispatch.status dispatch.deliveryPartnerId')
