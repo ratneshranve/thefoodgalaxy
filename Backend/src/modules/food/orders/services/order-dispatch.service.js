@@ -104,7 +104,10 @@ function mergeOfferedToEntries(existing = [], incoming = []) {
 }
 
 async function notifyPartners(order, restaurantRef, partners, { title, body } = {}) {
-  if (!Array.isArray(partners) || partners.length === 0) return;
+  if (!Array.isArray(partners) || partners.length === 0) {
+    logger.info(`[PM2 LOG] notifyPartners: No partners to notify for order ${order._id}`);
+    return;
+  }
 
   const io = getIO();
   const payload = buildDeliverySocketPayload(order, restaurantRef);
@@ -113,13 +116,18 @@ async function notifyPartners(order, restaurantRef, partners, { title, body } = 
     body ||
     `Order #${order.order_id || order._id} is waiting. Be the first to accept!`;
 
+  logger.info(`[PM2 LOG] notifyPartners: Preparing to notify ${partners.length} riders for order ${order._id}`);
+
   for (const p of partners) {
     const roomName = rooms.delivery(p.partnerId);
     if (io) {
+      logger.info(`[PM2 LOG] notifyPartners: Emitting 'new_order_available' to room [${roomName}] for rider ${p.partnerId}`);
       io.to(roomName).emit('new_order_available', {
         ...payload,
         pickupDistanceKm: p.distanceKm,
       });
+    } else {
+      logger.error(`[PM2 LOG] notifyPartners: IO is not available! Could not emit socket to ${p.partnerId}`);
     }
   }
 
@@ -129,14 +137,16 @@ async function notifyPartners(order, restaurantRef, partners, { title, body } = 
   }));
 
   try {
+    logger.info(`[PM2 LOG] notifyPartners: Sending FCM Push Notifications to ${notifyList.length} riders...`);
     await batchedNotifyOwnersSafely(notifyList, {
       title: pushTitle,
       body: pushBody,
       dataOnly: true,
       data: { type: 'new_order', orderId: order._id.toString() },
     });
+    logger.info(`[PM2 LOG] notifyPartners: FCM Push Notifications sent successfully.`);
   } catch (err) {
-    logger.warn(`Push notifications failed: ${err.message}`);
+    logger.error(`[PM2 LOG] Push notifications failed: ${err.message}`);
   }
 }
 
@@ -235,12 +245,14 @@ async function listNearbyOnlineDeliveryPartners(
   }
 
   const final = picked.filter(p => !busyPartnerIds.has(p.partnerId.toString()));
+  logger.info(`[PM2 LOG] listNearbyOnlineDeliveryPartners: Filtered busy riders. Final count: ${final.length}`);
 
   const cashEligibleFinal = await filterPartnersByCashLimit(final, {
     requiredAmount,
     allowOverLimitFallback,
   });
 
+  logger.info(`[PM2 LOG] listNearbyOnlineDeliveryPartners: Cash eligible final count: ${cashEligibleFinal.length}`);
   return { partners: cashEligibleFinal };
 }
 
@@ -267,6 +279,7 @@ export async function tryAutoAssign(orderId, options = {}) {
   const staleLockBefore = new Date(Date.now() - lockTimeout);
 
   const dispatchableStatuses = new Set([
+    'created',
     'confirmed',
     'preparing',
     'ready_for_pickup',
@@ -278,17 +291,24 @@ export async function tryAutoAssign(orderId, options = {}) {
     {
       _id: new mongoose.Types.ObjectId(orderId),
       orderStatus: { $in: Array.from(dispatchableStatuses) },
-      $or: [
-        { 'dispatch.status': 'unassigned' },
+      $and: [
         {
-          'dispatch.status': 'assigned',
-          'dispatch.acceptedAt': { $exists: false },
-          'dispatch.assignedAt': { $lt: staleLockBefore }
-        }
-      ],
-      $or: [
-        { 'dispatch.dispatchingAt': { $exists: false } },
-        { 'dispatch.dispatchingAt': { $lt: staleLockBefore } },
+          $or: [
+            { 'dispatch.status': 'unassigned' },
+            {
+              'dispatch.status': 'assigned',
+              'dispatch.acceptedAt': { $exists: false },
+              'dispatch.assignedAt': { $lt: staleLockBefore }
+            }
+          ],
+        },
+        {
+          $or: [
+            { 'dispatch.dispatchingAt': { $exists: false } },
+            { 'dispatch.dispatchingAt': null },
+            { 'dispatch.dispatchingAt': { $lt: staleLockBefore } },
+          ],
+        },
       ],
     },
     {
@@ -298,15 +318,16 @@ export async function tryAutoAssign(orderId, options = {}) {
   ).populate(['restaurantId', 'userId']);
 
   if (!order) {
-    logger.info(`tryAutoAssign: Skip for ${orderId} (not dispatchable, already dispatching, accepted, or lock active).`);
+    logger.warn(`[PM2 LOG] tryAutoAssign: LOCK FAILED for ${orderId}. Either status is not dispatchable, already accepted, or lock is currently active.`);
     return null;
   }
+  
+  logger.info(`[PM2 LOG] tryAutoAssign: Lock acquired successfully for order ${orderId}. Proceeding with hunt...`);
 
-  const attempt = resolveDispatchAttempt(order, options);
+  let attempt = resolveDispatchAttempt(order, options);
   const forceNotify = Boolean(options.forceNotify);
 
   try {
-    const activeOfferIds = getActiveOfferedPartnerIds(order.dispatch?.offeredTo);
     const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
     const isCashOrder = paymentMethod === 'cash';
     const requiredAmount = isCashOrder ? Number(order?.pricing?.total || 0) : 0;
@@ -314,10 +335,27 @@ export async function tryAutoAssign(orderId, options = {}) {
     const dispatchRadiusConfig = await getDispatchRadiusConfig();
     const radiusTiers = dispatchRadiusConfig.tiers;
     const expansionEnabled = dispatchRadiusConfig.expansionEnabled;
+
+    // CYCLE RESTART: If all radius tiers have been exhausted, reset back to
+    // attempt 1 and clear the offeredTo list so every rider becomes eligible
+    // again.  This makes the full 2→4→6→8→15 km cycle repeat indefinitely
+    // until a rider accepts or the order is cancelled/dead.
+    if (expansionEnabled && attempt > radiusTiers.length) {
+      logger.info(
+        `[Dispatch] Order ${order._id}: All ${radiusTiers.length} tiers exhausted (attempt was ${attempt}). Restarting cycle from attempt 1.`,
+      );
+      attempt = 1;
+      order.dispatch.offeredTo = [];
+      order.dispatch.dispatchAttempt = 1;
+      await order.save();
+    }
+
     const maxKm = getMaxKmForAttempt(attempt, radiusTiers, expansionEnabled);
     const isMaxTier = !expansionEnabled || attempt >= radiusTiers.length;
     const isPhase2 = attempt >= 4;
     const isPhase3 = attempt >= 6;
+
+    const activeOfferIds = getActiveOfferedPartnerIds(order.dispatch?.offeredTo);
 
     logger.info(
       `[Dispatch] Order ${order._id} attempt=${attempt} maxKm=${maxKm} expansionEnabled=${expansionEnabled} forceNotify=${forceNotify}`,
@@ -417,8 +455,10 @@ export async function tryAutoAssign(orderId, options = {}) {
     order.dispatch.offeredTo = mergeOfferedToEntries(order.dispatch?.offeredTo, offeredToEntries);
     await order.save();
 
+    logger.info(`[PM2 LOG] tryAutoAssign: Successfully saved order ${order._id} with new offeredTo entries. Sending notifications...`);
     await notifyPartners(order, order.restaurantId, targets);
 
+    logger.info(`[PM2 LOG] tryAutoAssign: Scheduling dispatch timeout job for attempt ${nextAttempt} in ${DISPATCH_RETRY_DELAY_MS}ms...`);
     await scheduleDispatchTimeoutJob(
       order._id.toString(),
       {
@@ -429,6 +469,7 @@ export async function tryAutoAssign(orderId, options = {}) {
       },
       DISPATCH_RETRY_DELAY_MS,
     );
+    logger.info(`[PM2 LOG] tryAutoAssign: Timeout job scheduled successfully for order ${order._id}`);
 
     return order;
   } finally {
@@ -443,20 +484,32 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
   const order = await FoodOrder.findById(orderId);
   if (!order) return;
 
+  // Order already accepted by a rider — nothing to do.
   if (order.dispatch?.status === 'accepted') {
+    await cancelDispatchTimeoutJob(orderId);
+    return;
+  }
+
+  // Order reached a terminal state — stop the dispatch cycle.
+  const terminalStatuses = new Set([
+    'delivered', 'cancelled_by_user', 'cancelled_by_restaurant', 'cancelled_by_admin', 'dead',
+  ]);
+  if (terminalStatuses.has(order.orderStatus)) {
     await cancelDispatchTimeoutJob(orderId);
     return;
   }
 
   const attempt = resolveDispatchAttempt(order, options);
 
+  // Case 1: A specific partner was assigned but didn't respond.
   const stillAssigned = order.dispatch?.status === 'assigned' &&
+    partnerId &&
     String(order.dispatch?.deliveryPartnerId) === String(partnerId) &&
     !order.dispatch?.acceptedAt;
 
   if (stillAssigned) {
     logger.info(`Dispatch timeout for partner ${partnerId} on order ${orderId}. Re-trying hunt...`);
-    const offer = order.dispatch.offeredTo.find(
+    const offer = (order.dispatch.offeredTo || []).find(
       o => String(o.partnerId) === String(partnerId) && o.action === 'offered'
     );
     if (offer) offer.action = 'timeout';
@@ -464,15 +517,31 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
     order.dispatch.status = 'unassigned';
     order.dispatch.deliveryPartnerId = null;
     await order.save();
-  } else if (order.dispatch?.status !== 'unassigned') {
+  } else if (order.dispatch?.status === 'unassigned') {
+    // Case 2: Broadcast-style timeout — no specific partner was assigned.
+    // Mark all currently-offered riders as 'timeout' so the next attempt
+    // treats them as "already tried" and can expand to the next tier.
+    let markedCount = 0;
+    for (const entry of (order.dispatch.offeredTo || [])) {
+      if (entry.action === 'offered') {
+        entry.action = 'timeout';
+        markedCount++;
+      }
+    }
+    if (markedCount > 0) {
+      await order.save();
+      logger.info(`[Dispatch] Marked ${markedCount} stale offers as 'timeout' for order ${orderId}.`);
+    }
+  } else {
+    logger.warn(`[PM2 LOG] processDispatchTimeout: Unexpected status for order ${orderId} -> ${order.dispatch?.status}. Skipping timeout.`);
     return;
   }
 
+  logger.info(`[PM2 LOG] processDispatchTimeout: Triggering tryAutoAssign for order ${orderId} with attempt ${attempt}...`);
   const result = await tryAutoAssign(orderId, { attempt });
+  
   if (!result) {
-    logger.info(
-      `[Dispatch] tryAutoAssign skipped for ${orderId} on timeout (attempt ${attempt}). Retrying in ${DISPATCH_LOCK_RETRY_MS}ms.`,
-    );
+    logger.warn(`[PM2 LOG] processDispatchTimeout: tryAutoAssign skipped/failed for ${orderId} (attempt ${attempt}). Retrying in ${DISPATCH_LOCK_RETRY_MS}ms...`);
     await scheduleDispatchTimeoutJob(
       orderId,
       {
@@ -483,6 +552,8 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
       },
       DISPATCH_LOCK_RETRY_MS,
     );
+  } else {
+    logger.info(`[PM2 LOG] processDispatchTimeout: tryAutoAssign succeeded for order ${orderId}. Timeout cycle advanced.`);
   }
 }
 
