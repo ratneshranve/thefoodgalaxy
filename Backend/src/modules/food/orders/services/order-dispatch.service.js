@@ -104,7 +104,10 @@ function mergeOfferedToEntries(existing = [], incoming = []) {
 }
 
 async function notifyPartners(order, restaurantRef, partners, { title, body } = {}) {
-  if (!Array.isArray(partners) || partners.length === 0) return;
+  if (!Array.isArray(partners) || partners.length === 0) {
+    logger.info(`[PM2 LOG] notifyPartners: No partners to notify for order ${order._id}`);
+    return;
+  }
 
   const io = getIO();
   const payload = buildDeliverySocketPayload(order, restaurantRef);
@@ -113,13 +116,18 @@ async function notifyPartners(order, restaurantRef, partners, { title, body } = 
     body ||
     `Order #${order.order_id || order._id} is waiting. Be the first to accept!`;
 
+  logger.info(`[PM2 LOG] notifyPartners: Preparing to notify ${partners.length} riders for order ${order._id}`);
+
   for (const p of partners) {
     const roomName = rooms.delivery(p.partnerId);
     if (io) {
+      logger.info(`[PM2 LOG] notifyPartners: Emitting 'new_order_available' to room [${roomName}] for rider ${p.partnerId}`);
       io.to(roomName).emit('new_order_available', {
         ...payload,
         pickupDistanceKm: p.distanceKm,
       });
+    } else {
+      logger.error(`[PM2 LOG] notifyPartners: IO is not available! Could not emit socket to ${p.partnerId}`);
     }
   }
 
@@ -129,14 +137,16 @@ async function notifyPartners(order, restaurantRef, partners, { title, body } = 
   }));
 
   try {
+    logger.info(`[PM2 LOG] notifyPartners: Sending FCM Push Notifications to ${notifyList.length} riders...`);
     await batchedNotifyOwnersSafely(notifyList, {
       title: pushTitle,
       body: pushBody,
       dataOnly: true,
       data: { type: 'new_order', orderId: order._id.toString() },
     });
+    logger.info(`[PM2 LOG] notifyPartners: FCM Push Notifications sent successfully.`);
   } catch (err) {
-    logger.warn(`Push notifications failed: ${err.message}`);
+    logger.error(`[PM2 LOG] Push notifications failed: ${err.message}`);
   }
 }
 
@@ -235,12 +245,14 @@ async function listNearbyOnlineDeliveryPartners(
   }
 
   const final = picked.filter(p => !busyPartnerIds.has(p.partnerId.toString()));
+  logger.info(`[PM2 LOG] listNearbyOnlineDeliveryPartners: Filtered busy riders. Final count: ${final.length}`);
 
   const cashEligibleFinal = await filterPartnersByCashLimit(final, {
     requiredAmount,
     allowOverLimitFallback,
   });
 
+  logger.info(`[PM2 LOG] listNearbyOnlineDeliveryPartners: Cash eligible final count: ${cashEligibleFinal.length}`);
   return { partners: cashEligibleFinal };
 }
 
@@ -306,9 +318,11 @@ export async function tryAutoAssign(orderId, options = {}) {
   ).populate(['restaurantId', 'userId']);
 
   if (!order) {
-    logger.info(`tryAutoAssign: Skip for ${orderId} (not dispatchable, already dispatching, accepted, or lock active).`);
+    logger.warn(`[PM2 LOG] tryAutoAssign: LOCK FAILED for ${orderId}. Either status is not dispatchable, already accepted, or lock is currently active.`);
     return null;
   }
+  
+  logger.info(`[PM2 LOG] tryAutoAssign: Lock acquired successfully for order ${orderId}. Proceeding with hunt...`);
 
   let attempt = resolveDispatchAttempt(order, options);
   const forceNotify = Boolean(options.forceNotify);
@@ -441,8 +455,10 @@ export async function tryAutoAssign(orderId, options = {}) {
     order.dispatch.offeredTo = mergeOfferedToEntries(order.dispatch?.offeredTo, offeredToEntries);
     await order.save();
 
+    logger.info(`[PM2 LOG] tryAutoAssign: Successfully saved order ${order._id} with new offeredTo entries. Sending notifications...`);
     await notifyPartners(order, order.restaurantId, targets);
 
+    logger.info(`[PM2 LOG] tryAutoAssign: Scheduling dispatch timeout job for attempt ${nextAttempt} in ${DISPATCH_RETRY_DELAY_MS}ms...`);
     await scheduleDispatchTimeoutJob(
       order._id.toString(),
       {
@@ -453,6 +469,7 @@ export async function tryAutoAssign(orderId, options = {}) {
       },
       DISPATCH_RETRY_DELAY_MS,
     );
+    logger.info(`[PM2 LOG] tryAutoAssign: Timeout job scheduled successfully for order ${order._id}`);
 
     return order;
   } finally {
@@ -516,15 +533,15 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
       logger.info(`[Dispatch] Marked ${markedCount} stale offers as 'timeout' for order ${orderId}.`);
     }
   } else {
-    // Status is something unexpected (e.g. 'assigned' but different partnerId) — skip.
+    logger.warn(`[PM2 LOG] processDispatchTimeout: Unexpected status for order ${orderId} -> ${order.dispatch?.status}. Skipping timeout.`);
     return;
   }
 
+  logger.info(`[PM2 LOG] processDispatchTimeout: Triggering tryAutoAssign for order ${orderId} with attempt ${attempt}...`);
   const result = await tryAutoAssign(orderId, { attempt });
+  
   if (!result) {
-    logger.info(
-      `[Dispatch] tryAutoAssign skipped for ${orderId} on timeout (attempt ${attempt}). Retrying in ${DISPATCH_LOCK_RETRY_MS}ms.`,
-    );
+    logger.warn(`[PM2 LOG] processDispatchTimeout: tryAutoAssign skipped/failed for ${orderId} (attempt ${attempt}). Retrying in ${DISPATCH_LOCK_RETRY_MS}ms...`);
     await scheduleDispatchTimeoutJob(
       orderId,
       {
@@ -535,6 +552,8 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
       },
       DISPATCH_LOCK_RETRY_MS,
     );
+  } else {
+    logger.info(`[PM2 LOG] processDispatchTimeout: tryAutoAssign succeeded for order ${orderId}. Timeout cycle advanced.`);
   }
 }
 
