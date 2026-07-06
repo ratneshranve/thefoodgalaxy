@@ -373,9 +373,14 @@ export const useDeliveryNotifications = () => {
 
   const shouldUseSocketOrderFallback = useCallback((orderData = {}) => {
     const channel = String(orderData?.channel || '').toLowerCase();
-    if (channel === 'socket_fallback') return true;
-    if (!firebaseDeliveryOffersHealthyRef.current) return true;
-    return false;
+    const shouldUse = channel === 'socket_fallback' || !firebaseDeliveryOffersHealthyRef.current;
+    debugLog('Socket fallback health check', {
+      shouldUse,
+      channel,
+      firebaseHealthy: firebaseDeliveryOffersHealthyRef.current,
+      orderId: orderData?.orderId || orderData?.orderMongoId || orderData?._id,
+    });
+    return shouldUse;
   }, []);
 
   const recoverDeliveryState = useCallback(async () => {
@@ -911,9 +916,12 @@ export const useDeliveryNotifications = () => {
         debugLog('?? Ignored new_order - rider is offline');
         return;
       }
-      if (!shouldUseSocketOrderFallback(orderData)) {
-        debugLog('Ignored socket new_order — Firebase is the primary channel');
-        return;
+      const fallbackOnly = shouldUseSocketOrderFallback(orderData);
+      if (!fallbackOnly) {
+        debugLog('Using socket new_order as direct popup source even though Firebase is healthy', {
+          orderId: orderData?.orderId || orderData?.orderMongoId || orderData?._id,
+          channel: orderData?.channel,
+        });
       }
       const normalized = normalizeIncomingOrder(orderData);
       setNewOrder(normalized);
@@ -935,9 +943,14 @@ export const useDeliveryNotifications = () => {
         debugLog('?? Ignored new_order_available - rider is offline');
         return;
       }
-      if (!shouldUseSocketOrderFallback(orderData)) {
-        debugLog('Ignored socket new_order_available — Firebase is the primary channel');
-        return;
+      const fallbackOnly = shouldUseSocketOrderFallback(orderData);
+      if (!fallbackOnly) {
+        debugLog('Using socket new_order_available as direct popup source even though Firebase is healthy', {
+          orderId: orderData?.orderId || orderData?.orderMongoId || orderData?._id,
+          normalizedOrderId: normalized?.orderId,
+          normalizedMongoId: normalized?.orderMongoId,
+          channel: orderData?.channel,
+        });
       }
       setNewOrder(normalized);
       handleIncomingOrderAlert(normalized);
