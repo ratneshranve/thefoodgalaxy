@@ -1514,38 +1514,11 @@ export async function updateOrderStatusRestaurant(
  * Only allowed if status is preparing/ready and no partner has accepted yet.
  */
 export async function resendDeliveryNotificationRestaurant(orderId, restaurantId) {
-    return dispatchService.resendDeliveryNotificationRestaurant(orderId, restaurantId);
-    const order = await FoodOrder.findOne({
-        _id: new mongoose.Types.ObjectId(orderId),
-        restaurantId: new mongoose.Types.ObjectId(restaurantId)
-    });
+  return dispatchService.resendDeliveryNotificationRestaurant(orderId, restaurantId);
+}
 
-    if (!order) throw new NotFoundError('Order not found');
-
-    // Allow resend for fresh confirmed orders too, because this route is often
-    // used right after restaurant confirmation when the first rider alert was missed.
-    const activeStatuses = ['confirmed', 'preparing', 'ready_for_pickup', 'ready'];
-    if (!activeStatuses.includes(order.orderStatus)) {
-        throw new ValidationError(`Cannot resend notification for order in status: ${order.orderStatus}`);
-    }
-
-    // Guard: don't disrupt an active assignment that was already accepted
-    if (order.dispatch?.status === 'accepted') {
-        throw new ValidationError('A delivery partner has already accepted this order.');
-    }
-
-    // Reset dispatch state to unassigned to allow tryAutoAssign to start fresh
-    order.dispatch.status = 'unassigned';
-    order.dispatch.deliveryPartnerId = null;
-    // Clear previously offered partners to give everyone a fresh chance when resending manually.
-    order.dispatch.offeredTo = [];
-    
-    await order.save();
-
-    // Trigger smart dispatch logic immediately
-    await tryAutoAssign(order._id);
-
-    return { success: true };
+export async function resendDeliveryNotificationAdmin(orderId) {
+  return dispatchService.resendDeliveryNotificationAdmin(orderId);
 }
 
 export async function getCurrentTripDelivery(deliveryPartnerId) {
@@ -1877,7 +1850,20 @@ export async function updateOrderStatusAdmin(orderId, adminId, orderStatus, note
       io.to(rooms.user(order.userId)).emit("order_status_update", payload);
       if (order.dispatch?.deliveryPartnerId) {
           io.to(rooms.delivery(order.dispatch.deliveryPartnerId)).emit("order_status_update", payload);
+      } else if (String(orderStatus).includes('cancel') && Array.isArray(order.dispatch?.offeredTo)) {
+        const claimedPayload = {
+          orderId: order._id.toString(),
+          orderMongoId: order._id?.toString?.(),
+          claimedBy: 'cancelled',
+        };
+        for (const offer of order.dispatch.offeredTo) {
+          io.to(rooms.delivery(offer.partnerId)).emit('order_claimed', claimedPayload);
+        }
       }
+    }
+
+    if (String(orderStatus).includes('cancel') || String(orderStatus) === 'delivered') {
+      await dispatchService.cancelPendingDispatchJob(order._id);
     }
 
     // Real-time: delivery request / ready notifications.

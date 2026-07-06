@@ -18,6 +18,22 @@ import {
   notifyOwnersSafely,
 } from './order.helpers.js';
 
+function upsertPartnerOffer(order, entry) {
+  if (!order.dispatch.offeredTo) order.dispatch.offeredTo = [];
+  const partnerIdStr = String(entry.partnerId);
+  const existing = order.dispatch.offeredTo.find(
+    (offer) => String(offer.partnerId) === partnerIdStr,
+  );
+  if (existing) {
+    existing.action = 'offered';
+    existing.at = entry.at || new Date();
+    existing.allowOverLimit = Boolean(entry.allowOverLimit);
+    existing.requiredCashForOrder = Number(entry.requiredCashForOrder || 0);
+    return;
+  }
+  order.dispatch.offeredTo.push(entry);
+}
+
 async function filterPartnersByCashLimit(partners = [], options = {}) {
   // Since we are removing cash limit checks, we simply map partners to ensure they have expected shape.
   // We allow all partners to bypass cash limit.
@@ -170,6 +186,7 @@ export async function tryAutoAssign(orderId, options = {}) {
     }
 
     const maxKm = radiusTiers[attempt - 1];
+    order.dispatch.dispatchAttempt = attempt;
 
     const searchOptions = {
       maxKm,
@@ -181,11 +198,11 @@ export async function tryAutoAssign(orderId, options = {}) {
     logger.info(`[Dispatch] Order ${order._id} attempt=${attempt} maxKm=${maxKm}`);
     const { partners } = await listNearbyOnlineDeliveryPartners(order.restaurantId, searchOptions);
 
-    const offeredIds = (order.dispatch?.offeredTo || []).map(o => o.partnerId.toString());
-    const eligible = partners.filter(p => !offeredIds.includes(p.partnerId.toString()));
+    // Re-broadcast to every rider in this radius each attempt, including previously offered riders.
+    const eligible = partners;
 
     if (eligible.length === 0) {
-      logger.info(`[Dispatch] No NEW eligible partners in ${maxKm}km for order ${order._id} (Attempt ${attempt}). Advancing to next tier.`);
+      logger.info(`[Dispatch] No eligible partners in ${maxKm}km for order ${order._id} (Attempt ${attempt}). Advancing to next tier.`);
       
       // No new riders in this radius. Advance to the next tier immediately.
       order.dispatch.status = 'unassigned';
@@ -235,18 +252,20 @@ export async function tryAutoAssign(orderId, options = {}) {
       logger.warn(`Push notifications failed for batch: ${err.message}`);
     }
 
-    // Record offers
-    const offeredToEntries = eligible.map(p => ({
-      partnerId: p.partnerId,
-      at: new Date(),
-      action: 'offered',
-      allowOverLimit: Boolean(p.allowOverLimit),
-      requiredCashForOrder: Number(p.requiredCashForOrder || requiredAmount || 0),
-    }));
+    // Record or refresh offers for every rider notified in this attempt.
+    for (const p of eligible) {
+      upsertPartnerOffer(order, {
+        partnerId: p.partnerId,
+        at: new Date(),
+        action: 'offered',
+        allowOverLimit: Boolean(p.allowOverLimit),
+        requiredCashForOrder: Number(p.requiredCashForOrder || requiredAmount || 0),
+      });
+    }
 
     order.dispatch.status = 'unassigned';
     order.dispatch.deliveryPartnerId = null;
-    order.dispatch.offeredTo.push(...offeredToEntries);
+    order.markModified('dispatch.offeredTo');
     await order.save();
 
     // Re-check in 20s if no one accepts
@@ -312,15 +331,9 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
 }
 
 
-export async function resendDeliveryNotificationRestaurant(orderId, restaurantId) {
-  const identity = buildOrderIdentityFilter(orderId);
-  const order = await FoodOrder.findOne({
-    ...identity,
-    restaurantId: new mongoose.Types.ObjectId(restaurantId),
-  });
+const RESEND_SEARCH_RADIUS_KM = 15;
 
-  if (!order) throw new NotFoundError('Order not found');
-
+async function resendDeliveryNotificationForOrder(order) {
   const activeStatuses = ['confirmed', 'preparing', 'ready_for_pickup', 'ready'];
   if (!activeStatuses.includes(order.orderStatus)) {
     throw new ValidationError(`Cannot resend notification for order in status: ${order.orderStatus}`);
@@ -333,19 +346,21 @@ export async function resendDeliveryNotificationRestaurant(orderId, restaurantId
   const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
   const requiredAmount = paymentMethod === 'cash' ? Number(order?.pricing?.total || 0) : 0;
   const preview = await listNearbyOnlineDeliveryPartners(order.restaurantId, {
-    maxKm: 15,
-    limit: 10000, // No artificial limit
+    maxKm: RESEND_SEARCH_RADIUS_KM,
+    limit: 10000,
     requiredAmount,
     allowOverLimitFallback: true,
   });
   const shortlistedCount = Array.isArray(preview?.partners) ? preview.partners.length : 0;
 
+  await cancelDispatchTimeoutJob(String(order._id));
   order.dispatch.status = 'unassigned';
   order.dispatch.deliveryPartnerId = null;
+  order.dispatch.dispatchAttempt = 1;
   order.dispatch.offeredTo = [];
   await order.save();
 
-  await tryAutoAssign(order._id);
+  await tryAutoAssign(order._id, { attempt: 1 });
 
   const refreshed = await FoodOrder.findById(order._id)
     .select('dispatch.offeredTo dispatch.status dispatch.deliveryPartnerId')
@@ -373,8 +388,27 @@ export async function resendDeliveryNotificationRestaurant(orderId, restaurantId
     shortlistedCount,
     requiredAmount,
     connectedSocketCount,
+    searchRadiusKm: RESEND_SEARCH_RADIUS_KM,
     dispatchStatus: refreshed?.dispatch?.status || 'unassigned',
   };
+}
+
+export async function resendDeliveryNotificationRestaurant(orderId, restaurantId) {
+  const identity = buildOrderIdentityFilter(orderId);
+  const order = await FoodOrder.findOne({
+    ...identity,
+    restaurantId: new mongoose.Types.ObjectId(restaurantId),
+  });
+
+  if (!order) throw new NotFoundError('Order not found');
+  return resendDeliveryNotificationForOrder(order);
+}
+
+export async function resendDeliveryNotificationAdmin(orderId) {
+  const identity = buildOrderIdentityFilter(orderId);
+  const order = await FoodOrder.findOne(identity);
+  if (!order) throw new NotFoundError('Order not found');
+  return resendDeliveryNotificationForOrder(order);
 }
 
 /** Cancel any queued dispatch timeout job for an order. */

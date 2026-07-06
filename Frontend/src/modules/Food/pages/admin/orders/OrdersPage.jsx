@@ -45,6 +45,8 @@ export default function OrdersPage({ statusKey = "all" }) {
   const [isLoading, setIsLoading] = useState(true)
   const [processingRefund, setProcessingRefund] = useState(null)
   const [processingActionOrderId, setProcessingActionOrderId] = useState(null)
+  const [resendLoadingOrderId, setResendLoadingOrderId] = useState(null)
+  const [markDeliveredLoadingOrderId, setMarkDeliveredLoadingOrderId] = useState(null)
   const [deletingOrderId, setDeletingOrderId] = useState(null)
   const [refundModalOpen, setRefundModalOpen] = useState(false)
   const [selectedOrderForRefund, setSelectedOrderForRefund] = useState(null)
@@ -501,6 +503,8 @@ export default function OrdersPage({ statusKey = "all" }) {
         ...order,
         id: order._id || order.id,
         orderId: order.orderId || order.id,
+        rawOrderStatus: backendStatus || order.orderStatus || "",
+        dispatchStatus: order.dispatch?.status || "",
         date,
         time,
         customerName,
@@ -732,6 +736,98 @@ export default function OrdersPage({ statusKey = "all" }) {
       toast.error(error.response?.data?.message || "Failed to reject order")
     } finally {
       setProcessingActionOrderId(null)
+    }
+  }
+
+  const handleCancelOrder = async (order) => {
+    const orderIdToUse = order.id || order._id || order.orderId
+    if (!orderIdToUse) {
+      toast.error("Order ID not found")
+      return
+    }
+
+    const reason = prompt(
+      `Enter cancellation reason for order ${order.orderId}:`,
+      "Order cancelled by admin",
+    )
+    if (reason === null) return
+
+    try {
+      setProcessingActionOrderId(order.id || order.orderId)
+      const response = await adminAPI.cancelOrder(orderIdToUse, reason)
+      if (response.data?.success) {
+        toast.success(response.data?.message || `Order ${order.orderId} cancelled`)
+        await fetchOrders({ silent: true, withRingCheck: false })
+      } else {
+        toast.error(response.data?.message || "Failed to cancel order")
+      }
+    } catch (error) {
+      debugError("Error cancelling order:", error)
+      toast.error(error.response?.data?.message || "Failed to cancel order")
+    } finally {
+      setProcessingActionOrderId(null)
+    }
+  }
+
+  const handleResendNotification = async (order) => {
+    const orderIdToUse = order.id || order._id || order.orderId
+    if (!orderIdToUse) {
+      toast.error("Order ID not found")
+      return
+    }
+
+    try {
+      setResendLoadingOrderId(order.id || order.orderId)
+      const response = await adminAPI.resendDeliveryNotification(orderIdToUse)
+      if (response.data?.success) {
+        const notifiedCount = Number(response.data.data?.notifiedCount || 0)
+        const shortlistedCount = Number(response.data.data?.shortlistedCount || 0)
+        const connectedSocketCount = response.data.data?.connectedSocketCount
+        const searchRadiusKm = response.data.data?.searchRadiusKm
+        const radiusLabel = searchRadiusKm ? ` within ${searchRadiusKm} km` : ""
+        toast.success(
+          notifiedCount > 0
+            ? `Notification sent to ${notifiedCount} delivery partner${notifiedCount === 1 ? "" : "s"}${radiusLabel}${connectedSocketCount != null ? ` (live sockets: ${connectedSocketCount})` : ""}`
+            : `Notification sent to 0 delivery partners${shortlistedCount > 0 ? ` (shortlisted${radiusLabel}: ${shortlistedCount}${connectedSocketCount != null ? `, live sockets: ${connectedSocketCount}` : ""})` : ""}`,
+        )
+        await fetchOrders({ silent: true, withRingCheck: false })
+      } else {
+        toast.error(response.data?.message || "Failed to resend notification")
+      }
+    } catch (error) {
+      debugError("Error resending notification:", error)
+      toast.error(error.response?.data?.message || "Failed to resend notification")
+    } finally {
+      setResendLoadingOrderId(null)
+    }
+  }
+
+  const handleMarkDelivered = async (order) => {
+    const orderIdToUse = order.id || order._id || order.orderId
+    if (!orderIdToUse) {
+      toast.error("Order ID not found")
+      return
+    }
+
+    const shouldMark = confirm(
+      `Mark order ${order.orderId} as delivered?\n\nThis will close the order without running the rider completion flow.`,
+    )
+    if (!shouldMark) return
+
+    try {
+      setMarkDeliveredLoadingOrderId(order.id || order.orderId)
+      const response = await adminAPI.markOrderDelivered(orderIdToUse)
+      if (response.data?.success) {
+        toast.success(response.data?.message || `Order ${order.orderId} marked as delivered`)
+        await fetchOrders({ silent: true, withRingCheck: false })
+      } else {
+        toast.error(response.data?.message || "Failed to mark order as delivered")
+      }
+    } catch (error) {
+      debugError("Error marking order delivered:", error)
+      toast.error(error.response?.data?.message || "Failed to mark order as delivered")
+    } finally {
+      setMarkDeliveredLoadingOrderId(null)
     }
   }
 
@@ -979,8 +1075,13 @@ export default function OrdersPage({ statusKey = "all" }) {
         onDeleteOrder={statusKey === "all" ? handleDeleteOrder : undefined}
         onAcceptOrder={statusKey === "all" ? handleAcceptOrder : undefined}
         onRejectOrder={statusKey === "all" ? handleRejectOrder : undefined}
+        onCancelOrder={handleCancelOrder}
+        onResendNotification={handleResendNotification}
+        onMarkDelivered={handleMarkDelivered}
         onAssignDelivery={handleAssignDelivery}
         actionLoadingOrderId={processingActionOrderId}
+        resendLoadingOrderId={resendLoadingOrderId}
+        markDeliveredLoadingOrderId={markDeliveredLoadingOrderId}
         deletingOrderId={deletingOrderId}
       />
     </div>

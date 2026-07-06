@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { Eye, Printer, ArrowUpDown, Loader2, Check, X, Trash2, Truck } from "lucide-react"
+import { Eye, Printer, ArrowUpDown, Loader2, Check, X, Trash2, Truck, Volume2, Ban, PackageCheck } from "lucide-react"
 
 const getStatusColor = (orderStatus) => {
   const colors = {
@@ -37,7 +37,12 @@ export default function OrdersTable({
   onAcceptOrder,
   onRejectOrder,
   onAssignDelivery,
+  onCancelOrder,
+  onResendNotification,
+  onMarkDelivered,
   actionLoadingOrderId,
+  resendLoadingOrderId,
+  markDeliveredLoadingOrderId,
   deletingOrderId,
 }) {
   const [currentPage, setCurrentPage] = useState(1)
@@ -58,6 +63,31 @@ export default function OrdersTable({
   const formatRestaurantName = (name) => {
     if (name === "Cafe Monarch") return "Café Monarch"
     return name
+  }
+
+  const isTerminalOrder = (order) => {
+    const rawStatus = String(order.rawOrderStatus || order.orderStatus || "").toLowerCase()
+    return [
+      "delivered",
+      "cancelled_by_user",
+      "cancelled_by_restaurant",
+      "cancelled_by_admin",
+      "dead",
+    ].includes(rawStatus) || ["Delivered", "Canceled", "Cancelled by Restaurant", "Cancelled by User"].includes(order.orderStatus)
+  }
+
+  const canResendNotification = (order) => {
+    const rawStatus = String(order.rawOrderStatus || "").toLowerCase()
+    const dispatchStatus = String(order.dispatchStatus || order.dispatch?.status || "").toLowerCase()
+    return (
+      dispatchStatus !== "accepted" &&
+      ["confirmed", "preparing", "ready_for_pickup", "ready"].includes(rawStatus)
+    )
+  }
+
+  const canMarkDelivered = (order) => {
+    const rawStatus = String(order.rawOrderStatus || "").toLowerCase()
+    return !isTerminalOrder(order) && rawStatus !== "created" && rawStatus !== ""
   }
 
   if (orders.length === 0) {
@@ -407,7 +437,7 @@ export default function OrdersTable({
                 )}
                 {visibleColumns.actions && (
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-1.5 flex-wrap">
                       {order.orderStatus === "Pending" && onAcceptOrder && (
                         <button
                           onClick={() => onAcceptOrder(order)}
@@ -446,6 +476,51 @@ export default function OrdersTable({
                           title="Assign Delivery Partner"
                         >
                           <Truck className="w-4 h-4" />
+                        </button>
+                      )}
+                      {onResendNotification && canResendNotification(order) && (
+                        <button
+                          onClick={() => onResendNotification(order)}
+                          disabled={resendLoadingOrderId === (order.id || order.orderId)}
+                          className="px-2 py-1.5 rounded text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                          title="Resend notification to delivery partners"
+                        >
+                          {resendLoadingOrderId === (order.id || order.orderId) ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Volume2 className="w-3.5 h-3.5" />
+                          )}
+                          <span>Resend</span>
+                        </button>
+                      )}
+                      {onMarkDelivered && canMarkDelivered(order) && (
+                        <button
+                          onClick={() => onMarkDelivered(order)}
+                          disabled={markDeliveredLoadingOrderId === (order.id || order.orderId)}
+                          className="px-2 py-1.5 rounded text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                          title="Mark order as delivered"
+                        >
+                          {markDeliveredLoadingOrderId === (order.id || order.orderId) ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <PackageCheck className="w-3.5 h-3.5" />
+                          )}
+                          <span>Delivered</span>
+                        </button>
+                      )}
+                      {onCancelOrder && !isTerminalOrder(order) && (
+                        <button
+                          onClick={() => onCancelOrder(order)}
+                          disabled={actionLoadingOrderId === (order.id || order.orderId)}
+                          className="px-2 py-1.5 rounded text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                          title="Cancel order"
+                        >
+                          {actionLoadingOrderId === (order.id || order.orderId) ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Ban className="w-3.5 h-3.5" />
+                          )}
+                          <span>Cancel</span>
                         </button>
                       )}
                       <button 

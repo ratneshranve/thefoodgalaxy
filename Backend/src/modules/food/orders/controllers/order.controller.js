@@ -410,3 +410,13 @@ export async function resendDeliveryNotificationRestaurantController(req, res, n
         next(err);
     }
 }
+
+export async function resendDeliveryNotificationAdminController(req, res, next) {
+    try {
+        const orderId = req.params.orderId;
+        const result = await orderService.resendDeliveryNotificationAdmin(orderId);
+        return sendResponse(res, 200, 'Notification resent successfully', result);
+    } catch (err) {
+        next(err);
+    }
+}

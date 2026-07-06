@@ -475,6 +475,12 @@ export const adminAPI = {
     adminClient.patch(`/food/admin/orders/${String(orderId)}/status`, { orderStatus: "confirmed", note: "Accepted by admin" }),
   rejectOrder: (orderId, reason = "") =>
     adminClient.patch(`/food/admin/orders/${String(orderId)}/status`, { orderStatus: "cancelled_by_admin", note: reason }),
+  cancelOrder: (orderId, reason = "Cancelled by admin") =>
+    adminClient.patch(`/food/admin/orders/${String(orderId)}/status`, { orderStatus: "cancelled_by_admin", note: reason }),
+  markOrderDelivered: (orderId, note = "Marked as delivered by admin") =>
+    adminClient.patch(`/food/admin/orders/${String(orderId)}/status`, { orderStatus: "delivered", note }),
+  resendDeliveryNotification: (orderId) =>
+    adminClient.post(`/food/admin/orders/${String(orderId)}/resend-notification`, {}),
   deleteOrder: (orderId) =>
     adminClient.delete(`/food/admin/orders/${String(orderId)}`),
   /** Dispatch settings â€“ auto vs manual assign (global) */
