@@ -16,6 +16,8 @@ import {
 } from '@food/utils/orderDispatchId';
 import { toast } from 'sonner';
 
+const debugDeliveryPopup = (...args) => console.log('[DeliveryPopupTrace]', ...args);
+
 // Components
 import LiveMap from '@/modules/DeliveryV2/components/map/LiveMap';
 import { NewOrderModal } from '@/modules/DeliveryV2/components/modals/NewOrderModal';
@@ -96,7 +98,14 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   const selectIncomingOrder = useCallback((order) => {
     const normalized = normalizeIncomingOrder(order);
     const id = getOrderMongoId(normalized);
-    if (!id) return;
+    if (!id) {
+      debugDeliveryPopup('selectIncomingOrder skipped: missing mongo id', normalized);
+      return;
+    }
+    debugDeliveryPopup('selectIncomingOrder', {
+      selectedId: id,
+      displayId: getOrderAcceptId(normalized),
+    });
     lockedIncomingOrderIdRef.current = id;
     setSelectedIncomingId(id);
   }, []);
@@ -109,8 +118,19 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
           (getOrderMongoId(item) === currentSelected ||
             isSameOrder(item, { orderMongoId: currentSelected, _id: currentSelected })),
       );
-      if (stillExists) return currentSelected;
+      if (stillExists) {
+        debugDeliveryPopup('syncSelectionAfterQueueChange keeping current selection', {
+          currentSelected,
+          queueSize: nextQueue?.length || 0,
+        });
+        return currentSelected;
+      }
       const nextId = nextQueue?.[0] ? getOrderMongoId(nextQueue[0]) : null;
+      debugDeliveryPopup('syncSelectionAfterQueueChange switching selection', {
+        previousSelected: currentSelected,
+        nextSelected: nextId,
+        queueSize: nextQueue?.length || 0,
+      });
       lockedIncomingOrderIdRef.current = nextId;
       return nextId;
     });
@@ -436,6 +456,11 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
   // Auto-restore modal when status or content changes
   useEffect(() => {
+    debugDeliveryPopup('auto-restoring modal state', {
+      tripStatus,
+      showVerification,
+      incomingOrderId: getOrderMongoId(incomingOrder) || getOrderAcceptId(incomingOrder),
+    });
     setIsModalMinimized(false);
   }, [tripStatus, showVerification, incomingOrder]);
 
@@ -671,17 +696,30 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       const offers = event.detail?.offers || [];
       if (!offers.length) return;
 
+      debugDeliveryPopup('deliveryPendingOffers received', {
+        offerIds: offers.map((offer) => getOrderMongoId(offer) || getOrderAcceptId(offer)),
+        count: offers.length,
+      });
+
       setIncomingOrders((prev) => {
         let next = prev;
         offers.forEach((offer) => {
           next = upsertIncomingOrderInQueue(next, offer);
         });
+        debugDeliveryPopup('deliveryPendingOffers queue updated', {
+          previousQueueIds: prev.map((item) => getOrderMongoId(item) || getOrderAcceptId(item)),
+          nextQueueIds: next.map((item) => getOrderMongoId(item) || getOrderAcceptId(item)),
+        });
         return next;
       });
 
       setSelectedIncomingId((prev) => {
-        if (prev) return prev;
+        if (prev) {
+          debugDeliveryPopup('deliveryPendingOffers keeping existing selectedIncomingId', { selectedIncomingId: prev });
+          return prev;
+        }
         const firstId = getOrderMongoId(offers[0]);
+        debugDeliveryPopup('deliveryPendingOffers selecting first offer', { firstId });
         lockedIncomingOrderIdRef.current = firstId || null;
         return firstId;
       });
@@ -696,11 +734,24 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
     const normalized = normalizeIncomingOrder(newOrder);
     const newId = getOrderMongoId(normalized);
-    if (!newId) return;
+    debugDeliveryPopup('newOrder effect triggered', {
+      newId,
+      displayId: getOrderAcceptId(normalized),
+      hasMongoId: Boolean(newId),
+    });
+    if (!newId) {
+      debugDeliveryPopup('newOrder ignored because mongo id is missing', normalized);
+      return;
+    }
 
     setIncomingOrders((prev) => {
       const wasInQueue = prev.some((item) => isSameOrder(item, normalized));
       const next = upsertIncomingOrderInQueue(prev, normalized);
+      debugDeliveryPopup('newOrder queue updated', {
+        wasInQueue,
+        previousQueueIds: prev.map((item) => getOrderMongoId(item) || getOrderAcceptId(item)),
+        nextQueueIds: next.map((item) => getOrderMongoId(item) || getOrderAcceptId(item)),
+      });
       if (!wasInQueue && playNotificationSound) {
         playNotificationSound(normalized);
       }
@@ -708,7 +759,11 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     });
 
     setSelectedIncomingId((prev) => {
-      if (prev) return prev;
+      if (prev) {
+        debugDeliveryPopup('newOrder keeping existing selectedIncomingId', { selectedIncomingId: prev, incomingId: newId });
+        return prev;
+      }
+      debugDeliveryPopup('newOrder selecting incoming order', { selectedIncomingId: newId });
       lockedIncomingOrderIdRef.current = newId;
       return newId;
     });
@@ -789,7 +844,10 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
   useEffect(() => {
     if (selectedIncomingId) {
+      debugDeliveryPopup('selectedIncomingId updated', { selectedIncomingId });
       lockedIncomingOrderIdRef.current = selectedIncomingId;
+    } else {
+      debugDeliveryPopup('selectedIncomingId cleared');
     }
   }, [selectedIncomingId]);
 

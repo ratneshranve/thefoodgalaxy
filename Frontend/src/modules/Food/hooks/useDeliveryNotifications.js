@@ -877,8 +877,11 @@ export const useDeliveryNotifications = () => {
 
     // Listen for priority-based order notifications (new_order_available)
     socketRef.current.on('new_order_available', (orderData) => {
+      const normalized = normalizeIncomingOrder(orderData);
       debugLog('New order available received via socket', {
         orderId: orderData?.orderId || orderData?.orderMongoId || orderData?._id,
+        normalizedOrderId: normalized?.orderId,
+        normalizedMongoId: normalized?.orderMongoId,
         phase: orderData?.phase || 'unknown',
         dispatchStatus: orderData?.dispatch?.status,
       });
@@ -886,7 +889,6 @@ export const useDeliveryNotifications = () => {
         debugLog('?? Ignored new_order_available - rider is offline');
         return;
       }
-      const normalized = normalizeIncomingOrder(orderData);
       setNewOrder(normalized);
       handleIncomingOrderAlert(normalized);
     });
@@ -983,15 +985,20 @@ export const useDeliveryNotifications = () => {
 
     // Backend emits 'order_claimed' when another delivery boy accepts an offered order
     socketRef.current.on('order_claimed', (data) => {
-      debugLog('?? order_claimed received - order taken by another partner:', data);
+      const claimedMongoId = getOrderMongoId(data) || data?.orderId || data?.order_id;
+      debugLog('?? order_claimed received - order taken by another partner:', {
+        raw: data,
+        claimedMongoId,
+        claimedBy: data?.claimedBy,
+        activeOrderRefId: getOrderMongoId(activeOrderRef.current) || activeOrderRef.current?.orderId || activeOrderRef.current?._id,
+      });
       stopAlertLoop();
       activeOrderRef.current = null;
       setNewOrder(null);
-      const claimedId = getOrderMongoId(data) || data?.orderId || data?.order_id;
-      if (claimedId) {
+      if (claimedMongoId) {
         setClaimedOrderId({
-          orderId: claimedId,
-          orderMongoId: getOrderMongoId(data) || claimedId,
+          orderId: claimedMongoId,
+          orderMongoId: getOrderMongoId(data) || claimedMongoId,
           claimedBy: data?.claimedBy,
         });
       }
