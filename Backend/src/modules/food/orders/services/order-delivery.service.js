@@ -375,6 +375,32 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
     };
   });
 
+  const popupTtlMs = 60 * 1000;
+  for (const doc of enriched || []) {
+    const offers = Array.isArray(doc?.dispatch?.offeredTo) ? doc.dispatch.offeredTo : [];
+    const partnerOffers = offers.filter(
+      (entry) => String(entry?.partnerId || '') === String(deliveryPartnerId),
+    );
+    const latest = partnerOffers.length ? partnerOffers[partnerOffers.length - 1] : null;
+    const offeredAtMs = latest?.at ? new Date(latest.at).getTime() : 0;
+    const offerAgeMs = offeredAtMs && !Number.isNaN(offeredAtMs) ? Date.now() - offeredAtMs : null;
+    const popupEligible = Boolean(
+      doc?.dispatch?.status === 'unassigned' &&
+      latest &&
+      String(latest?.action || '') === 'offered' &&
+      offerAgeMs != null &&
+      offerAgeMs <= popupTtlMs
+    );
+
+    logger.info(
+      `[DeliveryPopupServer] available-order rider=${deliveryPartnerId} order=${doc?.order_id || doc?._id} dispatchStatus=${doc?.dispatch?.status || 'none'} orderStatus=${doc?.orderStatus || 'none'} offeredToRider=${partnerOffers.length > 0} latestAction=${latest?.action || 'none'} offerAgeMs=${offerAgeMs ?? 'na'} popupEligible=${popupEligible}`,
+    );
+  }
+
+  logger.info(
+    `[DeliveryPopupServer] available-orders summary rider=${deliveryPartnerId} returned=${enriched.length} total=${total} page=${page} limit=${limit}`,
+  );
+
   return {
     ...buildPaginatedResult({ docs: enriched, total, page, limit }),
     cashLimit,
