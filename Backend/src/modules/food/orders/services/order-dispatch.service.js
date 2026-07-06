@@ -267,6 +267,7 @@ export async function tryAutoAssign(orderId, options = {}) {
   const staleLockBefore = new Date(Date.now() - lockTimeout);
 
   const dispatchableStatuses = new Set([
+    'created',
     'confirmed',
     'preparing',
     'ready_for_pickup',
@@ -278,17 +279,24 @@ export async function tryAutoAssign(orderId, options = {}) {
     {
       _id: new mongoose.Types.ObjectId(orderId),
       orderStatus: { $in: Array.from(dispatchableStatuses) },
-      $or: [
-        { 'dispatch.status': 'unassigned' },
+      $and: [
         {
-          'dispatch.status': 'assigned',
-          'dispatch.acceptedAt': { $exists: false },
-          'dispatch.assignedAt': { $lt: staleLockBefore }
-        }
-      ],
-      $or: [
-        { 'dispatch.dispatchingAt': { $exists: false } },
-        { 'dispatch.dispatchingAt': { $lt: staleLockBefore } },
+          $or: [
+            { 'dispatch.status': 'unassigned' },
+            {
+              'dispatch.status': 'assigned',
+              'dispatch.acceptedAt': { $exists: false },
+              'dispatch.assignedAt': { $lt: staleLockBefore }
+            }
+          ],
+        },
+        {
+          $or: [
+            { 'dispatch.dispatchingAt': { $exists: false } },
+            { 'dispatch.dispatchingAt': null },
+            { 'dispatch.dispatchingAt': { $lt: staleLockBefore } },
+          ],
+        },
       ],
     },
     {
@@ -302,11 +310,10 @@ export async function tryAutoAssign(orderId, options = {}) {
     return null;
   }
 
-  const attempt = resolveDispatchAttempt(order, options);
+  let attempt = resolveDispatchAttempt(order, options);
   const forceNotify = Boolean(options.forceNotify);
 
   try {
-    const activeOfferIds = getActiveOfferedPartnerIds(order.dispatch?.offeredTo);
     const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
     const isCashOrder = paymentMethod === 'cash';
     const requiredAmount = isCashOrder ? Number(order?.pricing?.total || 0) : 0;
@@ -314,10 +321,27 @@ export async function tryAutoAssign(orderId, options = {}) {
     const dispatchRadiusConfig = await getDispatchRadiusConfig();
     const radiusTiers = dispatchRadiusConfig.tiers;
     const expansionEnabled = dispatchRadiusConfig.expansionEnabled;
+
+    // CYCLE RESTART: If all radius tiers have been exhausted, reset back to
+    // attempt 1 and clear the offeredTo list so every rider becomes eligible
+    // again.  This makes the full 2→4→6→8→15 km cycle repeat indefinitely
+    // until a rider accepts or the order is cancelled/dead.
+    if (expansionEnabled && attempt > radiusTiers.length) {
+      logger.info(
+        `[Dispatch] Order ${order._id}: All ${radiusTiers.length} tiers exhausted (attempt was ${attempt}). Restarting cycle from attempt 1.`,
+      );
+      attempt = 1;
+      order.dispatch.offeredTo = [];
+      order.dispatch.dispatchAttempt = 1;
+      await order.save();
+    }
+
     const maxKm = getMaxKmForAttempt(attempt, radiusTiers, expansionEnabled);
     const isMaxTier = !expansionEnabled || attempt >= radiusTiers.length;
     const isPhase2 = attempt >= 4;
     const isPhase3 = attempt >= 6;
+
+    const activeOfferIds = getActiveOfferedPartnerIds(order.dispatch?.offeredTo);
 
     logger.info(
       `[Dispatch] Order ${order._id} attempt=${attempt} maxKm=${maxKm} expansionEnabled=${expansionEnabled} forceNotify=${forceNotify}`,
@@ -443,20 +467,32 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
   const order = await FoodOrder.findById(orderId);
   if (!order) return;
 
+  // Order already accepted by a rider — nothing to do.
   if (order.dispatch?.status === 'accepted') {
+    await cancelDispatchTimeoutJob(orderId);
+    return;
+  }
+
+  // Order reached a terminal state — stop the dispatch cycle.
+  const terminalStatuses = new Set([
+    'delivered', 'cancelled_by_user', 'cancelled_by_restaurant', 'cancelled_by_admin', 'dead',
+  ]);
+  if (terminalStatuses.has(order.orderStatus)) {
     await cancelDispatchTimeoutJob(orderId);
     return;
   }
 
   const attempt = resolveDispatchAttempt(order, options);
 
+  // Case 1: A specific partner was assigned but didn't respond.
   const stillAssigned = order.dispatch?.status === 'assigned' &&
+    partnerId &&
     String(order.dispatch?.deliveryPartnerId) === String(partnerId) &&
     !order.dispatch?.acceptedAt;
 
   if (stillAssigned) {
     logger.info(`Dispatch timeout for partner ${partnerId} on order ${orderId}. Re-trying hunt...`);
-    const offer = order.dispatch.offeredTo.find(
+    const offer = (order.dispatch.offeredTo || []).find(
       o => String(o.partnerId) === String(partnerId) && o.action === 'offered'
     );
     if (offer) offer.action = 'timeout';
@@ -464,7 +500,23 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
     order.dispatch.status = 'unassigned';
     order.dispatch.deliveryPartnerId = null;
     await order.save();
-  } else if (order.dispatch?.status !== 'unassigned') {
+  } else if (order.dispatch?.status === 'unassigned') {
+    // Case 2: Broadcast-style timeout — no specific partner was assigned.
+    // Mark all currently-offered riders as 'timeout' so the next attempt
+    // treats them as "already tried" and can expand to the next tier.
+    let markedCount = 0;
+    for (const entry of (order.dispatch.offeredTo || [])) {
+      if (entry.action === 'offered') {
+        entry.action = 'timeout';
+        markedCount++;
+      }
+    }
+    if (markedCount > 0) {
+      await order.save();
+      logger.info(`[Dispatch] Marked ${markedCount} stale offers as 'timeout' for order ${orderId}.`);
+    }
+  } else {
+    // Status is something unexpected (e.g. 'assigned' but different partnerId) — skip.
     return;
   }
 
