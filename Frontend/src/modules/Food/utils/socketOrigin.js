@@ -24,6 +24,11 @@ function toSocketOriginFromApi(apiUrl) {
 
   const parsed = new URL(base, fallbackBase);
 
+  // In production (HTTPS), sockets usually go through port 443 via Nginx proxy, so don't force port 5001.
+  if (parsed.protocol === 'https:') {
+    return parsed.origin;
+  }
+
   if (!SOCKET_PORT) {
     return parsed.origin;
   }
@@ -51,7 +56,7 @@ export function resolveSocketOrigin() {
     if (typeof window === 'undefined') return '';
     try {
       const parsed = new URL(window.location.origin);
-      if (SOCKET_PORT && parsed.port !== SOCKET_PORT) {
+      if (parsed.protocol !== 'https:' && SOCKET_PORT && parsed.port !== SOCKET_PORT) {
         parsed.port = SOCKET_PORT;
       }
       return parsed.origin;
@@ -68,7 +73,7 @@ export function resolveSocketOrigin() {
 
     try {
       const parsed = new URL(stripped);
-      if (SOCKET_PORT && parsed.port !== SOCKET_PORT) {
+      if (parsed.protocol !== 'https:' && SOCKET_PORT && parsed.port !== SOCKET_PORT) {
         parsed.port = SOCKET_PORT;
       }
       return parsed.origin;

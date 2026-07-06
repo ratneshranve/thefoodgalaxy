@@ -738,41 +738,7 @@ export async function recoverStuckOrders() {
       logger.info(`Watchdog: Auto-cancelled ${staleUnpaidResult.modifiedCount} stale unpaid Razorpay orders.`);
     }
 
-    // 4. Mark orders dead if not delivered within 1 hour
-    const ONE_HOUR = 60 * 60 * 1000;
-    const deadOrders = await FoodOrder.find({
-      createdAt: { $lt: new Date(now - ONE_HOUR) },
-      orderStatus: { $nin: ['delivered', 'cancelled_by_user', 'cancelled_by_restaurant', 'cancelled_by_admin', 'dead'] }
-    });
-
-    let deadCount = 0;
-    if (deadOrders.length > 0) {
-      const io = getIO();
-      for (const order of deadOrders) {
-        order.orderStatus = 'dead';
-        if (order.dispatch) order.dispatch.status = 'cancelled';
-        
-        pushStatusHistory(order, {
-          at: now,
-          byRole: 'SYSTEM',
-          from: 'system_auto',
-          to: 'dead',
-          note: 'Auto-killed: order was not delivered within 1 hour'
-        });
-        await order.save();
-        deadCount++;
-
-        // Notify delivery partner to prompt for a reason
-        if (order.dispatch?.deliveryPartnerId && io) {
-          io.to(rooms.delivery(order.dispatch.deliveryPartnerId)).emit('order_auto_killed', {
-            orderId: order.order_id || order._id.toString(),
-            orderMongoId: order._id.toString(),
-            message: 'Order exceeded 1 hour and was auto-cancelled. Please specify a reason.'
-          });
-        }
-      }
-      logger.info(`Watchdog: Auto-killed ${deadCount} orders that exceeded 1 hour limit.`);
-    }
+    // 4. Removed 1-hour auto-kill limit as per user request to allow infinite dispatch hunt.
 
   } catch (err) {
     logger.error(`Watchdog recovery error: ${err.message}`);
