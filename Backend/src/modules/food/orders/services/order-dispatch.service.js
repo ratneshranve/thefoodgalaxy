@@ -292,11 +292,15 @@ export async function tryAutoAssign(orderId, options = {}) {
     const io = getIO();
     const payload = buildDeliverySocketPayload(order, order.restaurantId);
 
+    logger.info(`[DeliveryPopupServer] dispatch start order=${order.order_id || order._id} attempt=${attempt} riders=${eligible.length} maxKm=${maxKm} ioAvailable=${Boolean(io)} dispatchStatus=${order.dispatch?.status || 'unassigned'}`);
+
     // Broadcast to ALL eligible riders in this tier (Firebase first, socket fallback).
     logger.info(`[PM2 LOG] [Dispatch] Broadcasting order ${order._id} to ${eligible.length} riders at ${maxKm}km.`);
     for (const p of eligible) {
       const roomName = rooms.delivery(p.partnerId);
       const eventPayload = { ...payload, pickupDistanceKm: p.distanceKm };
+
+      logger.info(`[DeliveryPopupServer] dispatch target order=${order.order_id || order._id} rider=${String(p.partnerId)} room=${roomName} distanceKm=${Number(p.distanceKm || 0).toFixed(2)}`);
 
       // 1. Firebase RTDB (Primary Frontend Channel)
       const fbSuccess = await publishDeliveryOfferToFirebase(p.partnerId, order._id.toString(), eventPayload);

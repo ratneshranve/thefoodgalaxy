@@ -838,22 +838,45 @@ export async function resyncState(userId, role) {
       .limit(20)
       .lean();
 
-    const pendingOffers = (pendingOfferDocs || [])
-      .filter((doc) => {
-        const offers = Array.isArray(doc?.dispatch?.offeredTo) ? doc.dispatch.offeredTo : [];
-        const partnerOffers = offers.filter(
-          (entry) => String(entry?.partnerId || "") === String(userId),
-        );
-        if (!partnerOffers.length) return false;
-        const latest = partnerOffers[partnerOffers.length - 1];
-        if (String(latest?.action || "") !== "offered") return false;
+    logger.info(`[DeliveryPopupServer] resyncState start rider=${userId} activeOrder=${activeOrder ? (activeOrder.order_id || activeOrder._id?.toString?.() || activeOrder._id) : 'none'} pendingOfferDocs=${pendingOfferDocs.length}`);
 
-        const offeredAt = latest?.at ? new Date(latest.at).getTime() : 0;
-        if (!offeredAt || Number.isNaN(offeredAt)) return false;
+    const pendingOffers = [];
+    for (const doc of pendingOfferDocs || []) {
+      const offers = Array.isArray(doc?.dispatch?.offeredTo) ? doc.dispatch.offeredTo : [];
+      const partnerOffers = offers.filter(
+        (entry) => String(entry?.partnerId || "") === String(userId),
+      );
 
-        return Date.now() - offeredAt <= DELIVERY_RESYNC_OFFER_TTL_MS;
-      })
-      .map((doc) => buildDeliverySocketPayload(doc, doc.restaurantId));
+      if (!partnerOffers.length) {
+        logger.info(`[DeliveryPopupServer] resync skip order=${doc.order_id || doc._id} rider=${userId} reason=no_partner_offer_entry`);
+        continue;
+      }
+
+      const latest = partnerOffers[partnerOffers.length - 1];
+      const latestAction = String(latest?.action || "");
+      const offeredAt = latest?.at ? new Date(latest.at).getTime() : 0;
+      const offerAgeMs = offeredAt && !Number.isNaN(offeredAt) ? Date.now() - offeredAt : null;
+
+      if (latestAction !== "offered") {
+        logger.info(`[DeliveryPopupServer] resync skip order=${doc.order_id || doc._id} rider=${userId} reason=latest_action_${latestAction || 'missing'} offerAgeMs=${offerAgeMs ?? 'na'}`);
+        continue;
+      }
+
+      if (!offeredAt || Number.isNaN(offeredAt)) {
+        logger.info(`[DeliveryPopupServer] resync skip order=${doc.order_id || doc._id} rider=${userId} reason=invalid_offer_timestamp`);
+        continue;
+      }
+
+      if (offerAgeMs > DELIVERY_RESYNC_OFFER_TTL_MS) {
+        logger.info(`[DeliveryPopupServer] resync skip order=${doc.order_id || doc._id} rider=${userId} reason=offer_expired offerAgeMs=${offerAgeMs} ttlMs=${DELIVERY_RESYNC_OFFER_TTL_MS}`);
+        continue;
+      }
+
+      pendingOffers.push(buildDeliverySocketPayload(doc, doc.restaurantId));
+      logger.info(`[DeliveryPopupServer] resync include order=${doc.order_id || doc._id} rider=${userId} offerAgeMs=${offerAgeMs}`);
+    }
+
+    logger.info(`[DeliveryPopupServer] resyncState result rider=${userId} pendingOffers=${pendingOffers.length}`);
 
     return {
       activeOrder: activeOrder ? sanitizeOrderForExternal(activeOrder) : null,
