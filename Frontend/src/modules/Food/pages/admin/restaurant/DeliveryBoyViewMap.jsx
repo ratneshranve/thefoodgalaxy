@@ -39,7 +39,7 @@ export default function DeliveryBoyViewMap() {
       (deliveryNode) => {
         const nextDeliveryBoys = Object.entries(deliveryNode || {})
           .map(([deliveryId, payload]) => {
-            const location = payload?.location || {}
+            const location = payload || {}
             const lat = Number(location?.lat)
             const lng = Number(location?.lng)
             const isOnline =

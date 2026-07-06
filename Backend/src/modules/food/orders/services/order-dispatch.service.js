@@ -255,7 +255,7 @@ export async function tryAutoAssign(orderId, options = {}) {
       await order.save();
     }
 
-    const maxKm = options.blastAll ? 99999 : radiusTiers[attempt - 1];
+    const maxKm = options.blastAll ? radiusTiers[radiusTiers.length - 1] : radiusTiers[attempt - 1];
     order.dispatch.dispatchAttempt = attempt;
 
     const searchOptions = {
@@ -427,8 +427,6 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
 }
 
 
-const RESEND_SEARCH_RADIUS_KM = 99999;
-
 async function resendDeliveryNotificationForOrder(order) {
   const activeStatuses = ['confirmed', 'preparing', 'ready_for_pickup', 'ready'];
   if (!activeStatuses.includes(order.orderStatus)) {
@@ -439,10 +437,17 @@ async function resendDeliveryNotificationForOrder(order) {
     throw new ValidationError('A delivery partner has already accepted this order.');
   }
 
+  const feeSettings = await FoodFeeSettings.findOne({ isActive: true }).lean();
+  let radiusTiers = feeSettings?.dispatchRadiusTiers || [];
+  if (!radiusTiers.length) {
+    radiusTiers = [2, 4, 6, 8, 10, 15];
+  }
+  const maxZoneRadius = radiusTiers[radiusTiers.length - 1];
+
   const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
   const requiredAmount = paymentMethod === 'cash' ? Number(order?.pricing?.total || 0) : 0;
   const preview = await listNearbyOnlineDeliveryPartners(order.restaurantId, {
-    maxKm: RESEND_SEARCH_RADIUS_KM,
+    maxKm: maxZoneRadius,
     requiredAmount,
     allowOverLimitFallback: true,
   });
@@ -483,7 +488,7 @@ async function resendDeliveryNotificationForOrder(order) {
     shortlistedCount,
     requiredAmount,
     connectedSocketCount,
-    searchRadiusKm: RESEND_SEARCH_RADIUS_KM,
+    searchRadiusKm: maxZoneRadius,
     dispatchStatus: refreshed?.dispatch?.status || 'unassigned',
   };
 }
