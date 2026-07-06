@@ -128,7 +128,6 @@ export default function Cart() {
   const [isLoadingWallet, setIsLoadingWallet] = useState(false)
   const [onlinePaymentOnly, setOnlinePaymentOnly] = useState(false)
   const [maxCodAmount, setMaxCodAmount] = useState(0)
-  const [maintenanceMode, setMaintenanceMode] = useState(false)
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -139,7 +138,6 @@ export default function Cart() {
           const codLimit = Number(response.data.data.maxCodAmount) || 0;
           setOnlinePaymentOnly(isOnlineOnly)
           setMaxCodAmount(codLimit)
-          setMaintenanceMode(!!response.data.data.maintenanceMode)
         }
       } catch (error) {
         debugError("Error fetching business settings:", error)
@@ -1545,10 +1543,7 @@ export default function Cart() {
 
 
   const handlePlaceOrder = async () => {
-    if (maintenanceMode) {
-      toast.error("Ordering is temporarily unavailable due to maintenance. Please try again later.")
-      return
-    }
+
 
     if (!hasSavedAddress) {
       toast.error("Please choose a delivery location to continue")
