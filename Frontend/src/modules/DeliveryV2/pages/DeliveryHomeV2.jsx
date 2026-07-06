@@ -97,9 +97,9 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
   const selectIncomingOrder = useCallback((order) => {
     const normalized = normalizeIncomingOrder(order);
-    const id = getOrderMongoId(normalized);
+    const id = getOrderMongoId(normalized) || getOrderAcceptId(normalized);
     if (!id) {
-      debugDeliveryPopup('selectIncomingOrder skipped: missing mongo id', normalized);
+      debugDeliveryPopup('selectIncomingOrder skipped: missing usable id', normalized);
       return;
     }
     debugDeliveryPopup('selectIncomingOrder', {
@@ -115,8 +115,8 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       const stillExists = (nextQueue || []).some(
         (item) =>
           currentSelected &&
-          (getOrderMongoId(item) === currentSelected ||
-            isSameOrder(item, { orderMongoId: currentSelected, _id: currentSelected })),
+          ((getOrderMongoId(item) || getOrderAcceptId(item)) === currentSelected ||
+            isSameOrder(item, { orderMongoId: currentSelected, _id: currentSelected, orderId: currentSelected })),
       );
       if (stillExists) {
         debugDeliveryPopup('syncSelectionAfterQueueChange keeping current selection', {
@@ -125,7 +125,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
         });
         return currentSelected;
       }
-      const nextId = nextQueue?.[0] ? getOrderMongoId(nextQueue[0]) : null;
+      const nextId = nextQueue?.[0] ? (getOrderMongoId(nextQueue[0]) || getOrderAcceptId(nextQueue[0])) : null;
       debugDeliveryPopup('syncSelectionAfterQueueChange switching selection', {
         previousSelected: currentSelected,
         nextSelected: nextId,
@@ -718,7 +718,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
           debugDeliveryPopup('deliveryPendingOffers keeping existing selectedIncomingId', { selectedIncomingId: prev });
           return prev;
         }
-        const firstId = getOrderMongoId(offers[0]);
+        const firstId = getOrderMongoId(offers[0]) || getOrderAcceptId(offers[0]);
         debugDeliveryPopup('deliveryPendingOffers selecting first offer', { firstId });
         lockedIncomingOrderIdRef.current = firstId || null;
         return firstId;
@@ -733,14 +733,14 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     if (newOrder === undefined || newOrder === null) return;
 
     const normalized = normalizeIncomingOrder(newOrder);
-    const newId = getOrderMongoId(normalized);
+    const newId = getOrderMongoId(normalized) || getOrderAcceptId(normalized);
     debugDeliveryPopup('newOrder effect triggered', {
       newId,
       displayId: getOrderAcceptId(normalized),
-      hasMongoId: Boolean(newId),
+      hasMongoId: Boolean(getOrderMongoId(normalized)),
     });
     if (!newId) {
-      debugDeliveryPopup('newOrder ignored because mongo id is missing', normalized);
+      debugDeliveryPopup('newOrder ignored because usable id is missing', normalized);
       return;
     }
 
@@ -752,9 +752,6 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
         previousQueueIds: prev.map((item) => getOrderMongoId(item) || getOrderAcceptId(item)),
         nextQueueIds: next.map((item) => getOrderMongoId(item) || getOrderAcceptId(item)),
       });
-      if (!wasInQueue && playNotificationSound) {
-        playNotificationSound(normalized);
-      }
       return next;
     });
 
@@ -767,18 +764,12 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       lockedIncomingOrderIdRef.current = newId;
       return newId;
     });
-  }, [newOrder, playNotificationSound]);
+  }, [newOrder]);
 
-  // Also play sound when incomingOrder changes from polling (not from socket newOrder)
   const prevIncomingOrderRef = useRef(null);
   useEffect(() => {
-    const prevId = getOrderMongoId(prevIncomingOrderRef.current) || getOrderAcceptId(prevIncomingOrderRef.current);
-    const currId = getOrderMongoId(incomingOrder) || getOrderAcceptId(incomingOrder);
-    if (incomingOrder && currId !== prevId && playNotificationSound) {
-      playNotificationSound(incomingOrder);
-    }
     prevIncomingOrderRef.current = incomingOrder;
-  }, [incomingOrder, playNotificationSound]);
+  }, [incomingOrder]);
 
   const dismissCurrentIncomingOrder = useCallback(() => {
     if (!incomingOrder) {

@@ -518,6 +518,8 @@ function showForegroundNotification(payload = {}, options = {}) {
     pushDebugWarn(PUSH_DEBUG_PREFIX, "Ignoring malformed foreground notification payload", { payload });
     return;
   }
+
+  const moduleName = normalizeModuleFromPath();
   const notificationKey = getNotificationKey(payload);
   pushDebugLog(PUSH_DEBUG_PREFIX, "showForegroundNotification received", { notificationKey, fromSwRelay: options.fromSwRelay, payload });
   if (wasRecentlyHandled(notificationKey)) {
@@ -543,6 +545,32 @@ function showForegroundNotification(payload = {}, options = {}) {
     undefined;
 
   playPushSound(payload);
+
+  const payloadOrderId =
+    payload?.data?.orderMongoId ||
+    payload?.data?.order_id ||
+    payload?.data?.orderId ||
+    payload?.data?.id ||
+    "";
+  const isDeliveryOrderSignal =
+    moduleName === "delivery" &&
+    Boolean(
+      payloadOrderId ||
+      payload?.data?.type === "new_order" ||
+      title.toLowerCase().includes("order") ||
+      body.toLowerCase().includes("order")
+    );
+
+  if (typeof window !== "undefined" && isDeliveryOrderSignal) {
+    const relayPayload = {
+      orderId: payload?.data?.orderId || payload?.data?.order_id || payloadOrderId || undefined,
+      orderMongoId: payload?.data?.orderMongoId || payloadOrderId || undefined,
+      payload,
+      fromSwRelay: Boolean(options.fromSwRelay),
+    };
+    pushDebugLog(PUSH_DEBUG_PREFIX, "Dispatching delivery FCM alert to in-app flow", relayPayload);
+    window.dispatchEvent(new CustomEvent("delivery-fcm-order-alert", { detail: relayPayload }));
+  }
 
   // Only show a system notification from the PAGE if this is NOT a SW relay.
   // When it IS a SW relay the service worker already showed the notification —

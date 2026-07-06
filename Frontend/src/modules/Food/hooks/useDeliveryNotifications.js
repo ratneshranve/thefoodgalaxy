@@ -536,6 +536,35 @@ export const useDeliveryNotifications = () => {
     };
   }, [playNotificationSound, showBackgroundOrderNotification, recoverDeliveryState]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const onDeliveryFcmAlert = (event) => {
+      const detail = event?.detail || {};
+      debugLog('Received delivery FCM alert bridge', detail);
+      if (!isRiderOnline()) {
+        debugLog('Ignored delivery FCM alert bridge because rider is offline');
+        return;
+      }
+
+      const hintedOrder = normalizeIncomingOrder({
+        orderId: detail?.orderId || detail?.orderMongoId,
+        orderMongoId: detail?.orderMongoId || detail?.orderId,
+      });
+
+      if (hintedOrder && (hintedOrder.orderId || hintedOrder.orderMongoId)) {
+        setNewOrder(hintedOrder);
+      }
+
+      void recoverDeliveryState();
+    };
+
+    window.addEventListener('delivery-fcm-order-alert', onDeliveryFcmAlert);
+    return () => {
+      window.removeEventListener('delivery-fcm-order-alert', onDeliveryFcmAlert);
+    };
+  }, [recoverDeliveryState]);
+
   // Track user interaction — mark gesture only; never play alert.mp3 during unlock (iOS leak)
   useEffect(() => {
     const handleUserInteraction = async () => {
@@ -901,11 +930,12 @@ export const useDeliveryNotifications = () => {
         debugLog('?? Ignored play_notification_sound - rider is offline');
         return;
       }
-      const normalizedData = {
+      const normalizedData = normalizeIncomingOrder({
         orderId: data?.orderId || data?.order_id,
         orderMongoId: data?.orderMongoId || data?.order_mongo_id,
         ...data
-      };
+      });
+      setNewOrder(normalizedData);
       // Force immediate buzz for notification events, even if dedupe would skip.
       activeOrderRef.current = normalizedData || { id: Date.now() };
       playNotificationSound(normalizedData);
@@ -913,7 +943,6 @@ export const useDeliveryNotifications = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
         showBackgroundOrderNotification(normalizedData);
       }
-      handleIncomingOrderAlert(normalizedData);
     });
 
     socketRef.current.on('order_ready', (orderData) => {
@@ -986,15 +1015,20 @@ export const useDeliveryNotifications = () => {
     // Backend emits 'order_claimed' when another delivery boy accepts an offered order
     socketRef.current.on('order_claimed', (data) => {
       const claimedMongoId = getOrderMongoId(data) || data?.orderId || data?.order_id;
+      const activeOrderRefId = getOrderMongoId(activeOrderRef.current) || activeOrderRef.current?.orderId || activeOrderRef.current?._id;
+      const isCurrentAlertOrder = Boolean(claimedMongoId && activeOrderRefId && String(claimedMongoId) == String(activeOrderRefId));
       debugLog('?? order_claimed received - order taken by another partner:', {
         raw: data,
         claimedMongoId,
         claimedBy: data?.claimedBy,
-        activeOrderRefId: getOrderMongoId(activeOrderRef.current) || activeOrderRef.current?.orderId || activeOrderRef.current?._id,
+        activeOrderRefId,
+        isCurrentAlertOrder,
       });
-      stopAlertLoop();
-      activeOrderRef.current = null;
-      setNewOrder(null);
+      if (isCurrentAlertOrder) {
+        stopAlertLoop();
+        activeOrderRef.current = null;
+        setNewOrder(null);
+      }
       if (claimedMongoId) {
         setClaimedOrderId({
           orderId: claimedMongoId,
