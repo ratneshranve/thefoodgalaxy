@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { Worker } from 'bullmq';
 import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
+import { connectRedis, closeRedis, getRedisClient } from '../../config/redis.js';
+import { initRedisEmitter } from '../../config/socket.js';
 import { getBullMQConnection } from '../connection.js';
 import { ORDER_QUEUE } from '../queue.constants.js';
 import { processOrderJob } from '../processors/order.processor.js';
@@ -11,11 +13,20 @@ const defaultJobOptions = {
     backoff: { type: 'exponential', delay: 1000 }
 };
 
-const startOrderWorker = () => {
+const startOrderWorker = async () => {
     if (!config.bullmqEnabled) {
         logger.info('BullMQ is disabled. Order worker not started.');
         return null;
     }
+
+    if (config.redisEnabled) {
+        logger.info('[Bootstrap] Order worker connecting Redis client for socket emitter support');
+        const redisClient = await connectRedis();
+        initRedisEmitter(redisClient || getRedisClient());
+    } else {
+        logger.warn('[Bootstrap] Order worker started without Redis emitter support; socket broadcasts from worker will be unavailable');
+    }
+
     const connection = getBullMQConnection();
     if (!connection) {
         logger.error('Order worker: Redis connection unavailable. Exiting.');
@@ -33,10 +44,11 @@ const startOrderWorker = () => {
     return worker;
 };
 
-const worker = startOrderWorker();
+const worker = await startOrderWorker();
 if (worker) {
     const shutdown = async () => {
         await worker.close();
+        await closeRedis();
         process.exit(0);
     };
     process.on('SIGTERM', shutdown);
