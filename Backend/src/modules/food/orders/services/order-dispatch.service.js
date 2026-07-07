@@ -128,7 +128,8 @@ async function listNearbyOnlineDeliveryPartners(
     .select('_id status lastLat lastLng lastLocationAt name')
     .lean();
 
-  const scored = [];
+  const radiusEligible = [];
+  const zoneEligible = [];
 
   for (const p of allOnline) {
     if (busyIds.has(String(p._id))) continue;
@@ -136,30 +137,41 @@ async function listNearbyOnlineDeliveryPartners(
     const hasCoords = p.lastLat != null && p.lastLng != null;
 
     if (hasCoords) {
-      if (zonePolygon && !isPointInPolygon(p.lastLat, p.lastLng, zonePolygon)) {
-        continue;
-      }
-
       const d = haversineKm(rLat, rLng, p.lastLat, p.lastLng);
-      if (Number.isFinite(d) && d <= maxKm) {
-        scored.push({
-          partnerId: p._id,
-          distanceKm: d,
-          status: p.status,
-          locationUnknown: false,
-        });
+      if (!Number.isFinite(d) || d > maxKm) continue;
+
+      const entry = {
+        partnerId: p._id,
+        distanceKm: d,
+        status: p.status,
+        locationUnknown: false,
+      };
+      radiusEligible.push(entry);
+
+      if (!zonePolygon || isPointInPolygon(p.lastLat, p.lastLng, zonePolygon)) {
+        zoneEligible.push(entry);
       }
       continue;
     }
 
-    // Riders without GPS still receive offers when zone cannot be verified by coordinates.
-    if (!zonePolygon) {
-      scored.push({
-        partnerId: p._id,
-        distanceKm: null,
-        status: p.status,
-        locationUnknown: true,
-      });
+    // Riders without saved GPS still receive offers — location is tracked live in Firebase.
+    const entry = {
+      partnerId: p._id,
+      distanceKm: null,
+      status: p.status,
+      locationUnknown: true,
+    };
+    radiusEligible.push(entry);
+    zoneEligible.push(entry);
+  }
+
+  let scored = radiusEligible;
+  if (zoneOnly && zonePolygon) {
+    scored = zoneEligible.length > 0 ? zoneEligible : radiusEligible;
+    if (zoneEligible.length === 0 && radiusEligible.length > 0) {
+      logger.info(
+        `[Dispatch] Zone polygon matched 0 riders for restaurant ${rId}; falling back to ${radiusEligible.length} radius-eligible riders`,
+      );
     }
   }
 
@@ -175,6 +187,9 @@ async function listNearbyOnlineDeliveryPartners(
     : scored;
 
   if (picked.length === 0) {
+    logger.warn(
+      `[Dispatch] No eligible riders for restaurant ${rId}: online=${allOnline.length}, busy=${busyIds.size}, radiusKm=${maxKm}, zoneFilter=${Boolean(zonePolygon && zoneOnly)}`,
+    );
     return { partners: [] };
   }
 
