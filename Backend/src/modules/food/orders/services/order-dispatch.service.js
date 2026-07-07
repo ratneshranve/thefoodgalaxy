@@ -199,7 +199,7 @@ export async function updateDispatchSettings(dispatchMode, adminId) {
 
 export async function tryAutoAssign(orderId, options = {}) {
   let attempt = options.attempt || 1;
-  const lockTimeout = 20000; // 20 seconds lock interval
+  const lockTimeout = 60000; // 60 seconds lock interval
 
   const dispatchableStatuses = new Set([
     'confirmed',
@@ -278,13 +278,13 @@ export async function tryAutoAssign(orderId, options = {}) {
       order.dispatch.deliveryPartnerId = null;
       await order.save();
 
-      // Re-queue to check the next tier after a short delay (20s)
+      // Re-queue to check the next tier after a short delay (60s)
       await addOrderJob({
         action: 'DISPATCH_TIMEOUT_CHECK',
         orderMongoId: order._id.toString(),
         orderId: order._id.toString(),
         attempt: attempt + 1
-      }, { delay: 20000 });
+      }, { delay: 60000 });
 
       return order;
     }
@@ -352,13 +352,13 @@ export async function tryAutoAssign(orderId, options = {}) {
     order.markModified('dispatch.offeredTo');
     await order.save();
 
-    // Re-check in 20s if no one accepts
+    // Re-check in 60s if no one accepts
     await addOrderJob({
       action: 'DISPATCH_TIMEOUT_CHECK',
       orderMongoId: order._id.toString(),
       orderId: order._id.toString(),
       attempt: attempt + 1
-    }, { delay: 20000 });
+    }, { delay: 60000 });
 
     return order;
   } finally {

@@ -12,11 +12,11 @@ import { getOrderMongoId, getOrderDisplayId, isSameOrder } from '@food/utils/ord
  */
 export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccept, onReject, onMinimize }) => {
   const { riderLocation } = useDeliveryStore();
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(60);
   const orderKey = getOrderMongoId(order) || getOrderDisplayId(order);
 
   useEffect(() => {
-    setTimeLeft(30);
+    setTimeLeft(60);
   }, [orderKey]);
 
   useEffect(() => {
