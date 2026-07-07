@@ -225,9 +225,9 @@ export const HistoryV2 = () => {
                    const isCancelled = (trip.status || '').toLowerCase() === 'cancelled';
                    const isPending = !isCompleted && !isCancelled;
                    const payout = Number(trip.deliveryEarning || trip.amount || trip.earningAmount || 0);
-                   const collection = Number(trip.codCollectedAmount || trip.orderTotal || 0);
                    const isQR = (trip.paymentMethod || '').toLowerCase() === 'razorpay_qr';
                    const isCOD = (trip.paymentMethod || '').toLowerCase() === 'cash' || (trip.paymentMethod || '').toLowerCase() === 'cod';
+                   const collection = (isCOD || isQR) ? Number(trip.codCollectedAmount || trip.orderTotal || 0) : 0;
 
                    return (
                       <div key={trip.orderId || idx} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm active:scale-[0.99] transition-all">
@@ -237,13 +237,13 @@ export const HistoryV2 = () => {
                                 <p className="text-sm font-medium text-gray-500 mt-0.5">{trip.restaurant || trip.restaurantName || 'Sayaji'}</p>
                                 <p className="text-xs text-gray-400 font-medium mt-0.5 line-clamp-1">{extractItems(trip)}</p>
                              </div>
-                             <span className={`text-sm font-bold ${isCompleted ? 'text-[#10B981]' : isCancelled ? 'text-red-500' : 'text-orange-500'}`}>
+                             <span className={`text-sm font-bold ${isCompleted ? 'text-[#0066FF]' : isCancelled ? 'text-red-500' : 'text-orange-500'}`}>
                                 {trip.status || 'Status'}
                              </span>
                          </div>
                          
                          <div className="flex gap-2 mb-4 mt-3">
-                             <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${(isCOD || isQR) ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-[#10B981]'}`}>
+                             <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${(isCOD || isQR) ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-[#0066FF]'}`}>
                                 {isQR ? 'COD (QR)' : isCOD ? 'COD' : 'Online'}
                              </span>
                          </div>
@@ -254,8 +254,8 @@ export const HistoryV2 = () => {
                                 <p className="text-sm font-bold text-gray-950">{trip.time || '--:--'}</p>
                              </div>
                              <div className="text-center">
-                                <p className="text-[11px] font-medium text-gray-400 mb-1">COD</p>
-                                <p className="text-sm font-bold text-gray-950">₹{collection.toFixed(2)}</p>
+                                <p className="text-[11px] font-medium text-gray-400 mb-1">{(isCOD || isQR) ? 'COD' : 'Payment'}</p>
+                                <p className="text-sm font-bold text-gray-950">{(isCOD || isQR) ? `₹${collection.toFixed(2)}` : 'Online'}</p>
                              </div>
                              <div className="text-right">
                                 <p className="text-[11px] font-medium text-gray-400 mb-1">Earning</p>

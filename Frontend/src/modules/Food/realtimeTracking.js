@@ -124,6 +124,7 @@ export async function writeDeliveryLocation({
   activeOrderId = null,
   accuracy = null,
   timestamp = Date.now(),
+  status = null,
 }) {
   if (!deliveryId) return false;
   ensureFirebaseInitialized({ enableAuth: false, enableRealtimeDb: true });
@@ -138,6 +139,13 @@ export async function writeDeliveryLocation({
     isOnline: Boolean(isOnline),
     activeOrderId: activeOrderId ? String(activeOrderId) : null,
   };
+  if (status != null) {
+    payload.status = String(status);
+  } else if (isOnline) {
+    payload.status = 'online';
+  } else {
+    payload.status = 'offline';
+  }
   await set(ref(firebaseRealtimeDb, getDeliveryLocationPath(deliveryId)), payload);
   return true;
 }

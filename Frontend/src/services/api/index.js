@@ -301,6 +301,9 @@ export const adminAPI = {
   /** Dashboard summary stats (admin home) */
   getDashboardStats: (params = {}) =>
     adminClient.get("/food/admin/dashboard-stats", { params }),
+  /** Live monitor: restaurants + delivery partners with locations */
+  getLiveMonitorStatus: () =>
+    adminClient.get("/food/admin/live-monitor/status"),
   /** List restaurant withdrawal requests (admin). */
   getWithdrawals: (params = {}) =>
     adminClient.get("/food/admin/withdrawals", { params }),

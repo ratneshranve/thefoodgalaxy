@@ -46,6 +46,26 @@ import { parseLatLng } from '@/modules/DeliveryV2/hooks/proximity.utils';
 import { useCompanyName } from "@food/hooks/useCompanyName";
 import { useNavigate } from 'react-router-dom';
 import useNotificationInbox from "@food/hooks/useNotificationInbox";
+import { writeDeliveryLocation } from "@food/realtimeTracking";
+
+function getDeliveryPartnerId() {
+  try {
+    const userRaw = localStorage.getItem("delivery_user");
+    if (userRaw) {
+      const user = JSON.parse(userRaw);
+      const id = user?._id || user?.id || user?.deliveryPartnerId;
+      if (id) return String(id);
+    }
+    const token = localStorage.getItem("delivery_accessToken") || "";
+    if (token) {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload?.userId) return String(payload.userId);
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return null;
+}
 
 /** Minimal bottom-sheet popup (Restored from legacy FeedNavbar) */
 function BottomPopup({ isOpen, onClose, title, children }) {
@@ -550,7 +570,21 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   // 2. Online/Offline Status Sync (Low Frequency)
   useEffect(() => {
     deliveryAPI.updateOnlineStatus(isOnline).catch(() => {});
-  }, [isOnline]);
+
+    const partnerId = getDeliveryPartnerId();
+    if (!partnerId) return;
+
+    const coords = lastCoordRef.current || riderLocation;
+    void writeDeliveryLocation({
+      deliveryId: partnerId,
+      lat: coords?.lat,
+      lng: coords?.lng,
+      heading: coords?.heading || 0,
+      isOnline,
+      status: isOnline ? "online" : "offline",
+      activeOrderId: activeOrder?._id || activeOrder?.orderId || null,
+    });
+  }, [isOnline, riderLocation, activeOrder?._id, activeOrder?.orderId]);
 
   // 3. Location logic (Smart Frequency Tracking)
   useEffect(() => {
@@ -619,6 +653,21 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
         };
 
         if (payload.orderId) emitLocation(payload);
+
+        const partnerId = getDeliveryPartnerId();
+        if (partnerId) {
+          void writeDeliveryLocation({
+            deliveryId: partnerId,
+            lat,
+            lng,
+            heading: heading || 0,
+            speed: speed || 0,
+            accuracy: pos.coords.accuracy,
+            isOnline: true,
+            status: "online",
+            activeOrderId: payload.orderId || null,
+          });
+        }
       }
 
       if (now - lastHttpSyncAt.current >= 45000) {
@@ -680,6 +729,17 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
           true, 
           { heading: 0, speed: 0, accuracy: null }
         ).catch(() => {});
+
+        const partnerId = getDeliveryPartnerId();
+        if (partnerId) {
+          void writeDeliveryLocation({
+            deliveryId: partnerId,
+            lat: lastCoordRef.current.lat,
+            lng: lastCoordRef.current.lng,
+            isOnline: true,
+            status: "online",
+          });
+        }
       }
     }, 45000);
     
