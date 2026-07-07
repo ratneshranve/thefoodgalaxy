@@ -613,7 +613,7 @@ export const adminAPI = {
     adminClient.patch(`/food/admin/restaurant-commissions/${String(id)}/toggle`, {}),
   /** Backward-compatible alias used in UI */
   getApprovedRestaurants: (params = {}) =>
-    adminClient.get("/food/admin/restaurants", { params: { status: "approved", limit: 1000, ...params } }),
+    adminClient.get("/food/admin/restaurants", { params: { status: "live_and_banned", limit: 1000, ...params } }),
 
   /** Delivery Boy Commission Rules (admin) */
   getCommissionRules: () =>

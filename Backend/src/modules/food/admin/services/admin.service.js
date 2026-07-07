@@ -280,7 +280,12 @@ export async function getRestaurants(query) {
     const skip = (page - 1) * limit;
     const status = query.status;
     const filter = {};
-    if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+    if (status === 'live_and_banned') {
+        filter.$or = [
+            { status: 'approved' },
+            { status: 'rejected', rejectionReason: 'Disabled by admin' }
+        ];
+    } else if (status && ['pending', 'approved', 'rejected'].includes(status)) {
         filter.status = status;
     }
     if (query.zoneId) {
@@ -2451,7 +2456,10 @@ export async function updateRestaurantMenuById(id, menu) {
 }
 
 export async function getPendingRestaurants() {
-    const restaurants = await FoodRestaurant.find({ status: { $in: ['pending', 'rejected'] } })
+    const restaurants = await FoodRestaurant.find({ 
+        status: { $in: ['pending', 'rejected'] },
+        rejectionReason: { $ne: 'Disabled by admin' }
+    })
         .populate('zoneId', 'name zoneName')
         .populate('previousZoneId', 'name zoneName')
         .sort({ createdAt: -1 })
@@ -2594,15 +2602,20 @@ export async function updateRestaurantStatus(id, body = {}) {
     const isActive = parseBooleanLike(raw, 'status');
     const status = isActive ? 'approved' : 'rejected';
 
+    const updateData = {
+        status,
+        rejectedAt: isActive ? undefined : new Date(),
+        rejectionReason: isActive ? '' : 'Disabled by admin'
+    };
+
+    if (isActive) {
+        updateData.approvedAt = new Date();
+    }
+
     return FoodRestaurant.findByIdAndUpdate(
         id,
         {
-            $set: {
-                status,
-                approvedAt: isActive ? new Date() : undefined,
-                rejectedAt: isActive ? undefined : new Date(),
-                rejectionReason: isActive ? undefined : 'Disabled by admin'
-            }
+            $set: updateData
         },
         { new: true, runValidators: false }
     ).lean();
