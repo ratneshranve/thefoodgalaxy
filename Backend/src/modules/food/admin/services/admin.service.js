@@ -1230,7 +1230,7 @@ export async function getCustomers(query = {}) {
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
 
-    const filter = { role: 'USER' };
+    const filter = { role: { $in: ['USER', 'user', null, ''] } };
 
     if (query.status) {
         if (String(query.status) === 'active') filter.isActive = true;
