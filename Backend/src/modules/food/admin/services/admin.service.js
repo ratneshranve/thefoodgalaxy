@@ -28,6 +28,7 @@ import { FoodAddon } from '../../restaurant/models/foodAddon.model.js';
 import { FoodSupportTicket } from '../../user/models/supportTicket.model.js';
 import { FoodRestaurantSupportTicket } from '../../restaurant/models/supportTicket.model.js';
 import { FoodOrder } from '../../orders/models/order.model.js';
+import { getOutletTimingsForRestaurant } from '../../restaurant/services/outletTimings.service.js';
 import { FoodTransaction } from '../../orders/models/foodTransaction.model.js';
 import { FoodRestaurantWithdrawal } from '../../restaurant/models/foodRestaurantWithdrawal.model.js';
 import { FoodDeliveryWithdrawal } from '../../delivery/models/foodDeliveryWithdrawal.model.js';
@@ -296,7 +297,7 @@ export async function getRestaurants(query) {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .select('restaurantName location area city profileImage coverImages menuImages menuPdf status ownerName ownerPhone zoneId zoneRank rating discount itemDiscounts discountRules')
+            .select('restaurantName location area city profileImage coverImages menuImages menuPdf status ownerName ownerPhone zoneId zoneRank rating discount itemDiscounts discountRules openingTime closingTime deliveryTimings onboarding openDays estimatedDeliveryTime isActive')
             .populate('zoneId', 'name zoneName')
             .lean(),
         FoodRestaurant.countDocuments(filter)
@@ -2301,10 +2302,36 @@ export async function getRestaurantReviews(query = {}) {
 
 export async function getRestaurantById(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    return FoodRestaurant.findById(id)
+    const rest = await FoodRestaurant.findById(id)
         .select('-__v')
         .populate('zoneId', 'name zoneName serviceLocation isActive')
         .lean();
+        
+    if (rest) {
+        try {
+            const { outletTimings } = await getOutletTimingsForRestaurant(id);
+            if (outletTimings) {
+                // Get today's day name to show correct today's timing
+                const todayIndex = new Date().getDay();
+                const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const todayName = daysMap[todayIndex];
+                
+                const todayTiming = outletTimings[todayName];
+                if (todayTiming && todayTiming.isOpen) {
+                    rest.openingTime = todayTiming.openingTime;
+                    rest.closingTime = todayTiming.closingTime;
+                } else if (todayTiming && !todayTiming.isOpen) {
+                    rest.openingTime = "Closed";
+                    rest.closingTime = "Closed";
+                }
+                
+                rest.openDays = Object.keys(outletTimings).filter(day => outletTimings[day]?.isOpen);
+            }
+        } catch(e) {
+            console.error("Error fetching outlet timings for admin panel:", e);
+        }
+    }
+    return rest;
 }
 
 export async function getRestaurantAnalytics(restaurantId) {

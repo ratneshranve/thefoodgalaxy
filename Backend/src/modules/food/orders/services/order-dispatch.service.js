@@ -5,6 +5,7 @@ import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model
 import { FoodDeliveryCashDeposit } from '../../delivery/models/foodDeliveryCashDeposit.model.js';
 import { FoodDeliveryCashLimit } from '../../admin/models/deliveryCashLimit.model.js';
 import { FoodFeeSettings } from '../../admin/models/feeSettings.model.js';
+import { FoodZone } from '../../admin/models/zone.model.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 import { logger } from '../../../../utils/logger.js';
 import { config } from '../../../../config/env.js';
@@ -22,6 +23,38 @@ import {
   removeDeliveryOffersForPartners,
   clearDeliveryOffersForOrder,
 } from './order-dispatch.firebase.js';
+
+function isPointInPolygon(lat, lng, polygon) {
+  if (!Array.isArray(polygon) || polygon.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].longitude;
+    const yi = polygon[i].latitude;
+    const xj = polygon[j].longitude;
+    const yj = polygon[j].latitude;
+    const intersect =
+      yi > lat !== yj > lat &&
+      lng < ((xj - xi) * (lat - yi)) / (yj - yi + 0.0) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+async function getBusyDeliveryPartnerIds() {
+  const busyPartners = await FoodOrder.distinct('dispatch.deliveryPartnerId', {
+    'dispatch.status': 'accepted',
+    'dispatch.deliveryPartnerId': { $ne: null },
+    orderStatus: {
+      $in: ['confirmed', 'preparing', 'ready_for_pickup', 'picked_up', 'reached_drop'],
+    },
+  });
+
+  return new Set(
+    busyPartners
+      .filter(Boolean)
+      .map((id) => String(id)),
+  );
+}
 
 function upsertPartnerOffer(order, entry) {
   if (!order.dispatch.offeredTo) order.dispatch.offeredTo = [];
@@ -54,11 +87,17 @@ async function filterPartnersByCashLimit(partners = [], options = {}) {
 
 async function listNearbyOnlineDeliveryPartners(
   restaurantId,
-  { maxKm = 15, limit = null, requiredAmount = 0, allowOverLimitFallback = true } = {},
+  {
+    maxKm = 15,
+    limit = null,
+    requiredAmount = 0,
+    allowOverLimitFallback = true,
+    zoneOnly = true,
+  } = {},
 ) {
   const rId = (restaurantId?._id || restaurantId).toString();
   const restaurant = await FoodRestaurant.findById(rId)
-    .select("location")
+    .select('location zoneId')
     .lean();
 
   if (!restaurant?.location?.coordinates?.length) {
@@ -66,22 +105,41 @@ async function listNearbyOnlineDeliveryPartners(
     return { restaurant: null, partners: [] };
   }
 
+  let zonePolygon = null;
+  if (zoneOnly && restaurant.zoneId) {
+    const zoneDoc = await FoodZone.findById(restaurant.zoneId)
+      .select('coordinates isActive')
+      .lean();
+    if (
+      zoneDoc?.isActive !== false &&
+      Array.isArray(zoneDoc?.coordinates) &&
+      zoneDoc.coordinates.length >= 3
+    ) {
+      zonePolygon = zoneDoc.coordinates;
+    }
+  }
+
   const [rLng, rLat] = restaurant.location.coordinates;
+  const busyIds = await getBusyDeliveryPartnerIds();
   const allOnline = await FoodDeliveryPartner.find({
-    availabilityStatus: "online",
+    availabilityStatus: 'online',
+    status: 'approved',
   })
-    .select("_id status lastLat lastLng lastLocationAt name")
+    .select('_id status lastLat lastLng lastLocationAt name')
     .lean();
 
   const scored = [];
-  const allowedStatuses = ['approved'];
 
   for (const p of allOnline) {
-    if (!allowedStatuses.includes(p.status)) continue;
+    if (busyIds.has(String(p._id))) continue;
 
     const hasCoords = p.lastLat != null && p.lastLng != null;
 
     if (hasCoords) {
+      if (zonePolygon && !isPointInPolygon(p.lastLat, p.lastLng, zonePolygon)) {
+        continue;
+      }
+
       const d = haversineKm(rLat, rLng, p.lastLat, p.lastLng);
       if (Number.isFinite(d) && d <= maxKm) {
         scored.push({
@@ -94,13 +152,15 @@ async function listNearbyOnlineDeliveryPartners(
       continue;
     }
 
-    // Riders without GPS still receive offers — distance cannot be verified.
-    scored.push({
-      partnerId: p._id,
-      distanceKm: null,
-      status: p.status,
-      locationUnknown: true,
-    });
+    // Riders without GPS still receive offers when zone cannot be verified by coordinates.
+    if (!zonePolygon) {
+      scored.push({
+        partnerId: p._id,
+        distanceKm: null,
+        status: p.status,
+        locationUnknown: true,
+      });
+    }
   }
 
   scored.sort((a, b) => {
@@ -118,9 +178,7 @@ async function listNearbyOnlineDeliveryPartners(
     return { partners: [] };
   }
 
-  const final = picked.filter((p) => p.status === 'approved');
-
-  const cashEligibleFinal = await filterPartnersByCashLimit(final, {
+  const cashEligibleFinal = await filterPartnersByCashLimit(picked, {
     requiredAmount,
     allowOverLimitFallback,
   });
@@ -296,14 +354,24 @@ export async function tryAutoAssign(orderId, options = {}) {
 
     // Broadcast to ALL eligible riders in this tier (Firebase first, socket fallback).
     logger.info(`[PM2 LOG] [Dispatch] Broadcasting order ${order._id} to ${eligible.length} riders at ${maxKm}km.`);
+    const offeredAt = Date.now();
     for (const p of eligible) {
       const roomName = rooms.delivery(p.partnerId);
-      const eventPayload = { ...payload, pickupDistanceKm: p.distanceKm };
+      const eventPayload = {
+        ...payload,
+        pickupDistanceKm: p.distanceKm,
+        offeredAt,
+        isResend: Boolean(options.isResend),
+      };
 
       logger.info(`[DeliveryPopupServer] dispatch target order=${order.order_id || order._id} rider=${String(p.partnerId)} room=${roomName} distanceKm=${Number(p.distanceKm || 0).toFixed(2)}`);
 
       // 1. Firebase RTDB (Primary Frontend Channel)
-      const fbSuccess = await publishDeliveryOfferToFirebase(p.partnerId, order._id.toString(), eventPayload);
+      const fbSuccess = await publishDeliveryOfferToFirebase(
+        p.partnerId,
+        order._id.toString(),
+        eventPayload,
+      );
       if (fbSuccess) {
         logger.info(`[PM2 LOG] [Firebase DB] Published order ${order._id} to rider ${p.partnerId}`);
       } else {
@@ -428,12 +496,12 @@ export async function processDispatchTimeout(orderId, partnerId, options = {}) {
 
 
 async function resendDeliveryNotificationForOrder(order) {
-  const activeStatuses = ['confirmed', 'preparing', 'ready_for_pickup', 'ready'];
+  const activeStatuses = ['confirmed', 'preparing', 'ready_for_pickup'];
   if (!activeStatuses.includes(order.orderStatus)) {
     throw new ValidationError(`Cannot resend notification for order in status: ${order.orderStatus}`);
   }
 
-  if (order.dispatch?.status === 'accepted') {
+  if (order.dispatch?.status === 'accepted' && order.dispatch?.deliveryPartnerId) {
     throw new ValidationError('A delivery partner has already accepted this order.');
   }
 
@@ -450,17 +518,36 @@ async function resendDeliveryNotificationForOrder(order) {
     maxKm: maxZoneRadius,
     requiredAmount,
     allowOverLimitFallback: true,
+    zoneOnly: true,
   });
   const shortlistedCount = Array.isArray(preview?.partners) ? preview.partners.length : 0;
 
-  await cancelDispatchTimeoutJob(String(order._id));
-  order.dispatch.status = 'unassigned';
-  order.dispatch.deliveryPartnerId = null;
-  order.dispatch.dispatchAttempt = 1;
-  order.dispatch.offeredTo = [];
-  await order.save();
+  await clearDeliveryOffersForOrder(order, { includeAssignedPartner: true });
+  await resetDispatchForFreshHunt(order._id);
 
-  await tryAutoAssign(order._id, { attempt: 1, blastAll: true });
+  let dispatchResult = await tryAutoAssign(order._id, {
+    attempt: 1,
+    blastAll: true,
+    isResend: true,
+  });
+
+  if (!dispatchResult) {
+    logger.warn(`[Dispatch] Resend retry for order ${order._id} after clearing dispatch lock`);
+    await FoodOrder.findByIdAndUpdate(order._id, {
+      $unset: { 'dispatch.dispatchingAt': '' },
+    });
+    dispatchResult = await tryAutoAssign(order._id, {
+      attempt: 1,
+      blastAll: true,
+      isResend: true,
+    });
+  }
+
+  if (!dispatchResult && shortlistedCount > 0) {
+    logger.error(
+      `[Dispatch] Resend failed to broadcast order ${order._id} despite ${shortlistedCount} shortlisted partners`,
+    );
+  }
 
   const refreshed = await FoodOrder.findById(order._id)
     .select('dispatch.offeredTo dispatch.status dispatch.deliveryPartnerId')
@@ -528,6 +615,7 @@ export async function resetDispatchForFreshHunt(orderId) {
     $unset: {
       'dispatch.dispatchingAt': '',
       'dispatch.deliveryPartnerId': '',
+      'dispatch.assignedAt': '',
     },
   });
 }

@@ -12,7 +12,7 @@ export const parseQueryPage = (raw, fallback = 1) => {
 
 export const buildPaginationOptions = (query) => {
     const page = parseQueryPage(query.page, 1);
-    const limit = parseQueryLimit(query.limit, 20, 100);
+    const limit = parseQueryLimit(query.limit, 20, 5000);
     const skip = (page - 1) * limit;
 
     return { page, limit, skip };

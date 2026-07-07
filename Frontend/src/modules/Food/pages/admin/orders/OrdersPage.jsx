@@ -318,7 +318,7 @@ export default function OrdersPage({ statusKey = "all" }) {
       if (!silent) setIsLoading(true)
       const params = {
         page: 1,
-        limit: 1000,
+        limit: 5000,
         status:
           statusKey === "all"
             ? undefined
@@ -785,11 +785,17 @@ export default function OrdersPage({ statusKey = "all" }) {
         const connectedSocketCount = response.data.data?.connectedSocketCount
         const searchRadiusKm = response.data.data?.searchRadiusKm
         const radiusLabel = searchRadiusKm ? ` within ${searchRadiusKm} km` : ""
-        toast.success(
-          notifiedCount > 0
-            ? `Notification sent to ${notifiedCount} delivery partner${notifiedCount === 1 ? "" : "s"}${radiusLabel}${connectedSocketCount != null ? ` (live sockets: ${connectedSocketCount})` : ""}`
-            : `Notification sent to 0 delivery partners${shortlistedCount > 0 ? ` (shortlisted${radiusLabel}: ${shortlistedCount}${connectedSocketCount != null ? `, live sockets: ${connectedSocketCount}` : ""})` : ""}`,
-        )
+        if (notifiedCount > 0) {
+          toast.success(
+            `Notification sent to ${notifiedCount} delivery partner${notifiedCount === 1 ? "" : "s"}${radiusLabel}${connectedSocketCount != null ? ` (live sockets: ${connectedSocketCount})` : ""}`,
+          )
+        } else {
+          toast.warning(
+            shortlistedCount > 0
+              ? `No delivery partners received the alert${radiusLabel}. Shortlisted: ${shortlistedCount}${connectedSocketCount != null ? `, live sockets: ${connectedSocketCount}` : ""}.`
+              : `No free online delivery partners found in this zone${radiusLabel}.`,
+          )
+        }
         await fetchOrders({ silent: true, withRingCheck: false })
       } else {
         toast.error(response.data?.message || "Failed to resend notification")

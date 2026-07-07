@@ -27,11 +27,17 @@ export default function ResendNotificationButton({ orderId, mongoId, onSuccess }
         const connectedSocketCount = response.data.data?.connectedSocketCount;
         const searchRadiusKm = response.data.data?.searchRadiusKm;
         const radiusLabel = searchRadiusKm ? ` within ${searchRadiusKm} km` : '';
-        toast.success(
-          notifiedCount > 0
-            ? `Notification sent to ${notifiedCount} delivery partner${notifiedCount === 1 ? '' : 's'}${radiusLabel}${connectedSocketCount != null ? ` (live sockets: ${connectedSocketCount})` : ''}`
-            : `Notification sent to 0 delivery partners${shortlistedCount > 0 ? ` (shortlisted${radiusLabel}: ${shortlistedCount}${connectedSocketCount != null ? `, live sockets: ${connectedSocketCount}` : ''})` : ''}`,
-        );
+        if (notifiedCount > 0) {
+          toast.success(
+            `Notification sent to ${notifiedCount} delivery partner${notifiedCount === 1 ? '' : 's'}${radiusLabel}${connectedSocketCount != null ? ` (live sockets: ${connectedSocketCount})` : ''}`,
+          );
+        } else {
+          toast.warning(
+            shortlistedCount > 0
+              ? `No delivery partners received the alert${radiusLabel}. Shortlisted: ${shortlistedCount}${connectedSocketCount != null ? `, live sockets: ${connectedSocketCount}` : ''}.`
+              : `No free online delivery partners found in this zone${radiusLabel}.`,
+          );
+        }
         // Refresh orders if onSuccess callback is provided
         if (onSuccess) {
            onSuccess();
