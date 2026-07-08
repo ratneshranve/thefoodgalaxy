@@ -1739,11 +1739,17 @@ export const getApprovedRestaurantByIdOrSlug = async (idOrSlug, query = {}) => {
 
 export const listPublicOffers = async () => {
     const now = new Date();
+    const startOfTodayUtc = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        0, 0, 0, 0,
+    ));
     const filter = {
         status: 'active',
         $and: [
             { $or: [{ startDate: { $exists: false } }, { startDate: null }, { startDate: { $lte: now } }] },
-            { $or: [{ endDate: { $exists: false } }, { endDate: null }, { endDate: { $gt: now } }] }
+            { $or: [{ endDate: { $exists: false } }, { endDate: null }, { endDate: { $gte: startOfTodayUtc } }] }
         ]
     };
 

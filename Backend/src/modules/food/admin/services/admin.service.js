@@ -3690,6 +3690,15 @@ export async function createAdminOffer(body) {
         throw new ValidationError('Coupon code already exists');
     }
 
+    const offerEnd = body.endDate ? new Date(body.endDate) : null;
+    let offerStatus = 'active';
+    if (offerEnd && !Number.isNaN(offerEnd.getTime())) {
+        offerEnd.setUTCHours(23, 59, 59, 999);
+        if (Date.now() > offerEnd.getTime()) {
+            offerStatus = 'inactive';
+        }
+    }
+
     const doc = await FoodOffer.create({
         couponCode: body.couponCode,
         discountType: body.discountType,
@@ -3704,7 +3713,7 @@ export async function createAdminOffer(body) {
         startDate: body.startDate,
         isFirstOrderOnly: body.isFirstOrderOnly ?? false,
         endDate: body.endDate,
-        status: body.endDate && new Date(body.endDate).getTime() <= Date.now() ? 'inactive' : 'active',
+        status: offerStatus,
         showInCart: true
     });
 

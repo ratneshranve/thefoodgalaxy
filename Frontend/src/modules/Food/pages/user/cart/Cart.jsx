@@ -854,22 +854,30 @@ export default function Cart() {
             coupons.forEach(coupon => {
               if (!uniqueCouponCodes.has(coupon.couponCode)) {
                 uniqueCouponCodes.add(coupon.couponCode)
-                // Convert backend coupon format to frontend format
+                const isPercentage = coupon.discountType === "percentage"
+                const flatDiscount = isPercentage
+                  ? 0
+                  : Number(coupon.discountValue || coupon.discount || coupon.originalPrice || 0)
+                const pctDiscount = isPercentage
+                  ? Number(coupon.discountPercentage || coupon.discountValue || 0)
+                  : 0
                 allCoupons.push({
                   code: coupon.couponCode,
-                  discount: coupon.originalPrice - coupon.discountedPrice,
-                  discountPercentage: coupon.discountPercentage,
-                  discountDisplay: coupon.discountType === "percentage"
-                    ? `${coupon.discountPercentage}% OFF`
-                    : `${RUPEE_SYMBOL}${Math.max(0, (coupon.originalPrice || 0) - (coupon.discountedPrice || 0))} OFF`,
-                  minOrder: coupon.minOrderValue || 0,
-                  description: coupon.discountType === "percentage"
-                    ? `${coupon.discountPercentage}% OFF with '${coupon.couponCode}'`
-                    : `Save ${RUPEE_SYMBOL}${Math.max(0, (coupon.originalPrice || 0) - (coupon.discountedPrice || 0))} with '${coupon.couponCode}'`,
+                  discount: flatDiscount,
+                  discountValue: Number(coupon.discountValue || flatDiscount || pctDiscount || 0),
+                  discountPercentage: pctDiscount,
+                  discountDisplay: isPercentage
+                    ? `${pctDiscount}% OFF`
+                    : `${RUPEE_SYMBOL}${flatDiscount} OFF`,
+                  minOrder: coupon.minOrderValue || coupon.minOrder || 0,
+                  description: isPercentage
+                    ? `${pctDiscount}% OFF with '${coupon.couponCode}'`
+                    : `Save ${RUPEE_SYMBOL}${flatDiscount} with '${coupon.couponCode}'`,
                   originalPrice: coupon.originalPrice,
                   discountedPrice: coupon.discountedPrice,
                   customerGroup: coupon.customerGroup || "all",
                   isGlobalCoupon: Boolean(coupon.isGlobalCoupon),
+                  discountType: coupon.discountType,
                   itemId: couponItemId,
                   itemName: cartItem.name,
                 })
@@ -1358,11 +1366,6 @@ export default function Cart() {
   }
 
   const handleApplyCoupon = async (coupon) => {
-    const hasDiscountedItems = cart.some(item => (item.originalPrice && item.originalPrice > item.price)) || (restaurantData?.discount > 0);
-    if (hasDiscountedItems) {
-      toast.error("This coupon is not applicable on discounted items.");
-      return;
-    }
     if (coupon?.customerGroup === "new" && userOrderCount > 0) {
       toast.error("This coupon is only for first-time users")
       return
@@ -1374,8 +1377,16 @@ export default function Cart() {
     }
 
     // Validate with backend first; only set applied if backend accepts
-    if (cart.length > 0 && hasSavedAddress) {
-      try {
+    if (cart.length === 0) {
+      toast.error("Add items to cart first")
+      return
+    }
+    if (!hasSavedAddress) {
+      toast.error("Add delivery address first")
+      return
+    }
+
+    try {
         const items = cart.map(item => ({
           itemId: item.itemId || item.id,
           name: item.name,
@@ -1408,7 +1419,10 @@ export default function Cart() {
         }
 
         setPricing(pricingData)
-        setAppliedCoupon(coupon)
+        setAppliedCoupon({
+          ...coupon,
+          discount: Number(pricingData.appliedCoupon.discount || pricingData.couponDiscount || coupon.discount || 0),
+        })
         setCouponCode(coupon.code)
         setManualCouponCode(coupon.code)
         setShowCoupons(false)
@@ -1416,15 +1430,9 @@ export default function Cart() {
         debugError("Error recalculating pricing:", error)
         toast.error("Failed to apply coupon")
       }
-    }
   }
 
   const handleApplyCouponCode = async () => {
-    const hasDiscountedItems = cart.some(item => (item.originalPrice && item.originalPrice > item.price)) || (restaurantData?.discount > 0);
-    if (hasDiscountedItems) {
-      toast.error("This coupon is not applicable on discounted items.");
-      return;
-    }
     const inputCode = manualCouponCode.trim().toUpperCase()
     if (!inputCode) {
       toast.error("Enter coupon code")

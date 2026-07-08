@@ -103,7 +103,7 @@ function normPt(pt) {
   return { lat, lng };
 }
 
-const DeliveryTrackingMap = ({
+const DeliveryTrackingMapInner = ({
   orderId,
   orderTrackingIds = [],
   restaurantCoords,
@@ -644,4 +644,17 @@ const DeliveryTrackingMap = ({
   );
 };
 
+const DeliveryTrackingMap = (props) => {
+  const googleMapsApiKey = useGoogleMapsApiKey();
+  if (!googleMapsApiKey) {
+    return (
+      <div className="w-full h-full bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-center px-4 text-center">
+        <p className="text-sm text-gray-600">Loading map configuration...</p>
+      </div>
+    );
+  }
+  return <DeliveryTrackingMapInner {...props} googleMapsApiKey={googleMapsApiKey} />;
+};
+
 export default DeliveryTrackingMap;
+

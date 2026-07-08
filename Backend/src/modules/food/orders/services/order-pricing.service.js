@@ -10,6 +10,14 @@ import { ValidationError } from '../../../../core/auth/errors.js';
 import { haversineKm } from './order.helpers.js';
 import { getDrivingDistances } from '../../../../services/googleMaps.service.js';
 
+function isOfferEndDateValid(endDate, now = new Date()) {
+  if (!endDate) return true;
+  const end = new Date(endDate);
+  if (Number.isNaN(end.getTime())) return false;
+  end.setUTCHours(23, 59, 59, 999);
+  return now.getTime() <= end.getTime();
+}
+
 export async function calculateOrderPricing(userId, dto) {
   const restaurant = await FoodRestaurant.findById(dto.restaurantId)
     .select("status location itemDiscounts zoneId")
@@ -226,7 +234,7 @@ export async function calculateOrderPricing(userId, dto) {
     if (offer) {
       const statusOk = offer.status === "active";
       const startOk = !offer.startDate || now >= new Date(offer.startDate);
-      const endOk = !offer.endDate || now < new Date(offer.endDate);
+      const endOk = isOfferEndDateValid(offer.endDate, now);
       const scopeOk =
         offer.restaurantScope !== "selected" ||
         String(offer.restaurantId || "") === String(dto.restaurantId || "");
@@ -287,7 +295,10 @@ export async function calculateOrderPricing(userId, dto) {
           } else {
             discount = Math.max(
               0,
-              Math.min(eligibleSubtotalForCoupon, Math.floor(Number(offer.discountValue) || 0)),
+              Math.min(
+                eligibleSubtotalForCoupon,
+                Math.floor(Number(offer.discountValue) || 0),
+              ),
             );
           }
           appliedCoupon = { code: codeRaw, discount };
@@ -295,6 +306,22 @@ export async function calculateOrderPricing(userId, dto) {
       } else {
         if (!minOk) {
           couponError = `Minimum order value of ${offer.minOrderValue} required for this coupon.`;
+        } else if (!statusOk) {
+          couponError = "This coupon is not active.";
+        } else if (!startOk) {
+          couponError = "This coupon is not active yet.";
+        } else if (!endOk) {
+          couponError = "This coupon has expired.";
+        } else if (!scopeOk) {
+          couponError = "This coupon is not valid for this restaurant.";
+        } else if (!usageOk) {
+          couponError = "This coupon has reached its usage limit.";
+        } else if (!perUserOk) {
+          couponError = "You have already used this coupon the maximum number of times.";
+        } else if (!firstOrderOk) {
+          couponError = "This coupon is only for first-time customers.";
+        } else {
+          couponError = "Coupon not applicable.";
         }
       }
     } else {

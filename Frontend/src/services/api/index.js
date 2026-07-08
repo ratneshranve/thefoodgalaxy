@@ -824,16 +824,20 @@ export const restaurantAPI = {
         })
         .map((o) => {
           const isPct = o.discountType === "percentage";
+          const discountValue = Number(o.discountValue) || 0;
+          const flatDiscount = isPct ? 0 : discountValue;
           return {
             couponCode: o.couponCode,
             discountType: o.discountType,
-            discountPercentage: isPct ? Number(o.discountValue) || 0 : 0,
-            originalPrice: 0,
+            discountValue,
+            discountPercentage: isPct ? discountValue : 0,
+            discount: flatDiscount,
+            originalPrice: flatDiscount,
             discountedPrice: 0,
             minOrderValue: Number(o.minOrderValue || 0),
             minOrder: Number(o.minOrderValue || 0),
             maxDiscount: o.maxDiscount != null ? Number(o.maxDiscount) : null,
-            customerGroup: o.customerScope || "all",
+            customerGroup: o.customerScope === "first-time" ? "new" : "all",
             isGlobalCoupon: true,
             endDate: o.endDate || null,
             showInCart: o.showInCart !== false,
