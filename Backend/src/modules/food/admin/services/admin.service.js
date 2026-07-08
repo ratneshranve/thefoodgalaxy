@@ -2599,6 +2599,8 @@ export async function updateRestaurantById(id, body = {}) {
     if (body.ifscCode !== undefined) doc.ifscCode = toStr(body.ifscCode);
     if (body.accountHolderName !== undefined) doc.accountHolderName = toStr(body.accountHolderName);
     if (body.accountType !== undefined) doc.accountType = toStr(body.accountType);
+    if (body.upiId !== undefined) doc.upiId = toStr(body.upiId);
+    if (body.upiQrImage !== undefined) doc.upiQrImage = toStr(getUrl(body.upiQrImage)) || undefined;
 
     // Featured Info
     if (body.featuredDish !== undefined) doc.featuredDish = toStr(body.featuredDish);

@@ -26,16 +26,18 @@ export default function ResendNotificationButton({ orderId, mongoId, onSuccess }
         const shortlistedCount = Number(response.data.data?.shortlistedCount || 0);
         const connectedSocketCount = response.data.data?.connectedSocketCount;
         const searchRadiusKm = response.data.data?.searchRadiusKm;
+        const stats = response.data.data?.resendSearchStats;
         const radiusLabel = searchRadiusKm ? ` within ${searchRadiusKm} km` : '';
+        const busyLabel = stats?.busy ? ` (${stats.busy} busy skipped)` : '';
         if (notifiedCount > 0) {
           toast.success(
-            `Notification sent to ${notifiedCount} delivery partner${notifiedCount === 1 ? '' : 's'}${radiusLabel}${connectedSocketCount != null ? ` (live sockets: ${connectedSocketCount})` : ''}`,
+            `Notification sent to ${notifiedCount} delivery partner${notifiedCount === 1 ? '' : 's'}${radiusLabel}${busyLabel}${connectedSocketCount != null ? ` (live sockets: ${connectedSocketCount})` : ''}`,
           );
         } else {
           toast.warning(
             shortlistedCount > 0
-              ? `No delivery partners received the alert${radiusLabel}. Shortlisted: ${shortlistedCount}${connectedSocketCount != null ? `, live sockets: ${connectedSocketCount}` : ''}.`
-              : `No free online delivery partners found in this zone${radiusLabel}.`,
+              ? `No delivery partners received the alert${radiusLabel}. Shortlisted: ${shortlistedCount}${busyLabel}${connectedSocketCount != null ? `, live sockets: ${connectedSocketCount}` : ''}.`
+              : `No free online delivery partners found in this zone${radiusLabel}${stats?.online ? ` (${stats.online} online, ${stats.busy || 0} busy)` : ''}.`,
           );
         }
         // Refresh orders if onSuccess callback is provided

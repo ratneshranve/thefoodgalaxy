@@ -23,6 +23,7 @@ import {
   removeDeliveryOffersForPartners,
   clearDeliveryOffersForOrder,
 } from './order-dispatch.firebase.js';
+import { getFirebaseDB } from '../../../../config/firebase.js';
 
 function isPointInPolygon(lat, lng, polygon) {
   if (!Array.isArray(polygon) || polygon.length < 3) return false;
@@ -201,6 +202,197 @@ async function listNearbyOnlineDeliveryPartners(
   return { partners: cashEligibleFinal };
 }
 
+/** Firebase live locations for resend-only rider selection (does not affect normal dispatch). */
+async function fetchFirebaseDeliveryLocations() {
+  const db = getFirebaseDB();
+  if (!db) return new Map();
+
+  try {
+    const snap = await db.ref('delivery_boys').once('value');
+    const data = snap.val() || {};
+    const map = new Map();
+
+    for (const [id, payload] of Object.entries(data)) {
+      if (!payload || typeof payload !== 'object') continue;
+      const lat = Number(payload.lat);
+      const lng = Number(payload.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      map.set(String(id), {
+        lat,
+        lng,
+        lastUpdate: Number(payload.last_updated || payload.timestamp || 0),
+      });
+    }
+
+    return map;
+  } catch (err) {
+    logger.warn(`[Dispatch] Firebase delivery_boys read failed: ${err.message}`);
+    return new Map();
+  }
+}
+
+function resolvePartnerCoordinatesForResend(partner, firebaseLoc) {
+  const mongoLat = Number(partner.lastLat);
+  const mongoLng = Number(partner.lastLng);
+  const mongoTs = partner.lastLocationAt
+    ? new Date(partner.lastLocationAt).getTime()
+    : 0;
+
+  if (firebaseLoc) {
+    const fbTs = Number(firebaseLoc.lastUpdate || 0);
+    if (
+      !Number.isFinite(mongoLat) ||
+      !Number.isFinite(mongoLng) ||
+      fbTs >= mongoTs
+    ) {
+      return { lat: firebaseLoc.lat, lng: firebaseLoc.lng, source: 'firebase' };
+    }
+  }
+
+  if (Number.isFinite(mongoLat) && Number.isFinite(mongoLng)) {
+    return { lat: mongoLat, lng: mongoLng, source: 'mongo' };
+  }
+
+  return null;
+}
+
+/**
+ * Resend-only rider search: all free online riders in the restaurant zone.
+ * Uses Firebase live location when newer than MongoDB. Normal dispatch is unchanged.
+ */
+async function listResendEligibleDeliveryPartners(
+  restaurantId,
+  {
+    maxKm = 15,
+    requiredAmount = 0,
+    allowOverLimitFallback = true,
+  } = {},
+) {
+  const rId = (restaurantId?._id || restaurantId).toString();
+  const restaurant = await FoodRestaurant.findById(rId)
+    .select('location zoneId')
+    .lean();
+
+  if (!restaurant?.location?.coordinates?.length) {
+    logger.warn(
+      `listResendEligibleDeliveryPartners: Restaurant ${rId} has no location coordinates.`,
+    );
+    return { partners: [], stats: { online: 0, busy: 0, eligible: 0 } };
+  }
+
+  let zonePolygon = null;
+  if (restaurant.zoneId) {
+    const zoneDoc = await FoodZone.findById(restaurant.zoneId)
+      .select('coordinates isActive')
+      .lean();
+    if (
+      zoneDoc?.isActive !== false &&
+      Array.isArray(zoneDoc?.coordinates) &&
+      zoneDoc.coordinates.length >= 3
+    ) {
+      zonePolygon = zoneDoc.coordinates;
+    }
+  }
+
+  const [rLng, rLat] = restaurant.location.coordinates;
+  const [busyIds, allOnline, firebaseLocs] = await Promise.all([
+    getBusyDeliveryPartnerIds(),
+    FoodDeliveryPartner.find({
+      availabilityStatus: 'online',
+      status: 'approved',
+    })
+      .select('_id status lastLat lastLng lastLocationAt name')
+      .lean(),
+    fetchFirebaseDeliveryLocations(),
+  ]);
+
+  const eligible = [];
+  const stats = {
+    online: allOnline.length,
+    busy: busyIds.size,
+    inZone: 0,
+    outsideZone: 0,
+    noLocation: 0,
+    outsideRadius: 0,
+    firebaseLocations: firebaseLocs.size,
+  };
+
+  for (const p of allOnline) {
+    if (busyIds.has(String(p._id))) continue;
+
+    const coords = resolvePartnerCoordinatesForResend(
+      p,
+      firebaseLocs.get(String(p._id)),
+    );
+
+    if (coords) {
+      const d = haversineKm(rLat, rLng, coords.lat, coords.lng);
+
+      if (zonePolygon) {
+        if (!isPointInPolygon(coords.lat, coords.lng, zonePolygon)) {
+          stats.outsideZone += 1;
+          continue;
+        }
+        stats.inZone += 1;
+        eligible.push({
+          partnerId: p._id,
+          distanceKm: Number.isFinite(d) ? d : null,
+          status: p.status,
+          locationUnknown: false,
+          locationSource: coords.source,
+        });
+        continue;
+      }
+
+      if (!Number.isFinite(d) || d > maxKm) {
+        stats.outsideRadius += 1;
+        continue;
+      }
+
+      eligible.push({
+        partnerId: p._id,
+        distanceKm: d,
+        status: p.status,
+        locationUnknown: false,
+        locationSource: coords.source,
+      });
+      continue;
+    }
+
+    // Online in app but no saved coords — still blast on resend.
+    stats.noLocation += 1;
+    eligible.push({
+      partnerId: p._id,
+      distanceKm: null,
+      status: p.status,
+      locationUnknown: true,
+    });
+  }
+
+  eligible.sort((a, b) => {
+    if (a.distanceKm == null && b.distanceKm == null) return 0;
+    if (a.distanceKm == null) return 1;
+    if (b.distanceKm == null) return -1;
+    return a.distanceKm - b.distanceKm;
+  });
+
+  stats.eligible = eligible.length;
+  logger.info(
+    `[Dispatch] Resend rider search restaurant=${rId} online=${stats.online} busy=${stats.busy} eligible=${stats.eligible} inZone=${stats.inZone} noLocation=${stats.noLocation} outsideZone=${stats.outsideZone} outsideRadius=${stats.outsideRadius} firebaseLocations=${stats.firebaseLocations} zoneFilter=${Boolean(zonePolygon)}`,
+  );
+
+  if (eligible.length === 0) {
+    return { partners: [], stats };
+  }
+
+  const cashEligibleFinal = await filterPartnersByCashLimit(eligible, {
+    requiredAmount,
+    allowOverLimitFallback,
+  });
+
+  return { partners: cashEligibleFinal, stats };
+}
+
 async function notifyDeliveryPartnerOffer({
   partner,
   order,
@@ -337,8 +529,15 @@ export async function tryAutoAssign(orderId, options = {}) {
       allowOverLimitFallback: true,
     };
     
-    logger.info(`[Dispatch] Order ${order._id} attempt=${attempt} maxKm=${maxKm}`);
-    const { partners } = await listNearbyOnlineDeliveryPartners(order.restaurantId, searchOptions);
+    logger.info(`[Dispatch] Order ${order._id} attempt=${attempt} maxKm=${maxKm} isResend=${Boolean(options.isResend)}`);
+    const partnerSearch = options.isResend
+      ? await listResendEligibleDeliveryPartners(order.restaurantId, {
+          maxKm,
+          requiredAmount: 0,
+          allowOverLimitFallback: true,
+        })
+      : await listNearbyOnlineDeliveryPartners(order.restaurantId, searchOptions);
+    const { partners } = partnerSearch;
 
     // Re-broadcast to every rider in this radius each attempt, including previously offered riders.
     const eligible = partners;
@@ -529,13 +728,13 @@ async function resendDeliveryNotificationForOrder(order) {
 
   const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
   const requiredAmount = paymentMethod === 'cash' ? Number(order?.pricing?.total || 0) : 0;
-  const preview = await listNearbyOnlineDeliveryPartners(order.restaurantId, {
+  const preview = await listResendEligibleDeliveryPartners(order.restaurantId, {
     maxKm: maxZoneRadius,
     requiredAmount,
     allowOverLimitFallback: true,
-    zoneOnly: true,
   });
   const shortlistedCount = Array.isArray(preview?.partners) ? preview.partners.length : 0;
+  const resendSearchStats = preview?.stats || null;
 
   await clearDeliveryOffersForOrder(order, { includeAssignedPartner: true });
   await resetDispatchForFreshHunt(order._id);
@@ -592,6 +791,7 @@ async function resendDeliveryNotificationForOrder(order) {
     connectedSocketCount,
     searchRadiusKm: maxZoneRadius,
     dispatchStatus: refreshed?.dispatch?.status || 'unassigned',
+    resendSearchStats,
   };
 }
 
