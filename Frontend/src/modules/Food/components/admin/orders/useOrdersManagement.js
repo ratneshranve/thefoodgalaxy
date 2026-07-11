@@ -302,7 +302,7 @@ export function useOrdersManagement(orders, statusKey, title) {
         : (order.date || new Date().toLocaleDateString())
 
       const settings = getCachedSettings() || await loadBusinessSettings()
-      const companyName = settings?.companyName || "Appzeto Food"
+      const companyName = settings?.companyName || "The Food Galaxy"
       const logoUrl = settings?.logo?.url || quickSpicyLogo
       const logoDataUrl = await imageUrlToDataUrl(logoUrl)
 
@@ -638,4 +638,5 @@ export function useOrdersManagement(orders, statusKey, title) {
     resetColumns,
   }
 }
+
 

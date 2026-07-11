@@ -221,7 +221,7 @@ export default function DiningRestaurantDetails() {
   const handleShare = async () => {
     const shareData = {
       title: restaurantName,
-      text: `Check out ${restaurantName} on Indian Bites!`,
+      text: `Check out ${restaurantName} on The Food Galaxy!`,
       url: window.location.href,
     }
 
@@ -614,3 +614,4 @@ export default function DiningRestaurantDetails() {
     </div>
   )
 }
+

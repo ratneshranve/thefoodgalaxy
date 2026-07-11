@@ -297,7 +297,7 @@ export default function AdminNavbar({ onMenuClick }) {
                 )}
               </div>
               <span className="text-red-600 font-extrabold text-xl ml-1 tracking-tight">
-                {businessSettings?.companyName || "Indian Bites"}
+                {businessSettings?.companyName || "The Food Galaxy"}
               </span>
             </div>
           </div>
@@ -619,4 +619,5 @@ export default function AdminNavbar({ onMenuClick }) {
     </>
   );
 }
+
 

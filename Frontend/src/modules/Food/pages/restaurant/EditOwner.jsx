@@ -895,7 +895,7 @@ export default function EditOwner() {
                 <span className="text-2xl leading-none text-red-600">!</span>
               </div>
               <DialogTitle className="text-base font-semibold text-gray-900 text-center">
-                You are about to delete your Appzeto account
+                You are about to delete your The Food Galaxy account
               </DialogTitle>
               <DialogHeader className="mt-2 text-sm text-gray-600">
                 All information associated with your account will be deleted, and you will lose access to your restaurant permanently.
@@ -936,4 +936,5 @@ export default function EditOwner() {
     </>
   )
 }
+
 

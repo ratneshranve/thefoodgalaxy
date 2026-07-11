@@ -873,7 +873,7 @@ export default function Inventory() {
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       downloadFile({
         data: wbout,
-        filename: "indianbites_inventory_template.xlsx",
+        filename: "the-food-galaxy_inventory_template.xlsx",
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       });
     } catch (err) {
@@ -3315,4 +3315,5 @@ export default function Inventory() {
     </div>
   )
 }
+
 
