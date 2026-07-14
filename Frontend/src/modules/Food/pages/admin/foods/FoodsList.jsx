@@ -12,7 +12,6 @@ const debugError = (...args) => {}
 
 
 const createFoodForm = () => ({
-  restaurantId: "",
   categoryId: "",
   categoryName: "",
   name: "",
@@ -33,9 +32,7 @@ const createVariantDraft = (variant = {}) => ({
 
 export default function FoodsList() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedRestaurant, setSelectedRestaurant] = useState("all")
   const [foods, setFoods] = useState([])
-  const [restaurantsForFilter, setRestaurantsForFilter] = useState([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [selectedFood, setSelectedFood] = useState(null)
@@ -48,8 +45,6 @@ export default function FoodsList() {
   const [categoryOptions, setCategoryOptions] = useState([])
   const [categorySearch, setCategorySearch] = useState("")
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false)
-  const [restaurantFilterOpen, setRestaurantFilterOpen] = useState(false)
-  const [restaurantSearch, setRestaurantSearch] = useState("")
   const [selectedImageFile, setSelectedImageFile] = useState(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -81,42 +76,6 @@ export default function FoodsList() {
     try {
       setLoading(true)
 
-      const [activeRestaurantsResponse, inactiveRestaurantsResponse] = await Promise.all([
-        adminAPI.getRestaurants({ limit: 50000 }),
-        adminAPI.getRestaurants({ limit: 50000, status: "inactive" }),
-      ])
-
-      const activeRestaurants = activeRestaurantsResponse?.data?.data?.restaurants ||
-        activeRestaurantsResponse?.data?.restaurants ||
-        []
-      const inactiveRestaurants = inactiveRestaurantsResponse?.data?.data?.restaurants ||
-        inactiveRestaurantsResponse?.data?.restaurants ||
-        []
-
-      const restaurantsMap = new Map()
-      ;[...activeRestaurants, ...inactiveRestaurants].forEach((restaurant) => {
-        const restaurantId = String(restaurant?._id || restaurant?.id || "")
-        if (!restaurantId) return
-        if (!restaurantsMap.has(restaurantId)) {
-          restaurantsMap.set(restaurantId, restaurant)
-        }
-      })
-      const restaurants = Array.from(restaurantsMap.values())
-      setRestaurantsForFilter(
-        restaurants
-          .map((restaurant) => ({
-            id: String(restaurant?._id || restaurant?.id || ""),
-            name: restaurant?.name || restaurant?.restaurantName || "Unknown Restaurant",
-          }))
-          .filter((restaurant) => restaurant.id)
-          .sort((a, b) => a.name.localeCompare(b.name))
-      )
-
-      if (restaurants.length === 0) {
-        setFoods([])
-        return
-      }
-
       const foodsRes = await adminAPI.getFoods({ limit: 50000 })
       const list = foodsRes?.data?.data?.foods || []
       const approvedOnly = Array.isArray(list)
@@ -130,8 +89,7 @@ export default function FoodsList() {
               name: f.name || "Unnamed Item",
               image: f.image || "https://via.placeholder.com/40",
               status: f.isAvailable !== false && String(f.approvalStatus || "").toLowerCase() !== "rejected",
-              restaurantId: String(f.restaurantId || ""),
-              restaurantName: f.restaurantName || "Unknown Restaurant",
+              restaurantName: f.restaurantName || "The Food Galaxy",
               categoryId: String(f.categoryId || ""),
               categoryName: f.categoryName || "",
               price: getFoodDisplayPrice(f),
@@ -151,7 +109,6 @@ export default function FoodsList() {
       debugError("Error fetching foods:", error)
       toast.error("Failed to load foods")
       setFoods([])
-      setRestaurantsForFilter([])
     } finally {
       setLoading(false)
     }
@@ -214,18 +171,13 @@ export default function FoodsList() {
       result = result.filter(food =>
         food.name.toLowerCase().includes(query) ||
         food.id.toString().includes(query) ||
-        food.restaurantName?.toLowerCase().includes(query) ||
         food.categoryName?.toLowerCase().includes(query)
       )
     }
 
-    if (selectedRestaurant !== "all") {
-      result = result.filter((food) => String(food.restaurantId) === selectedRestaurant)
-    }
-
     result.sort((a, b) => getItemCreatedMs(b) - getItemCreatedMs(a))
     return result
-  }, [foods, searchQuery, selectedRestaurant])
+  }, [foods, searchQuery])
 
   const totalPages = useMemo(() => {
     if (filteredFoods.length === 0) return 1
@@ -239,7 +191,7 @@ export default function FoodsList() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedRestaurant, pageSize])
+  }, [searchQuery, pageSize])
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -247,17 +199,10 @@ export default function FoodsList() {
     }
   }, [currentPage, totalPages])
 
-  const restaurantOptions = useMemo(() => {
-    return restaurantsForFilter
-  }, [restaurantsForFilter])
-
   const openAddFoodModal = () => {
     setFoodFormMode("add")
     setEditingFood(null)
-    setFoodForm({
-      ...createFoodForm(),
-      restaurantId: selectedRestaurant !== "all" ? selectedRestaurant : "",
-    })
+    setFoodForm(createFoodForm())
     setSelectedImageFile(null)
     setImagePreviewUrl("")
     setCategorySearch("")
@@ -269,7 +214,6 @@ export default function FoodsList() {
     setFoodFormMode("edit")
     setEditingFood(food)
     setFoodForm({
-      restaurantId: String(food.restaurantId || ""),
       categoryId: String(food.categoryId || ""),
       categoryName: String(food.categoryName || ""),
       name: String(food.name || ""),
@@ -344,10 +288,6 @@ export default function FoodsList() {
   }
 
   const handleFoodFormSubmit = async () => {
-    if (!foodForm.restaurantId) {
-      toast.error("Please select a restaurant")
-      return
-    }
     if (!String(foodForm.categoryName || "").trim()) {
       toast.error("Please select or enter a category")
       return
@@ -398,7 +338,6 @@ export default function FoodsList() {
       }
 
       const payload = {
-        restaurantId: foodForm.restaurantId,
         categoryId: foodForm.categoryId || undefined,
         categoryName: String(foodForm.categoryName || "").trim(),
         name: foodForm.name.trim(),
@@ -504,67 +443,6 @@ export default function FoodsList() {
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             </div>
-            <Popover open={restaurantFilterOpen} onOpenChange={setRestaurantFilterOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="px-4 py-2.5 min-w-[280px] sm:min-w-[320px] text-sm rounded-lg border border-slate-300 bg-white text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
-                >
-                  <span className={selectedRestaurant ? "text-slate-900 line-clamp-1" : "text-slate-400"}>
-                    {selectedRestaurant === "all" ? "All Restaurants" : restaurantOptions.find(r => r.id === selectedRestaurant)?.name || "Select Restaurant"}
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-slate-500 shrink-0 ml-2" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="end">
-                <input
-                  type="text"
-                  value={restaurantSearch}
-                  onChange={(e) => setRestaurantSearch(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm bg-white mb-2"
-                  placeholder="Search restaurant..."
-                  autoFocus
-                />
-                <div className="max-h-56 overflow-y-auto">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedRestaurant("all")
-                      setRestaurantFilterOpen(false)
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-slate-100 ${
-                      selectedRestaurant === "all" ? "bg-slate-100 font-medium" : ""
-                    }`}
-                  >
-                    All Restaurants
-                  </button>
-                  {restaurantOptions
-                    .filter((r) => {
-                      const q = String(restaurantSearch || "").trim().toLowerCase()
-                      if (!q) return true
-                      return String(r.name || "").toLowerCase().includes(q)
-                    })
-                    .map((r) => (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedRestaurant(r.id)
-                          setRestaurantFilterOpen(false)
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-slate-100 line-clamp-2 ${
-                          selectedRestaurant === r.id ? "bg-slate-100 font-medium" : ""
-                        }`}
-                      >
-                        {r.name}
-                      </button>
-                    ))}
-                  {restaurantOptions.filter(r => String(r.name || "").toLowerCase().includes(String(restaurantSearch || "").trim().toLowerCase())).length === 0 && (
-                    <div className="px-3 py-2 text-sm text-slate-500">No restaurants found</div>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
           </div>
         </div>
       </div>
@@ -585,7 +463,7 @@ export default function FoodsList() {
                   Title
                 </th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                  Restaurant
+                  Store
                 </th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                   Category
@@ -610,7 +488,7 @@ export default function FoodsList() {
                   <td colSpan={6} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <p className="text-lg font-semibold text-slate-700 mb-1">No Data Found</p>
-                      <p className="text-sm text-slate-500">No food items match your search or restaurant filter</p>
+                      <p className="text-sm text-slate-500">No food items match your search</p>
                     </div>
                   </td>
                 </tr>
@@ -644,7 +522,7 @@ export default function FoodsList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-slate-800">{food.restaurantName || "-"}</span>
+                        <span className="text-sm font-medium text-slate-800">The Food Galaxy</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -763,7 +641,7 @@ export default function FoodsList() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <p><span className="font-semibold text-slate-700">Restaurant:</span> <span className="text-slate-900">{selectedFood.restaurantName || "-"}</span></p>
+                <p><span className="font-semibold text-slate-700">Store:</span> <span className="text-slate-900">The Food Galaxy</span></p>
                 <p><span className="font-semibold text-slate-700">Price:</span> <span className="text-slate-900">{selectedFood.variants?.length ? `Starting from \u20B9${selectedFood.price}` : `\u20B9${selectedFood.price}`}</span></p>
                 <p><span className="font-semibold text-slate-700">Category:</span> <span className="text-slate-900">{selectedFood.categoryName || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Food Type:</span> <span className="text-slate-900">{selectedFood.foodType || "-"}</span></p>
@@ -815,22 +693,7 @@ export default function FoodsList() {
           </DialogHeader>
           <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Restaurant</label>
-                <select
-                  value={foodForm.restaurantId}
-                  onChange={(e) => setFoodForm((prev) => ({ ...prev, restaurantId: e.target.value, categoryId: "", categoryName: "" }))}
-                  disabled={foodFormMode === "edit"}
-                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white disabled:bg-slate-100"
-                >
-                  <option value="">Select restaurant</option>
-                  {restaurantOptions.map((restaurant) => (
-                    <option key={restaurant.id} value={restaurant.id}>
-                      {restaurant.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <div className="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">All food items added here will be shown under the single admin-managed store, <strong>The Food Galaxy</strong>.</div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
                 <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
@@ -1058,4 +921,5 @@ export default function FoodsList() {
     </div>
   )
 }
+
 

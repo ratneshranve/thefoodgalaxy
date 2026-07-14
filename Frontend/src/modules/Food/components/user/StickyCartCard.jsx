@@ -1,23 +1,27 @@
 import { Link } from "react-router-dom"
-import { X, ChevronRight } from "lucide-react"
+import { X } from "lucide-react"
 import { useCart } from "@food/context/CartContext"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 export default function StickyCartCard() {
   const { cart, getCartCount, clearCart } = useCart()
   const [isVisible, setIsVisible] = useState(true)
-  const [bottomPosition, setBottomPosition] = useState("bottom-[70px]") // Fixed above bottom navigation
+  const [bottomPosition, setBottomPosition] = useState("bottom-[70px]")
   const cartCount = getCartCount()
 
-  // Set fixed position above bottom navigation (no scroll-based movement)
   useEffect(() => {
-    // Set initial position based on screen size
+    if (cartCount > 0) {
+      setIsVisible(true)
+    }
+  }, [cartCount])
+
+  useEffect(() => {
     const setInitialPosition = () => {
       if (window.innerWidth >= 768) {
-        setBottomPosition("bottom-6") // Desktop: fixed position
+        setBottomPosition("bottom-6")
       } else {
-        setBottomPosition("bottom-[70px]") // Mobile: above bottom nav (fixed, doesn't move with scroll)
+        setBottomPosition("bottom-[70px]")
       }
     }
 
@@ -25,9 +29,9 @@ export default function StickyCartCard() {
 
     const handleResize = () => {
       if (window.innerWidth >= 768) {
-        setBottomPosition("bottom-6") // Desktop: always fixed
+        setBottomPosition("bottom-6")
       } else {
-        setBottomPosition("bottom-[70px]") // Mobile: above bottom nav (fixed)
+        setBottomPosition("bottom-[70px]")
       }
     }
 
@@ -38,17 +42,8 @@ export default function StickyCartCard() {
     }
   }, [])
 
-  // Get restaurant info from first cart item or use default
-  const restaurantName = cart[0]?.restaurant || "Restaurant"
   const restaurantImage = cart[0]?.image || "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=200&h=200&fit=crop"
 
-  // Create restaurant slug from restaurant name
-  const restaurantSlug = restaurantName.toLowerCase().replace(/\s+/g, "-")
-
-  // Calculate total price
-  const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity * 83), 0)
-
-  // Animation variants for the popout effect
   const cardVariants = {
     initial: {
       opacity: 1,
@@ -80,7 +75,6 @@ export default function StickyCartCard() {
     },
   }
 
-  // Don't render if cart is empty
   if (cartCount === 0) return null
 
   return (
@@ -94,32 +88,40 @@ export default function StickyCartCard() {
           variants={cardVariants}
         >
           <div className="max-w-7xl md:max-w-none mx-auto md:mx-0 pointer-events-auto">
-            <div className="bg-white dark:bg-[#0a0a0a] dark:text-white rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden md:max-w-md md:w-[400px]">
+            <div
+              className="rounded-3xl border overflow-hidden md:max-w-md md:w-[400px]"
+              style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, var(--user-brand-surface) 100%)',
+                borderColor: 'rgba(249,168,9,0.35)',
+                boxShadow: '0 22px 45px rgba(2,53,14,0.16)'
+              }}
+            >
               <div className="flex items-center gap-3 p-3 md:p-4">
-                {/* Restaurant Image */}
                 <div className="flex-shrink-0">
                   <img
                     src={restaurantImage}
-                    alt={restaurantName}
-                    className="w-14 h-14 md:w-16 md:h-16 rounded-lg object-cover"
+                    alt="Cart item"
+                    className="w-14 h-14 md:w-16 md:h-16 rounded-2xl object-cover border-2"
+                    style={{ borderColor: 'rgba(249,168,9,0.45)' }}
                   />
                 </div>
 
-                {/* Restaurant Info */}
-                <Link to={`/user/restaurants/${restaurantSlug}`} className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900 dark:text-gray-200 text-base md:text-lg mb-0.5 line-clamp-1">
-                    {restaurantName}
-                  </h3>
-                  <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 text-sm md:text-base">
-                    <span>View Menu</span>
-                    <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm md:text-base font-semibold" style={{ color: 'var(--user-brand-secondary)' }}>
+                    Cart Summary
                   </div>
-                </Link>
+                  <div className="text-xs md:text-sm" style={{ color: 'rgba(2,53,14,0.62)' }}>
+                    Ready to checkout
+                  </div>
+                </div>
 
-                {/* View Cart Button */}
                 <Link
                   to="/user/cart"
-                  className="flex-shrink-0 bg-primary dark:bg-secondary hover:bg-secondary dark:hover:bg-[#3c0f3d] text-white px-4 py-2.5 md:px-5 md:py-3 rounded-lg font-semibold transition-colors"
+                  className="flex-shrink-0 text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl font-semibold transition-colors"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--user-brand-primary) 0%, #b20807 100%)',
+                    boxShadow: '0 14px 24px rgba(222,11,9,0.28)'
+                  }}
                 >
                   <div className="text-center">
                     <div className="text-xs md:text-sm opacity-90">View Cart</div>
@@ -127,18 +129,21 @@ export default function StickyCartCard() {
                   </div>
                 </Link>
 
-                {/* Close Button */}
                 <motion.button
                   onClick={() => {
-                    setIsVisible(false);
-                    setTimeout(() => clearCart(), 400);
+                    setIsVisible(false)
+                    window.setTimeout(() => {
+                      clearCart()
+                      setIsVisible(true)
+                    }, 400)
                   }}
-                  className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-colors"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.78)' }}
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <X className="h-4 w-4 md:h-5 md:w-5 text-gray-500 dark:text-gray-400" />
+                  <X className="h-4 w-4 md:h-5 md:w-5" style={{ color: 'var(--user-brand-primary)' }} />
                 </motion.button>
               </div>
             </div>
@@ -148,4 +153,3 @@ export default function StickyCartCard() {
     </AnimatePresence>
   )
 }
-

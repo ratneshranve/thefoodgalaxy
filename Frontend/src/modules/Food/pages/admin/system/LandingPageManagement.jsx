@@ -62,6 +62,7 @@ export default function LandingPageManagement() {
   const [settings, setSettings] = useState({ 
     exploreMoreHeading: "Explore More", 
     recommendedRestaurantIds: [], 
+    recommendedFoodIds: [], 
     under250PriceLimit: 250, 
     festBannerImages: [],
     stats: { restaurants: '3,00,000+', cities: '800+', orders: '3 billion+' },
@@ -97,6 +98,8 @@ export default function LandingPageManagement() {
 
   const [allRestaurants, setAllRestaurants] = useState([])
   const [restaurantsLoading, setRestaurantsLoading] = useState(false)
+  const [allFoods, setAllFoods] = useState([])
+  const [foodsLoading, setFoodsLoading] = useState(false)
 
   // Gourmet Restaurants
   const [gourmetRestaurants, setGourmetRestaurants] = useState([])
@@ -174,6 +177,7 @@ export default function LandingPageManagement() {
     fetchUnder250Banners()
     fetchDiningBanners()
     fetchAllRestaurants()
+    fetchAllFoods()
     fetchSettings()
     fetchZones()
   }, [])
@@ -195,13 +199,16 @@ export default function LandingPageManagement() {
       if (allRestaurants.length === 0) {
         fetchAllRestaurants()
       }
+      if (allFoods.length === 0) {
+        fetchAllFoods()
+      }
       if (exploreMoreSubTab === 'gourmet') {
         fetchGourmetRestaurants()
       } else if (exploreMoreSubTab === 'icons') {
         fetchExploreMore()
       }
     }
-  }, [activeTab, exploreMoreSubTab])
+  }, [activeTab, exploreMoreSubTab, allRestaurants.length, allFoods.length])
 
   // ==================== HERO BANNERS ====================
   const fetchBanners = async () => {
@@ -415,6 +422,11 @@ export default function LandingPageManagement() {
     })
   }
 
+  const restaurantZoneById = useMemo(() => {
+    const pairs = allRestaurants.map((restaurant) => [String(restaurant._id || restaurant.id || restaurant.restaurantId || ''), String(restaurant.zoneId?._id || restaurant.zoneId || '')])
+    return new Map(pairs.filter(([id]) => Boolean(id)))
+  }, [allRestaurants])
+
   const filteredRestaurantsForModal = allRestaurants.filter(restaurant => {
     if (!restaurantSearchQuery.trim()) return true
     const query = restaurantSearchQuery.toLowerCase()
@@ -422,35 +434,38 @@ export default function LandingPageManagement() {
       restaurant.restaurantId?.toLowerCase().includes(query)
   })
 
-  const filteredRestaurantsForRecommended = useMemo(() => {
+  const filteredFoodsForRecommended = useMemo(() => {
     const query = recommendedSearchQuery.trim().toLowerCase()
-    return allRestaurants
-      .filter((restaurant) => {
-        const rZoneId = restaurant.zoneId?._id || restaurant.zoneId;
-        if (selectedZoneForRecommended && String(rZoneId) !== selectedZoneForRecommended) {
-            return false;
+    return allFoods
+      .filter((food) => {
+        const zoneId = restaurantZoneById.get(String(food.restaurantId || ''))
+        if (selectedZoneForRecommended && String(zoneId || '') !== selectedZoneForRecommended) {
+          return false
         }
         if (!query) return true
-        return restaurant.name?.toLowerCase().includes(query) ||
-          restaurant.restaurantId?.toLowerCase().includes(query)
+        return String(food.name || '').toLowerCase().includes(query) ||
+          String(food.categoryName || '').toLowerCase().includes(query) ||
+          String(food.restaurantName || '').toLowerCase().includes(query) ||
+          String(food._id || food.id || '').toLowerCase().includes(query)
       })
-      .slice(0, 80)
-  }, [allRestaurants, recommendedSearchQuery, selectedZoneForRecommended])
+      .slice(0, 120)
+  }, [allFoods, recommendedSearchQuery, restaurantZoneById, selectedZoneForRecommended])
 
-  const recommendedRestaurantsSelected = useMemo(() => {
-    const selectedIds = new Set(settings.recommendedRestaurantIds || [])
-    return allRestaurants.filter((restaurant) => selectedIds.has(restaurant._id))
-  }, [allRestaurants, settings.recommendedRestaurantIds])
+  const recommendedFoodsSelected = useMemo(() => {
+    const selectedIds = new Set((settings.recommendedFoodIds || []).map((id) => String(id)))
+    return allFoods.filter((food) => selectedIds.has(String(food._id || food.id)))
+  }, [allFoods, settings.recommendedFoodIds])
 
-  const toggleRecommendedRestaurant = (restaurantId) => {
+  const toggleRecommendedFood = (foodId) => {
     setSettings((prev) => {
-      const previousIds = Array.isArray(prev.recommendedRestaurantIds) ? prev.recommendedRestaurantIds : []
-      const alreadySelected = previousIds.includes(restaurantId)
+      const previousIds = Array.isArray(prev.recommendedFoodIds) ? prev.recommendedFoodIds : []
+      const normalizedId = String(foodId)
+      const alreadySelected = previousIds.includes(normalizedId)
       return {
         ...prev,
-        recommendedRestaurantIds: alreadySelected
-          ? previousIds.filter((id) => id !== restaurantId)
-          : [...previousIds, restaurantId],
+        recommendedFoodIds: alreadySelected
+          ? previousIds.filter((id) => id !== normalizedId)
+          : [...previousIds, normalizedId],
       }
     })
   }
@@ -1083,6 +1098,7 @@ export default function LandingPageManagement() {
         setSettings({
           exploreMoreHeading: nextSettings.exploreMoreHeading || "Explore More",
           recommendedRestaurantIds: Array.isArray(nextSettings.recommendedRestaurantIds) ? nextSettings.recommendedRestaurantIds : [],
+          recommendedFoodIds: Array.isArray(nextSettings.recommendedFoodIds) ? nextSettings.recommendedFoodIds : [],
           under250PriceLimit: Number(nextSettings.under250PriceLimit) || 250,
           festBannerImages: Array.isArray(nextSettings.festBannerImages) ? nextSettings.festBannerImages : [],
           stats: nextSettings.stats || { restaurants: '3,00,000+', cities: '800+', orders: '3 billion+' },
@@ -1134,6 +1150,7 @@ export default function LandingPageManagement() {
       const response = await api.patch('/food/hero-banners/landing/settings', {
         exploreMoreHeading: settings.exploreMoreHeading,
         recommendedRestaurantIds: Array.isArray(settings.recommendedRestaurantIds) ? settings.recommendedRestaurantIds : [],
+        recommendedFoodIds: Array.isArray(settings.recommendedFoodIds) ? settings.recommendedFoodIds : [],
         under250PriceLimit: Number(settings.under250PriceLimit) || 250,
         festBannerImages: settings.festBannerImages || [],
         stats: settings.stats,
@@ -1151,6 +1168,9 @@ export default function LandingPageManagement() {
           recommendedRestaurantIds: Array.isArray(savedSettings.recommendedRestaurantIds)
             ? savedSettings.recommendedRestaurantIds
             : prev.recommendedRestaurantIds,
+          recommendedFoodIds: Array.isArray(savedSettings.recommendedFoodIds)
+            ? savedSettings.recommendedFoodIds
+            : prev.recommendedFoodIds,
           under250PriceLimit: Number(savedSettings.under250PriceLimit) || prev.under250PriceLimit,
           festBannerImages: Array.isArray(savedSettings.festBannerImages)
             ? savedSettings.festBannerImages
@@ -1213,6 +1233,7 @@ export default function LandingPageManagement() {
       await api.patch('/food/hero-banners/landing/settings', {
         exploreMoreHeading: settings.exploreMoreHeading,
         recommendedRestaurantIds: Array.isArray(settings.recommendedRestaurantIds) ? settings.recommendedRestaurantIds : [],
+        recommendedFoodIds: Array.isArray(settings.recommendedFoodIds) ? settings.recommendedFoodIds : [],
         under250PriceLimit: Number(settings.under250PriceLimit) || 250,
         festBannerImages: updatedImages
       }, getAuthConfig())
@@ -1239,6 +1260,7 @@ export default function LandingPageManagement() {
       await api.patch('/food/hero-banners/landing/settings', {
         exploreMoreHeading: settings.exploreMoreHeading,
         recommendedRestaurantIds: Array.isArray(settings.recommendedRestaurantIds) ? settings.recommendedRestaurantIds : [],
+        recommendedFoodIds: Array.isArray(settings.recommendedFoodIds) ? settings.recommendedFoodIds : [],
         under250PriceLimit: Number(settings.under250PriceLimit) || 250,
         festBannerImages: updatedImages
       }, getAuthConfig())
@@ -1275,6 +1297,40 @@ export default function LandingPageManagement() {
       }
     } finally {
       setRestaurantsLoading(false)
+    }
+  }
+
+  const fetchAllFoods = async () => {
+    try {
+      setFoodsLoading(true)
+      setError(null)
+      const response = await adminAPI.getFoods({ limit: 1000, singleStoreOnly: 'false' })
+      const data = response?.data?.data
+      if (response?.data?.success && data) {
+        const raw = Array.isArray(data) ? data : (data.foods || [])
+        const foods = raw
+          .filter((food) => String(food?.approvalStatus || 'approved').toLowerCase() !== 'rejected')
+          .map((food) => ({
+            ...food,
+            _id: String(food._id || food.id || ''),
+            id: String(food.id || food._id || ''),
+            name: food.name || '',
+            categoryName: food.categoryName || 'Food',
+            restaurantName: food.restaurantName || 'The Food Galaxy',
+            restaurantId: String(food.restaurantId || '')
+          }))
+        setAllFoods(foods)
+      }
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 404) {
+        setAllFoods([])
+        setError(null)
+      } else {
+        const errorMessage = err.response?.data?.message || 'Failed to load food items'
+        setErrorSafely(errorMessage)
+      }
+    } finally {
+      setFoodsLoading(false)
     }
   }
 
@@ -1913,9 +1969,9 @@ export default function LandingPageManagement() {
                   </div>
 
                   <div>
-                    <Label htmlFor="recommended-search">Recommended For You Restaurants</Label>
+                    <Label htmlFor="recommended-search">Recommended For You Items</Label>
                     <p className="text-xs text-slate-500 mt-1 mb-2">
-                      Choose multiple restaurants to display below filters on the user home page.
+                      Choose multiple food items to display in the Recommended For You section on the user home page.
                     </p>
 
                     <div className="flex gap-3 mb-3">
@@ -1935,22 +1991,22 @@ export default function LandingPageManagement() {
                           id="recommended-search"
                           value={recommendedSearchQuery}
                           onChange={(e) => setRecommendedSearchQuery(e.target.value)}
-                          placeholder="Search restaurants..."
+                          placeholder="Search food items, category, restaurant..."
                           className="pl-9 h-10"
                         />
                       </div>
                     </div>
 
-                    {recommendedRestaurantsSelected.length > 0 && (
+                    {recommendedFoodsSelected.length > 0 && (
                       <div className="mb-3 flex flex-wrap gap-2">
-                        {recommendedRestaurantsSelected.map((restaurant) => (
+                        {recommendedFoodsSelected.map((food) => (
                           <button
-                            key={restaurant._id}
+                            key={food._id}
                             type="button"
-                            onClick={() => toggleRecommendedRestaurant(restaurant._id)}
+                            onClick={() => toggleRecommendedFood(food._id)}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs hover:bg-blue-100"
                           >
-                            <span>{restaurant.name}</span>
+                            <span>{food.name} - {food.restaurantName}</span>
                             <span className="text-blue-500">x</span>
                           </button>
                         ))}
@@ -1958,23 +2014,23 @@ export default function LandingPageManagement() {
                     )}
 
                     <div className="max-h-72 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
-                      {filteredRestaurantsForRecommended.length === 0 ? (
-                        <div className="p-4 text-sm text-slate-500 text-center">No restaurants found</div>
+                      {filteredFoodsForRecommended.length === 0 ? (
+                        <div className="p-4 text-sm text-slate-500 text-center">{foodsLoading ? 'Loading food items...' : 'No food items found'}</div>
                       ) : (
-                        filteredRestaurantsForRecommended.map((restaurant) => {
-                          const isChecked = (settings.recommendedRestaurantIds || []).includes(restaurant._id)
+                        filteredFoodsForRecommended.map((food) => {
+                          const isChecked = (settings.recommendedFoodIds || []).includes(String(food._id || food.id))
                           return (
                             <label
-                              key={restaurant._id}
+                              key={food._id}
                               className="flex items-center justify-between gap-3 px-3 py-2 cursor-pointer hover:bg-slate-50"
                             >
                               <div className="min-w-0">
-                                <p className="text-sm font-medium text-slate-800 truncate">{restaurant.name}</p>
-                                 <p className="text-xs text-slate-500 truncate">{restaurant._id || "No ID"}</p>
+                                <p className="text-sm font-medium text-slate-800 truncate">{food.name}</p>
+                                 <p className="text-xs text-slate-500 truncate">{food.categoryName} - {food.restaurantName}</p>
                               </div>
                               <Checkbox
                                 checked={isChecked}
-                                onCheckedChange={() => toggleRecommendedRestaurant(restaurant._id)}
+                                onCheckedChange={() => toggleRecommendedFood(String(food._id || food.id))}
                               />
                             </label>
                           )

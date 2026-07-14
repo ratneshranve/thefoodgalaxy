@@ -1,237 +1,251 @@
 import express from 'express';
-import { upload } from '../../../../middleware/upload.js';
-import {
-    registerRestaurantController,
-    listApprovedRestaurantsController,
-    listPublicApprovedFoodsController,
-    getApprovedRestaurantController,
-    listPublicOffersController,
-    getCurrentRestaurantController,
-    updateRestaurantProfileController,
-    updateRestaurantAcceptingOrdersController,
-    updateCurrentRestaurantDiningSettingsController,
-    uploadRestaurantProfileImageController,
-    uploadRestaurantMenuImageController,
-    uploadRestaurantCoverImagesController,
-    uploadRestaurantMenuImagesController,
-    getRestaurantComplaintsController,
-    createDiningRequestController,
-    getPendingDiningRequestController
-} from '../controllers/restaurant.controller.js';
-import {
-    createRestaurantSupportTicketController,
-    listRestaurantSupportTicketsController
-} from '../controllers/supportTicket.controller.js';
-import {
-    createWithdrawalRequestController,
-    listMyWithdrawalsController
-} from '../controllers/withdrawal.controller.js';
-import {
-    listCategoriesController,
-    createCategoryController,
-    updateCategoryController,
-    deleteCategoryController
-} from '../controllers/restaurantCategory.controller.js';
-import { getMenuController, updateMenuController, getPublicRestaurantMenuController } from '../controllers/restaurantMenu.controller.js';
-import { getPublicRestaurantAddonsController } from '../controllers/publicAddons.controller.js';
-import * as feedbackExperienceController from '../../admin/controllers/feedbackExperience.controller.js';
-import {
-    getOutletTimingsByRestaurantIdController,
-    getCurrentRestaurantOutletTimingsController,
-    upsertCurrentRestaurantOutletTimingsController
-} from '../controllers/outletTimings.controller.js';
-import {
-    createRestaurantFoodController,
-    bulkCreateRestaurantFoodController,
-    updateRestaurantFoodController,
-    deleteRestaurantFoodController
-} from '../controllers/restaurantFood.controller.js';
-import {
-    listAddonsController,
-    createAddonController,
-    updateAddonController,
-    deleteAddonController
-} from '../controllers/restaurantAddon.controller.js';
-import * as orderController from '../../orders/controllers/order.controller.js';
-import { downloadRestaurantMenuPdf } from '../../admin/controllers/admin.controller.js';
-import { authMiddleware } from '../../../../core/auth/auth.middleware.js';
-import { sendError } from '../../../../utils/response.js';
-import { getRestaurantFinanceController } from '../controllers/restaurantFinance.controller.js';
-import { getRestaurantDashboardStatsController } from '../controllers/restaurantDashboard.controller.js';
-import { deleteRestaurantAccountController } from '../controllers/deleteAccount.controller.js';
-
-import { cacheResponse, invalidateCache } from '../../../../middleware/cache.js';
+import mongoose from 'mongoose';
+import { getCategories as getAdminCategories, getFoods as getAdminFoods, getRestaurants as getAdminRestaurants } from '../../admin/services/admin.service.js';
+import { getFoodDisplayPrice, serializeFoodVariants } from '../../admin/services/foodVariant.service.js';
+import { FoodRestaurant } from '../models/restaurant.model.js';
+import { FoodItem } from '../../admin/models/food.model.js';
+import { FoodAddon } from '../models/foodAddon.model.js';
 
 const router = express.Router();
 
-const requireRestaurant = (req, res, next) => {
-    if (req.user?.role !== 'RESTAURANT') {
-        return sendError(res, 403, 'Restaurant access required');
-    }
-    next();
+const normalizeText = (value) => String(value || '').trim().toLowerCase();
+const slugify = (value) => normalizeText(value).replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+const resolveRestaurantDocument = async (identifier) => {
+  const raw = String(identifier || '').trim();
+  if (!raw) return null;
+
+  if (mongoose.Types.ObjectId.isValid(raw)) {
+    const byId = await FoodRestaurant.findById(raw).lean();
+    if (byId?._id) return byId;
+  }
+
+  const bySlug = await FoodRestaurant.findOne({ slug: raw }).lean();
+  if (bySlug?._id) return bySlug;
+
+  const restaurants = await FoodRestaurant.find({}).lean();
+  const normalizedIdentifier = slugify(raw);
+  return restaurants.find((restaurant) => {
+    const candidateSlug = slugify(restaurant?.slug || restaurant?.restaurantName || restaurant?.name || '');
+    const candidateName = slugify(restaurant?.restaurantName || restaurant?.name || '');
+    return candidateSlug === normalizedIdentifier || candidateName === normalizedIdentifier;
+  }) || null;
 };
 
-const uploadFields = upload.fields([
-    { name: 'profileImage', maxCount: 1 },
-    { name: 'panImage', maxCount: 1 },
-    { name: 'gstImage', maxCount: 1 },
-    { name: 'fssaiImage', maxCount: 1 },
-    { name: 'menuImages', maxCount: 10 },
-    { name: 'menuPdf', maxCount: 1 }
-]);
-
-router.post('/register', uploadFields, registerRestaurantController);
-
-// Public: approved restaurants list (for user app)
-router.get('/restaurants', cacheResponse(300, 'restaurants'), listApprovedRestaurantsController);
-router.get('/restaurants/:id', cacheResponse(600, 'restaurant_detail'), getApprovedRestaurantController);
-router.get('/restaurants/:id/menu', cacheResponse(600, 'restaurant_menu'), getPublicRestaurantMenuController);
-router.get('/restaurants/:id/outlet-timings', cacheResponse(600, 'restaurant_timings'), getOutletTimingsByRestaurantIdController);
-router.get('/offers', cacheResponse(300, 'offers'), listPublicOffersController);
-// Public: categories list (zone-aware; returns zone categories + global)
-router.get('/categories/public', cacheResponse(600, 'categories'), listCategoriesController);
-router.get('/foods/public', cacheResponse(300, 'foods'), listPublicApprovedFoodsController);
-
-// Restaurant dashboard/profile (Bearer token + RESTAURANT role)
-router.get('/current', authMiddleware, requireRestaurant, getCurrentRestaurantController);
-router.patch('/profile', authMiddleware, requireRestaurant, async (req, res, next) => {
-    // Invalidate caches when profile is updated
-    await invalidateCache('restaurants:*');
-    await invalidateCache('restaurant_detail:*');
-    next();
-}, updateRestaurantProfileController);
-router.patch('/availability', authMiddleware, requireRestaurant, async (req, res, next) => {
-    await invalidateCache('restaurants:*');
-    next();
-}, updateRestaurantAcceptingOrdersController);
-router.patch('/profile', authMiddleware, requireRestaurant, updateRestaurantProfileController);
-router.patch('/availability', authMiddleware, requireRestaurant, updateRestaurantAcceptingOrdersController);
-router.patch('/dining-settings', authMiddleware, requireRestaurant, updateCurrentRestaurantDiningSettingsController);
-router.post('/dining-settings/request', authMiddleware, requireRestaurant, createDiningRequestController);
-router.get('/dining-settings/pending', authMiddleware, requireRestaurant, getPendingDiningRequestController);
-router.get('/outlet-timings', authMiddleware, requireRestaurant, getCurrentRestaurantOutletTimingsController);
-router.put('/outlet-timings', authMiddleware, requireRestaurant, upsertCurrentRestaurantOutletTimingsController);
-router.get('/finance', authMiddleware, requireRestaurant, getRestaurantFinanceController);
-router.get('/dashboard-stats', authMiddleware, requireRestaurant, getRestaurantDashboardStatsController);
-router.post('/withdraw', authMiddleware, requireRestaurant, createWithdrawalRequestController);
-router.get('/withdrawals', authMiddleware, requireRestaurant, listMyWithdrawalsController);
-router.post(
-    '/profile/profile-image',
-    authMiddleware,
-    requireRestaurant,
-    upload.single('file'),
-    async (req, res, next) => {
-        await invalidateCache('restaurants:*');
-        await invalidateCache('restaurant_detail:*');
-        next();
-    },
-    uploadRestaurantProfileImageController
-);
-router.post(
-    '/profile/menu-image',
-    authMiddleware,
-    requireRestaurant,
-    upload.single('file'),
-    async (req, res, next) => {
-        await invalidateCache('restaurant_menu:*');
-        next();
-    },
-    uploadRestaurantMenuImageController
-);
-router.post(
-    '/profile/cover-images',
-    authMiddleware,
-    requireRestaurant,
-    upload.array('files', 20),
-    async (req, res, next) => {
-        await invalidateCache('restaurant_detail:*');
-        next();
-    },
-    uploadRestaurantCoverImagesController
-);
-router.post(
-    '/profile/menu-images',
-    authMiddleware,
-    requireRestaurant,
-    upload.array('files', 20),
-    async (req, res, next) => {
-        await invalidateCache('restaurant_menu:*');
-        next();
-    },
-    uploadRestaurantMenuImagesController
-);
-
-// Categories (restaurant dashboard). Read-only for item creation, CRUD for Menu Categories page.
-router.get('/categories', authMiddleware, requireRestaurant, listCategoriesController);
-router.post('/categories', authMiddleware, requireRestaurant, createCategoryController);
-router.patch('/categories/:id', authMiddleware, requireRestaurant, updateCategoryController);
-router.delete('/categories/:id', authMiddleware, requireRestaurant, deleteCategoryController);
-
-// Menu (restaurant dashboard) - only fields needed by UI
-router.get('/menu', authMiddleware, requireRestaurant, getMenuController);
-router.patch('/menu', authMiddleware, requireRestaurant, async (req, res, next) => {
-    await invalidateCache('restaurant_menu:*');
-    next();
-}, updateMenuController);
-
-// Feedback (restaurant dashboard)
-router.post('/feedback-experience', authMiddleware, requireRestaurant, feedbackExperienceController.createFeedbackExperience);
-
-// Public: restaurant add-ons (user app)
-router.get('/restaurants/:id/addons', cacheResponse(600, 'restaurant_addons'), getPublicRestaurantAddonsController);
-
-// Foods (restaurant creates/updates items -> stored in food_items collection)
-router.post('/foods', authMiddleware, requireRestaurant, async (req, res, next) => {
-    await invalidateCache('restaurant_menu:*');
-    next();
-}, createRestaurantFoodController);
-router.post('/foods/bulk', authMiddleware, requireRestaurant, async (req, res, next) => {
-    await invalidateCache('restaurant_menu:*');
-    next();
-}, bulkCreateRestaurantFoodController);
-router.patch('/foods/:id', authMiddleware, requireRestaurant, async (req, res, next) => {
-    await invalidateCache('restaurant_menu:*');
-    next();
-}, updateRestaurantFoodController);
-router.delete('/foods/:id', authMiddleware, requireRestaurant, async (req, res, next) => {
-    await invalidateCache('restaurant_menu:*');
-    next();
-}, deleteRestaurantFoodController);
-
-// Add-ons (restaurant dashboard) - approval handled by admin
-router.get('/addons', authMiddleware, requireRestaurant, listAddonsController);
-router.post('/addons', authMiddleware, requireRestaurant, createAddonController);
-router.patch('/addons/:id', authMiddleware, requireRestaurant, updateAddonController);
-router.delete('/addons/:id', authMiddleware, requireRestaurant, deleteAddonController);
-
-// Orders (restaurant dashboard)
-router.get('/orders', authMiddleware, requireRestaurant, orderController.listOrdersRestaurantController);
-router.get('/orders/:orderId', authMiddleware, requireRestaurant, orderController.getOrderByIdRestaurantController);
-router.patch('/orders/:orderId/status', authMiddleware, requireRestaurant, orderController.updateOrderStatusRestaurantController);
-router.post('/orders/:orderId/resend-notification', authMiddleware, requireRestaurant, orderController.resendDeliveryNotificationRestaurantController);
-
-// Complaints (restaurant dashboard)
-router.get('/complaints', authMiddleware, requireRestaurant, getRestaurantComplaintsController);
-router.post('/support/tickets', authMiddleware, requireRestaurant, createRestaurantSupportTicketController);
-router.get('/support/tickets', authMiddleware, requireRestaurant, listRestaurantSupportTicketsController);
-
-// Download menu PDF (restaurant can download their own, admin can download any)
-router.get('/download-menu-pdf/:id', authMiddleware, (req, res, next) => {
-    // Allow ADMIN users to download any restaurant's PDF, or RESTAURANT users to download their own
-    const isAdmin = req.user?.role === 'ADMIN';
-    const isOwner = req.user?.userId === req.params.id;
-    
-    if (!isAdmin && !isOwner) {
-        return sendError(res, 403, 'You can only download your own restaurant menu PDF');
-    }
-    
-    // Call the download function
-    downloadRestaurantMenuPdf(req, res, next);
+const buildPublicRestaurantPayload = (restaurant = {}) => ({
+  ...restaurant,
+  _id: restaurant._id,
+  id: restaurant._id,
+  restaurantId: restaurant._id,
+  name: restaurant.restaurantName || restaurant.name || 'The Food Galaxy',
+  restaurantName: restaurant.restaurantName || restaurant.name || 'The Food Galaxy',
+  slug: restaurant.slug || slugify(restaurant.restaurantName || restaurant.name || 'the-food-galaxy'),
+  isActive: restaurant.isActive !== false,
+  status: restaurant.status || 'approved',
+  cuisines: Array.isArray(restaurant.cuisines) ? restaurant.cuisines : [],
+  rating: Number(restaurant.rating || 0),
+  location: restaurant.location || {},
 });
 
-// Delete account (Bearer RESTAURANT)
-router.delete('/account', authMiddleware, requireRestaurant, deleteRestaurantAccountController);
+const buildMenuSectionsFromFoods = (foods = []) => {
+  const sectionMap = new Map();
+
+  foods.forEach((food) => {
+    const sectionName = String(food.categoryName || 'Recommended').trim() || 'Recommended';
+    if (!sectionMap.has(sectionName)) {
+      sectionMap.set(sectionName, {
+        id: slugify(sectionName) || `section-${sectionMap.size + 1}`,
+        name: sectionName,
+        items: [],
+        subsections: [],
+      });
+    }
+
+    const variants = serializeFoodVariants(food.variants || food.variations || []);
+
+    sectionMap.get(sectionName).items.push({
+      id: String(food._id || food.id),
+      _id: String(food._id || food.id),
+      name: food.name || 'Unnamed Item',
+      description: food.description || '',
+      price: getFoodDisplayPrice({ ...food, variants }),
+      image: food.image || '',
+      foodType: food.foodType || 'Non-Veg',
+      isAvailable: food.isAvailable !== false,
+      preparationTime: food.preparationTime || '',
+      variants,
+      variations: variants,
+      categoryName: food.categoryName || sectionName,
+      category: food.categoryName || sectionName,
+      isRecommended: false,
+    });
+  });
+
+  return Array.from(sectionMap.values());
+};
+
+router.get('/categories/public', async (req, res, next) => {
+  try {
+    const data = await getAdminCategories({
+      ...req.query,
+      isApproved: true,
+      limit: req.query?.limit ?? '1000',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Public categories fetched successfully',
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/foods/public', async (req, res, next) => {
+  try {
+    const data = await getAdminFoods({
+      ...req.query,
+      singleStoreOnly: 'false',
+      limit: req.query?.limit ?? '1000',
+    });
+
+    const foods = Array.isArray(data?.foods)
+      ? data.foods.filter((food) => {
+          if (food?.isAvailable === false) return false;
+          const approvalStatus = String(food?.approvalStatus || 'approved').toLowerCase();
+          return approvalStatus !== 'rejected' && approvalStatus !== 'pending';
+        })
+      : [];
+
+    res.status(200).json({
+      success: true,
+      message: 'Public foods fetched successfully',
+      data: {
+        ...data,
+        foods,
+        total: foods.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/restaurants', async (req, res, next) => {
+  try {
+    const data = await getAdminRestaurants({
+      ...req.query,
+      limit: req.query?.limit ?? '1000',
+    });
+
+    const restaurants = Array.isArray(data?.restaurants)
+      ? data.restaurants.filter((restaurant) => String(restaurant?.status || 'approved').toLowerCase() !== 'rejected')
+      : [];
+
+    res.status(200).json({
+      success: true,
+      message: 'Public restaurants fetched successfully',
+      data: {
+        ...data,
+        restaurants,
+        total: restaurants.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/offers', async (_req, res) => {
+  res.status(200).json({ success: true, message: 'Public offers fetched successfully', data: { allOffers: [] } });
+});
+
+router.get('/restaurants/:idOrSlug', async (req, res, next) => {
+  try {
+    const restaurant = await resolveRestaurantDocument(req.params.idOrSlug);
+    if (!restaurant?._id) {
+      return res.status(404).json({ success: false, message: 'Restaurant not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Public restaurant fetched successfully',
+      data: buildPublicRestaurantPayload(restaurant),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/restaurants/:idOrSlug/menu', async (req, res, next) => {
+  try {
+    const restaurant = await resolveRestaurantDocument(req.params.idOrSlug);
+    if (!restaurant?._id) {
+      return res.status(404).json({ success: false, message: 'Restaurant not found' });
+    }
+
+    const foods = await FoodItem.find({
+      restaurantId: restaurant._id,
+      isAvailable: { $ne: false },
+      approvalStatus: { $nin: ['pending', 'rejected'] },
+    })
+      .sort({ categoryName: 1, createdAt: -1 })
+      .lean();
+
+    const sections = buildMenuSectionsFromFoods(foods);
+
+    res.status(200).json({
+      success: true,
+      message: 'Public restaurant menu fetched successfully',
+      data: {
+        menu: { sections },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/restaurants/:idOrSlug/outlet-timings', async (req, res, next) => {
+  try {
+    const restaurant = await resolveRestaurantDocument(req.params.idOrSlug);
+    if (!restaurant?._id) {
+      return res.status(404).json({ success: false, message: 'Restaurant not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Outlet timings fetched successfully', data: { outletTimings: [] } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/restaurants/:idOrSlug/addons', async (req, res, next) => {
+  try {
+    const restaurant = await resolveRestaurantDocument(req.params.idOrSlug);
+    if (!restaurant?._id) {
+      return res.status(404).json({ success: false, message: 'Restaurant not found' });
+    }
+
+    const addons = await FoodAddon.find({
+      restaurantId: restaurant._id,
+      isDeleted: { $ne: true },
+      approvalStatus: { $nin: ['pending', 'rejected'] },
+    }).lean();
+
+    res.status(200).json({ success: true, message: 'Addons fetched successfully', data: { addons } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const disabled = (_req, res) => {
+  res.status(410).json({
+    success: false,
+    message: 'Restaurant module has been disabled. Use admin-managed food flows instead.',
+  });
+};
+
+router.all('*', disabled);
 
 export default router;
-
-

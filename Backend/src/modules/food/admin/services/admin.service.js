@@ -3173,6 +3173,11 @@ export async function getFoods(query) {
 
     if (query.restaurantId && mongoose.Types.ObjectId.isValid(query.restaurantId)) {
         filter.restaurantId = query.restaurantId;
+    } else if (String(query.singleStoreOnly || '').toLowerCase() !== 'false') {
+        const store = await resolveSingleAdminStore();
+        if (store?._id) {
+            filter.restaurantId = store._id;
+        }
     }
     if (query.search && String(query.search).trim()) {
         const term = String(query.search).trim();
@@ -3199,12 +3204,13 @@ export async function getFoods(query) {
         ? await FoodRestaurant.find({ _id: { $in: restaurantIds } }).select('restaurantName').lean()
         : [];
     const restaurantMap = new Map(restaurants.map((r) => [String(r._id), r.restaurantName]));
+    const defaultRestaurantName = restaurants[0]?.restaurantName || SINGLE_STORE_NAME;
 
     const foods = list.map((f) => ({
         id: f._id,
         _id: f._id,
         restaurantId: f.restaurantId,
-        restaurantName: restaurantMap.get(String(f.restaurantId)) || 'Unknown Restaurant',
+        restaurantName: restaurantMap.get(String(f.restaurantId)) || defaultRestaurantName,
         categoryId: f.categoryId || null,
         categoryName: f.categoryName || '',
         name: f.name,
@@ -3279,6 +3285,47 @@ const getAdminFoodCreatePricing = (body = {}) => {
     };
 };
 
+const SINGLE_STORE_NAME = 'The Food Galaxy';
+const SINGLE_STORE_SLUG = 'the-food-galaxy';
+
+const resolveSingleAdminStore = async () => {
+    let store = await FoodRestaurant.findOne({
+        $or: [
+            { slug: SINGLE_STORE_SLUG },
+            { restaurantName: SINGLE_STORE_NAME }
+        ]
+    })
+        .select('restaurantName pureVegRestaurant slug status isActive')
+        .sort({ createdAt: 1 })
+        .lean();
+
+    if (store?._id) {
+        return store;
+    }
+
+    const fallbackStore = await FoodRestaurant.findOne({})
+        .sort({ createdAt: 1 })
+        .select('restaurantName pureVegRestaurant slug status isActive')
+        .lean();
+
+    if (fallbackStore?._id) {
+        return fallbackStore;
+    }
+
+    const createdStore = await FoodRestaurant.create({
+        restaurantName: SINGLE_STORE_NAME,
+        slug: SINGLE_STORE_SLUG,
+        status: 'approved',
+        isActive: true,
+        isAcceptingOrders: true,
+        pureVegRestaurant: false,
+        city: 'Single Store',
+        area: 'Admin Managed'
+    });
+
+    return createdStore.toObject();
+};
+
 const getAdminFoodUpdatedPricing = (existing = {}, body = {}) => {
     const variantsTouched = body.variants !== undefined || body.variations !== undefined;
     const existingHasVariants = hasFoodVariants(existing);
@@ -3314,16 +3361,17 @@ const getAdminFoodUpdatedPricing = (existing = {}, body = {}) => {
 };
 
 export async function createFood(body) {
-    const restaurantId = body.restaurantId;
-    if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) {
-        throw new ValidationError('Valid restaurantId is required');
-    }
-    const restaurant = await FoodRestaurant.findById(restaurantId)
-        .select('pureVegRestaurant')
-        .lean();
+    const requestedRestaurantId = body.restaurantId;
+    const hasValidRequestedRestaurant = requestedRestaurantId && mongoose.Types.ObjectId.isValid(requestedRestaurantId);
+    const restaurant = hasValidRequestedRestaurant
+        ? await FoodRestaurant.findById(requestedRestaurantId)
+            .select('restaurantName pureVegRestaurant')
+            .lean()
+        : await resolveSingleAdminStore();
     if (!restaurant?._id) {
-        throw new ValidationError('Restaurant not found');
+        throw new ValidationError('Admin store not found');
     }
+    const restaurantId = restaurant._id;
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name) throw new ValidationError('Food name is required');
     const foodType = body.foodType === 'Veg' ? 'Veg' : 'Non-Veg';
@@ -3367,11 +3415,16 @@ export async function updateFood(id, body) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const doc = await FoodItem.findById(id);
     if (!doc) return null;
-    const restaurant = await FoodRestaurant.findById(doc.restaurantId)
-        .select('pureVegRestaurant')
-        .lean();
+    const restaurant = doc.restaurantId
+        ? await FoodRestaurant.findById(doc.restaurantId)
+            .select('restaurantName pureVegRestaurant')
+            .lean()
+        : await resolveSingleAdminStore();
     if (!restaurant?._id) {
-        throw new ValidationError('Restaurant not found');
+        throw new ValidationError('Admin store not found');
+    }
+    if (!doc.restaurantId) {
+        doc.restaurantId = restaurant._id;
     }
     if (body.name !== undefined) doc.name = String(body.name || '').trim();
     if (body.description !== undefined) doc.description = String(body.description || '').trim();
@@ -5457,4 +5510,5 @@ export async function deleteSubAdmin(id) {
     const deleted = await FoodAdmin.findOneAndDelete({ _id: id, role: 'SUB_ADMIN' });
     return deleted !== null;
 }
+
 

@@ -105,23 +105,11 @@ export const getPublicGourmetController = async (req, res, next) => {
 
 export const getPublicLandingSettingsController = async (req, res, next) => {
     try {
-        const { zoneId } = req.query;
         const settings = await getLandingSettings();
-        const ids = settings?.recommendedRestaurantIds || [];
-        let recommendedRestaurants = [];
-        if (Array.isArray(ids) && ids.length > 0) {
-            const query = { _id: { $in: ids }, status: 'approved' };
-            if (zoneId && mongoose.Types.ObjectId.isValid(zoneId)) {
-                query.zoneId = new mongoose.Types.ObjectId(zoneId);
-            }
-            recommendedRestaurants = await FoodRestaurant.find(query)
-                .select('restaurantName area city profileImage coverImages menuImages slug rating cuisines pureVegRestaurant')
-                .lean();
-        }
         const payload = {
             ...settings,
-            recommendedRestaurantIds: undefined,
-            recommendedRestaurants
+            recommendedFoodIds: Array.isArray(settings?.recommendedFoodIds) ? settings.recommendedFoodIds : [],
+            recommendedRestaurants: []
         };
         return sendResponse(res, 200, 'Landing settings fetched', payload);
     } catch (error) {

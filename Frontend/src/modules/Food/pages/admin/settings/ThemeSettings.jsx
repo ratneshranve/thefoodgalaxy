@@ -16,10 +16,10 @@ export default function ThemeSettings() {
   const [saving, setSaving] = useState(false);
   
   const [configs, setConfigs] = useState({
-    user_app: { primaryColor: '#e11d48', secondaryColor: '#be123c', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
-    delivery_app: { primaryColor: '#0ea5e9', secondaryColor: '#0284c7', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
-    restaurant_app: { primaryColor: '#B80B3D', secondaryColor: '#66001D', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
-    admin_app: { primaryColor: '#2563eb', secondaryColor: '#1d4ed8', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
+    user_app: { primaryColor: '#DE0B09', secondaryColor: '#02350E', accentColor: '#F9A809', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
+    delivery_app: { primaryColor: '#0ea5e9', secondaryColor: '#0284c7', accentColor: '#38bdf8', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
+    restaurant_app: { primaryColor: '#B80B3D', secondaryColor: '#66001D', accentColor: '#F59E0B', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
+    admin_app: { primaryColor: '#2563eb', secondaryColor: '#1d4ed8', accentColor: '#60a5fa', logoUrl: '', fontFamily: "'Poppins', sans-serif" },
   });
 
   const fontOptions = [
@@ -96,12 +96,12 @@ export default function ThemeSettings() {
       await adminClient.put(`/app-config/${selectedApp}`, {
         primaryColor: currentConfig.primaryColor,
         secondaryColor: currentConfig.secondaryColor,
+        accentColor: currentConfig.accentColor,
         logoUrl: currentConfig.logoUrl,
         fontFamily: currentConfig.fontFamily
       });
       toast.success(`${apps.find(a => a.id === selectedApp).label} configuration saved!`);
       
-      // Update theme instantly (so the admin panel shows the updated colors if they are editing the active app)
       import('../../../utils/themeSettings.js')
         .then(({ applyDynamicTheme }) => applyDynamicTheme())
         .catch(() => {});
@@ -161,7 +161,6 @@ export default function ThemeSettings() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              {/* Theme Colors */}
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-slate-700">Theme Colors</h3>
                 
@@ -202,6 +201,24 @@ export default function ThemeSettings() {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Accent Color</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="color"
+                      value={currentConfig.accentColor || '#F9A809'}
+                      onChange={(e) => handleColorChange('accentColor', e.target.value)}
+                      className="w-14 h-14 rounded cursor-pointer border-0 p-0"
+                    />
+                    <input
+                      type="text"
+                      value={currentConfig.accentColor || '#F9A809'}
+                      onChange={(e) => handleColorChange('accentColor', e.target.value)}
+                      className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none uppercase"
+                    />
+                  </div>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-slate-600 mb-2">Typography (Font Family)</label>
                   <select
                     value={currentConfig.fontFamily || "'Poppins', sans-serif"}
@@ -218,7 +235,6 @@ export default function ThemeSettings() {
                 </div>
               </div>
 
-              {/* Logo Upload */}
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-slate-700">App Logo</h3>
                 
@@ -262,12 +278,17 @@ export default function ThemeSettings() {
                     )}
                     <span className="font-semibold text-lg">{apps.find(a => a.id === selectedApp).label}</span>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-white/20"></div>
+                  <div className="w-8 h-8 rounded-full" style={{ backgroundColor: currentConfig.accentColor || '#F9A809' }}></div>
                 </div>
                 <div className="bg-white p-6 min-h-[150px] rounded-t-2xl mt-4 mx-2 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
                   <div className="h-4 w-1/3 rounded mb-4" style={{ backgroundColor: currentConfig.secondaryColor }}></div>
                   <div className="h-4 w-2/3 bg-slate-100 rounded mb-2"></div>
                   <div className="h-4 w-1/2 bg-slate-100 rounded"></div>
+                  <div className="flex gap-2 mt-5">
+                    <div className="h-9 flex-1 rounded-xl" style={{ backgroundColor: currentConfig.primaryColor }}></div>
+                    <div className="h-9 flex-1 rounded-xl" style={{ backgroundColor: currentConfig.accentColor || '#F9A809' }}></div>
+                    <div className="h-9 flex-1 rounded-xl" style={{ backgroundColor: currentConfig.secondaryColor }}></div>
+                  </div>
                   
                   <div className="mt-6 mb-2">
                     <h4 className="text-lg font-bold text-slate-800">Typography Preview</h4>
@@ -286,7 +307,6 @@ export default function ThemeSettings() {
 
           </div>
 
-          {/* Action Bar */}
           <div className="bg-slate-50 p-6 border-t border-slate-200 flex justify-end">
             <button 
               onClick={handleSave}

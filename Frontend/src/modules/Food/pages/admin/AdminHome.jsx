@@ -234,10 +234,10 @@ export default function AdminHome() {
             <MetricCard
               title="Commission earned"
               value={formatCurrency(commissionTotal)}
-              helper={`${periodLabel} restaurant cut`}
+              helper={`${periodLabel} platform earnings`}
               icon={<ArrowUpRight className="h-5 w-5 text-indigo-600" />}
               accent="bg-indigo-200/40"
-              path="/admin/food/restaurants/commission"
+              path="/admin/food/transaction-report"
             />
             <MetricCard
               title="Orders processed"
@@ -280,20 +280,20 @@ export default function AdminHome() {
               path="/admin/food/transaction-report"
             />
             <MetricCard
-              title="Total restaurants"
+              title="Store catalog groups"
               value={totalRestaurants.toLocaleString("en-IN")}
-              helper="Approved restaurants"
+              helper="Legacy store records still linked"
               icon={<Store className="h-5 w-5 text-blue-600" />}
               accent="bg-blue-200/40"
-              path="/admin/food/restaurants"
+              path="/admin/food/foods"
             />
             <MetricCard
-              title="Restaurant request pending"
+              title="Store requests pending"
               value={pendingRestaurantRequests.toLocaleString("en-IN")}
               helper="Awaiting approval"
               icon={<UserCheck className="h-5 w-5 text-orange-600" />}
               accent="bg-orange-200/40"
-              path="/admin/food/restaurants/joining-request"
+              path="/admin/food/orders/pending"
             />
             <MetricCard
               title="Total delivery boy"
@@ -645,4 +645,5 @@ function MetricCard({ title, value, helper, icon, accent, path }) {
     </Card>
   )
 }
+
 
