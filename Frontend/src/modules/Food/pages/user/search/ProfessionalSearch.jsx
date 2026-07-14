@@ -26,11 +26,10 @@ const getMediaUrl = (url) => {
   if (!url || typeof url !== 'string') return null;
   if (url.startsWith('http')) return url;
   
-  // Use VITE_API_BASE_URL to derive the backend origin
-  const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
-  const origin = apiBase.split('/api/v1')[0];
+  const apiBase = String(import.meta.env.VITE_API_BASE_URL || '').trim();
+  const origin = apiBase ? apiBase.split('/api/v1')[0] : (typeof window !== 'undefined' ? window.location.origin : '');
   
-  return `${origin}${url.startsWith('/') ? url : '/' + url}`;
+  return origin ? `${origin}${url.startsWith('/') ? url : '/' + url}` : url;
 };
 
 // Debounce hook for real-time search
@@ -652,3 +651,4 @@ export default function ProfessionalSearch() {
   </div>
 )
 }
+

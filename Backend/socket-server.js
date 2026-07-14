@@ -12,13 +12,13 @@ const app = express();
 
 // Healthcheck route
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', service: 'socket', port: config.socketPort || 5001 });
+    res.json({ status: 'ok', service: 'socket', port: config.socketPort });
 });
 
 const startSocketServer = async () => {
     try {
         logger.info(
-            `[Bootstrap] Starting dedicated socket server redisEnabled=${config.redisEnabled} host=${config.host || '127.0.0.1'} socketPort=${config.socketPort || 5001}`
+            `[Bootstrap] Starting dedicated socket server redisEnabled=${config.redisEnabled} host=${config.host || '127.0.0.1'} socketPort=${config.socketPort}`
         );
         await connectDB();
         await loadEnvFromDb();
@@ -36,7 +36,7 @@ const startSocketServer = async () => {
         logger.info('[Bootstrap] Initializing Socket.IO infrastructure on dedicated socket server');
         await initSocket(httpServer);
 
-        const port = config.socketPort || 5001;
+        const port = config.socketPort;
         httpServer.listen(port, config.host || '127.0.0.1', () => {
             logger.info(`Dedicated Socket.IO Server running on ${config.host || '127.0.0.1'}:${port}`);
         });
@@ -61,4 +61,3 @@ const startSocketServer = async () => {
 };
 
 startSocketServer();
-

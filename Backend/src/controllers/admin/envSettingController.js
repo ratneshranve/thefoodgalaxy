@@ -4,7 +4,7 @@ import { updateConfig } from '../../config/env.js';
 
 // Define which keys are allowed to be managed via DB
 export const ALLOWED_ENV_KEYS = [
-    'PORT', 'NODE_ENV', 'MONGODB_URI', 'JWT_ACCESS_SECRET', 'JWT_ACCESS_EXPIRES',
+    'PORT', 'SOCKET_PORT', 'NODE_ENV', 'MONGODB_URI', 'JWT_ACCESS_SECRET', 'JWT_ACCESS_EXPIRES',
     'JWT_REFRESH_SECRET', 'JWT_REFRESH_EXPIRES', 'FRONTEND_URL', 'REDIS_ENABLED',
     'REDIS_URL', 'BULLMQ_ENABLED', 'RATE_LIMIT_WINDOW_MS', 'RATE_LIMIT_WINDOW',
     'RATE_LIMIT_MAX', 'BCRYPT_SALT_ROUNDS', 'UPLOAD_PATH', 'HUGGINGFACE_API_KEY',
@@ -80,3 +80,4 @@ export const updateEnvSettings = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
