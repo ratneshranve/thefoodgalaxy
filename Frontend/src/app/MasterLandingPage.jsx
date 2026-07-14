@@ -106,7 +106,7 @@ const SLIDES = [
   {
     id: 1,
     image: "https://imgs.search.brave.com/kIcb6MhCPlZRyadtSs3RA8YRS0_gVuwmXaadnDR50qk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/bWFnbmlmaWMuY29t/L3ByZW1pdW0tcGhv/dG8vY2hlZi1zZXJ2/aW5nLWRpc2gtc3Rl/YW1lZC1mb29kLXdp/dGgtZm9ya18xMzUz/MjQ0LTIyMzkxLmpw/Zz9zZW10PWFpc19o/eWJyaWQmdz03NDAm/cT04MA",
-    title: "Indian Bites",
+    title: "The Food Galaxy",
     subtitle: "Giving you the best service and all"
   },
   {
@@ -154,7 +154,7 @@ export default function MasterLandingPage() {
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-red-500/30 overflow-x-hidden relative">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Great+VTFGes&display=swap');
         .font-cursive {
           font-family: 'Great Vibes', cursive;
         }
@@ -421,7 +421,7 @@ export default function MasterLandingPage() {
           {/* Right Feature Column */}
           <div className="flex-1 space-y-4 w-full order-3">
             <FeatureRowRight title="Huge Discounts & Offers" desc="Enjoy exciting offers, discounts and coupons exclusively on the app" Icon={Ticket} delay={0.1} />
-            <FeatureRowRight title="Indian Bites GOLD" desc="Get free delivery and extra discounts on every order with premium membership" Icon={Award} delay={0.2} />
+            <FeatureRowRight title="The Food Galaxy GOLD" desc="Get free delivery and extra discounts on every order with premium membership" Icon={Award} delay={0.2} />
             <FeatureRowRight title="Safety & Hygiene" desc="Best in class safety standards with regular temperature checks" Icon={ShieldCheck} delay={0.3} />
           </div>
 
@@ -441,7 +441,7 @@ export default function MasterLandingPage() {
               Download the app now!
             </h2>
             <p className="text-xl text-gray-500 font-medium mb-10 max-w-md">
-              Experience seamless online ordering only on the Indian Bites app
+              Experience seamless online ordering only on The Food Galaxy app
             </p>
             <div className="flex gap-4 justify-center md:justify-start">
               <img 
@@ -473,7 +473,7 @@ export default function MasterLandingPage() {
                     <div key={i} className={`bg-black rounded-sm ${Math.random() > 0.3 ? 'opacity-100' : 'opacity-0'}`} />
                   ))}
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white border border-gray-200 rounded-md flex items-center justify-center">
-                    <span className="text-xs font-black text-[#E23744]">IB</span>
+                    <span className="text-xs font-black text-[#E23744]">TFG</span>
                   </div>
                 </div>
               </div>
@@ -489,13 +489,13 @@ export default function MasterLandingPage() {
           <div className="flex flex-col lg:flex-row justify-between mb-16 gap-12">
             <div className="lg:w-1/4">
               <h1 className="text-4xl font-black italic tracking-tighter mb-8">
-                Indian Bites
+                The Food Galaxy
               </h1>
             </div>
 
             <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-8">
               <div>
-                <h4 className="font-bold text-lg mb-6 uppercase tracking-wider text-gray-200">About IB</h4>
+                <h4 className="font-bold text-lg mb-6 uppercase tracking-wider text-gray-200">About TFG</h4>
                 <ul className="space-y-3 text-gray-400 font-medium">
                   {(landingSettings?.footerLinks?.about || [
                     { label: 'Who We Are', url: '#' },
@@ -584,10 +584,12 @@ export default function MasterLandingPage() {
 
           <div className="text-gray-500 text-sm font-medium mt-10 text-center md:text-left leading-relaxed">
             By continuing past this page, you agree to our Terms of Service, Cookie Policy, Privacy Policy and Content Policies. All trademarks are properties of their respective owners. <br />
-            {landingSettings?.copyrightText || '© 2026 Indian Bites™ Ltd. All rights reserved.'}
+            {landingSettings?.copyrightText || '© 2026 The Food Galaxy™ Ltd. All rights reserved.'}
           </div>
         </div>
       </footer>
     </div>
   )
 }
+
+
