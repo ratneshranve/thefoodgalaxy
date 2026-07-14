@@ -18,31 +18,38 @@
   --radius: 0.625rem;
   
   --background: #F9F9FB;
-  --foreground: #3c0f3d;
+  --foreground: #02350E;
   --card: #ffffff;
-  --card-foreground: #3c0f3d;
+  --card-foreground: #02350E;
   --popover: #ffffff;
-  --popover-foreground: #3c0f3d;
-  --primary: #7e3866;
+  --popover-foreground: #02350E;
+  --primary: #DE0B09;
   --primary-foreground: #ffffff;
-  --secondary: #55254b;
+  --secondary: #02350E;
   --secondary-foreground: #ffffff;
   --muted: #f1f5f9;
-  --muted-foreground: #b18da5;
-  --accent: #b18da5;
-  --accent-foreground: #ffffff;
+  --muted-foreground: #6b7280;
+  --accent: #F9A809;
+  --accent-foreground: #02350E;
   --destructive: #ef4444;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #7e3866;
+  --ring: #DE0B09;
   --sidebar: #ffffff;
-  --sidebar-foreground: #3c0f3d;
-  --sidebar-primary: #7e3866;
+  --sidebar-foreground: #02350E;
+  --sidebar-primary: #DE0B09;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #55254b;
-  --sidebar-accent-foreground: #ffffff;
+  --sidebar-accent: #F9A809;
+  --sidebar-accent-foreground: #02350E;
   --sidebar-border: #e2e8f0;
-  --sidebar-ring: #7e3866;
+  --sidebar-ring: #DE0B09;
+  --user-brand-primary: #DE0B09;
+  --user-brand-secondary: #02350E;
+  --user-brand-accent: #F9A809;
+  --user-brand-surface: #FFF7E0;
+  --user-brand-soft: #FFF1CC;
+  --user-brand-nav-active: #FFF0C2;
+  --user-brand-card-shadow: rgba(222, 11, 9, 0.14);
 }
 
 @theme inline {
@@ -78,7 +85,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
   
   --color-page-bg: #F9F9FB;
-  --color-primary-orange: #7e3866;
+  --color-primary-orange: #DE0B09;
   --font-poppins: var(--font-poppins);
   --font-outfit: var(--font-outfit);
 }

@@ -4,7 +4,6 @@ export const applyDynamicTheme = async () => {
   try {
     const apps = ['user_app', 'restaurant_app', 'delivery_app', 'admin_app'];
     
-    // Fetch all configurations simultaneously using the public endpoint
     const promises = apps.map(appType => 
       publicGetOnce(`/app-config/${appType}`, { noCache: true }).catch(() => null)
     );
@@ -25,15 +24,31 @@ export const applyDynamicTheme = async () => {
       const appType = apps[index];
       
       if (appType === 'user_app') {
-        if (activeConfig.primaryColor) {
-          root.style.setProperty('--primary', activeConfig.primaryColor);
-          root.style.setProperty('--color-primary', activeConfig.primaryColor);
-          root.style.setProperty('--color-primary-orange', activeConfig.primaryColor);
-        }
-        if (activeConfig.secondaryColor) {
-          root.style.setProperty('--secondary', activeConfig.secondaryColor);
-          root.style.setProperty('--color-secondary', activeConfig.secondaryColor);
-        }
+        const primaryColor = activeConfig.primaryColor || '#DE0B09';
+        const secondaryColor = activeConfig.secondaryColor || '#02350E';
+        const accentColor = activeConfig.accentColor || '#F9A809';
+
+        root.style.setProperty('--primary', primaryColor);
+        root.style.setProperty('--color-primary', primaryColor);
+        root.style.setProperty('--color-primary-orange', primaryColor);
+        root.style.setProperty('--secondary', secondaryColor);
+        root.style.setProperty('--color-secondary', secondaryColor);
+        root.style.setProperty('--accent', accentColor);
+        root.style.setProperty('--color-accent', accentColor);
+        root.style.setProperty('--foreground', secondaryColor);
+        root.style.setProperty('--card-foreground', secondaryColor);
+        root.style.setProperty('--popover-foreground', secondaryColor);
+        root.style.setProperty('--ring', primaryColor);
+        root.style.setProperty('--sidebar-primary', primaryColor);
+        root.style.setProperty('--sidebar-accent', accentColor);
+        root.style.setProperty('--user-brand-primary', primaryColor);
+        root.style.setProperty('--user-brand-secondary', secondaryColor);
+        root.style.setProperty('--user-brand-accent', accentColor);
+        root.style.setProperty('--user-brand-surface', '#FFF7E0');
+        root.style.setProperty('--user-brand-soft', '#FFF1CC');
+        root.style.setProperty('--user-brand-nav-active', '#FFF0C2');
+        root.style.setProperty('--user-brand-card-shadow', 'rgba(222, 11, 9, 0.14)');
+
         if (activeConfig.logoUrl) {
           localStorage.setItem('user_app_logo', activeConfig.logoUrl);
         }
@@ -72,13 +87,11 @@ export const applyDynamicTheme = async () => {
         }
       }
       
-      // Apply font-family based on the current active app context
       if (activeConfig.fontFamily && appType === currentAppType) {
         root.style.setProperty('--main-font-family', activeConfig.fontFamily);
       }
     });
 
-    // Dispatch global event once all themes are applied
     window.dispatchEvent(new CustomEvent('themeLoaded', { detail: { updated: true } }));
 
   } catch (error) {

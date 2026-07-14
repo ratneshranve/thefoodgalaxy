@@ -41,18 +41,12 @@ export const adminSidebarMenu = [
     label: "FOOD MANAGEMENT",
     items: [
       {
-        type: "link",
-        label: "Food Approval",
-        path: "/admin/food/food-approval",
-        icon: "CheckCircle2",
-      },
-      {
         type: "expandable",
         label: "Foods",
         icon: "Utensils",
         subItems: [
-          { label: "Restaurant Foods List", path: "/admin/food/foods" },
-          { label: "Restaurant Addons List", path: "/admin/food/addons" },
+          { label: "Food Items", path: "/admin/food/foods" },
+          { label: "Addons", path: "/admin/food/addons" },
         ],
       },
       {
@@ -60,38 +54,6 @@ export const adminSidebarMenu = [
         label: "Categories",
         icon: "FolderTree",
         subItems: [{ label: "Category", path: "/admin/food/categories" }],
-      },
-    ],
-  },
-  {
-    type: "section",
-    label: "RESTAURANT MANAGEMENT",
-    items: [
-      {
-        type: "link",
-        label: "Zone Setup",
-        path: "/admin/food/zone-setup",
-        icon: "MapPin",
-      },
-      {
-        type: "link",
-        label: "Zone Ranking",
-        path: "/admin/food/zone-ranking",
-        icon: "MapPin",
-      },
-      {
-        type: "expandable",
-        label: "Restaurants",
-        icon: "UtensilsCrossed",
-        subItems: [
-          { label: "Restaurants List", path: "/admin/food/restaurants" },
-          { label: "Menu Bulk Upload", path: "/admin/food/restaurants/menu-bulk-upload" },
-          { label: "New Joining Request", path: "/admin/food/restaurants/joining-request" },
-          { label: "Restaurant Commission", path: "/admin/food/restaurants/commission" },
-          { label: "Restaurant Discount", path: "/admin/food/restaurants/discount" },
-          { label: "Restaurant Reviews", path: "/admin/food/restaurants/reviews" },
-          { label: "Restaurant Complaints", path: "/admin/food/restaurants/complaints" },
-        ],
       },
     ],
   },
@@ -132,7 +94,7 @@ export const adminSidebarMenu = [
     items: [
       {
         type: "link",
-        label: "Restaurant Coupons & Offers",
+        label: "Coupons & Offers",
         path: "/admin/food/coupons",
         icon: "Gift",
       },
@@ -157,7 +119,7 @@ export const adminSidebarMenu = [
       },
       {
         type: "link",
-        label: "Support Tickets (User & Restaurant)",
+        label: "Support Tickets",
         path: "/admin/food/support-tickets",
         icon: "MessageSquare",
       },
@@ -208,9 +170,9 @@ export const adminSidebarMenu = [
       { type: "link", label: "Tax Report", path: "/admin/food/tax-report", icon: "Receipt" },
       {
         type: "expandable",
-        label: "Restaurant Report",
+        label: "Store Report",
         icon: "FileText",
-        subItems: [{ label: "Restaurant Report", path: "/admin/food/restaurant-report" }],
+        subItems: [{ label: "Store Report", path: "/admin/food/restaurant-report" }],
       },
       {
         type: "expandable",
@@ -224,7 +186,7 @@ export const adminSidebarMenu = [
     type: "section",
     label: "TRANSACTION MANAGEMENT",
     items: [
-      { type: "link", label: "Restaurant Withdraws", path: "/admin/food/restaurant-withdraws", icon: "CreditCard" },
+      
     ],
   },
   {
@@ -275,3 +237,6 @@ export const adminSidebarMenu = [
     ],
   },
 ];
+
+
+

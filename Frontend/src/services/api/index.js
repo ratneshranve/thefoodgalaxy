@@ -1207,6 +1207,17 @@ export const getPublicExploreIcons = (zoneId = null) =>
     params: zoneId ? { zoneId } : {},
   }).then((res) => res?.data?.data ?? res?.data ?? {});
 
+const retryPublicCatalogRequest = (primaryPath, fallbackPath, params = {}, axiosConfig = {}) => {
+  const requestConfig = { params, ...axiosConfig };
+  return userClient.get(primaryPath, requestConfig).catch((error) => {
+    const status = Number(error?.response?.status || 0);
+    if (status === 404 || status === 410) {
+      return userClient.get(fallbackPath, requestConfig);
+    }
+    throw error;
+  });
+};
+
 const getPublicCategoriesOnce = (params = {}, config = {}) => {
   const { noCache, ...axiosConfig } = config || {};
   const keyParams =
@@ -1214,18 +1225,12 @@ const getPublicCategoriesOnce = (params = {}, config = {}) => {
   if (keyParams._ts) delete keyParams._ts;
 
   if (noCache) {
-    return userClient.get("/food/restaurant/categories/public", {
-      params: keyParams,
-      ...axiosConfig,
-    });
+    return retryPublicCatalogRequest("/food/restaurant/categories/public", "/food/catalog/categories/public", keyParams, axiosConfig);
   }
 
   const key = `categories:${stableStringify(keyParams)}`;
   return publicCategoriesCache.getOrCreate(key, () =>
-    userClient.get("/food/restaurant/categories/public", {
-      params: keyParams,
-      ...axiosConfig,
-    }),
+    retryPublicCatalogRequest("/food/restaurant/categories/public", "/food/catalog/categories/public", keyParams, axiosConfig),
   );
 };
 
@@ -1242,18 +1247,12 @@ const getPublicFoodsOnce = (params = {}, config = {}) => {
   if (keyParams._ts) delete keyParams._ts;
 
   if (noCache) {
-    return userClient.get("/food/restaurant/foods/public", {
-      params: keyParams,
-      ...axiosConfig,
-    });
+    return retryPublicCatalogRequest("/food/restaurant/foods/public", "/food/catalog/foods/public", keyParams, axiosConfig);
   }
 
   const key = `foods:${stableStringify(keyParams)}`;
   return publicFoodsCache.getOrCreate(key, () =>
-    userClient.get("/food/restaurant/foods/public", {
-      params: keyParams,
-      ...axiosConfig,
-    }),
+    retryPublicCatalogRequest("/food/restaurant/foods/public", "/food/catalog/foods/public", keyParams, axiosConfig),
   );
 };
 
@@ -1266,10 +1265,7 @@ export const getPublicFoods = (params = {}, config = {}) =>
 const getPublicRestaurantsOnce = (params = {}, config = {}) => {
   const { noCache, ...axiosConfig } = config || {};
   if (noCache) {
-    return userClient.get("/food/restaurant/restaurants", {
-      params: { limit: 1000, ...params },
-      ...axiosConfig,
-    });
+    return retryPublicCatalogRequest("/food/restaurant/restaurants", "/food/catalog/restaurants/public", { limit: 1000, ...params }, axiosConfig);
   }
   const keyParams = { limit: 1000, ...params };
   // `_ts` is an explicit cache-buster in many call sites; ignore it for dedupe purposes.
@@ -1285,10 +1281,7 @@ const getPublicRestaurantsOnce = (params = {}, config = {}) => {
   }
   const key = `restaurants:${stableStringify(keyParams)}`;
   return publicRestaurantsCache.getOrCreate(key, () =>
-    userClient.get("/food/restaurant/restaurants", {
-      params: { limit: 1000, ...params },
-      ...axiosConfig,
-    }),
+    retryPublicCatalogRequest("/food/restaurant/restaurants", "/food/catalog/restaurants/public", { limit: 1000, ...params }, axiosConfig),
   );
 };
 

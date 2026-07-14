@@ -1,4 +1,6 @@
 ﻿import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { isModuleAuthenticated } from "@food/utils/auth";
 import React, {
   useRef,
   useEffect,
@@ -87,13 +89,12 @@ import {
 import { useAppLocation } from "@food/hooks/useAppLocation";
 import quickSpicyLogo from "@food/assets/quicky-spicy-logo.png";
 import offerImage from "@food/assets/offerimage.png";
-import api, { publicGetOnce, restaurantAPI, getPublicLandingSettings, getPublicExploreIcons, getPublicCategories } from "@food/api";
+import api, { publicGetOnce, restaurantAPI, getPublicLandingSettings, getPublicExploreIcons, getPublicCategories, getPublicFoods } from "@food/api";
 import { API_BASE_URL } from "@food/api/config";
 import OptimizedImage, { ShopPlaceholder } from "@food/components/OptimizedImage";
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability";
 import HomeHeader from "@food/components/user/home/HomeHeader";
 import HeroBanner from "@food/components/user/home/HeroBanner";
-import RestaurantGrid from "@food/components/user/home/RestaurantGrid";
 import ExploreMoreSection from "@food/components/user/home/ExploreMoreSection";
 import RestaurantImageCarousel from "@food/components/user/home/RestaurantImageCarousel";
 import QuickSection from "@food/components/user/home/QuickSection";
@@ -130,8 +131,10 @@ const homePageCache = {
   landingExploreFetched: false,
   exploreMoreHeading: null,
   recommendedRestaurantIds: null,
+  recommendedFoodIds: null,
   under250PriceLimit: null,
   recommendedRestaurantsFromSettings: null,
+  approvedFoodsData: null,
   festBannerImages: null,
   heroBannerImages: null,
   heroBannersData: null,
@@ -233,6 +236,7 @@ export default function Home() {
   const [festBannerImages, setFestBannerImages] = useState(() => homePageCache.festBannerImages ?? []);
   const [bgIndex, setBgIndex] = useState(0);
   const [recommendedRestaurantIds, setRecommendedRestaurantIds] = useState(() => homePageCache.recommendedRestaurantIds || []);
+  const [recommendedFoodIds, setRecommendedFoodIds] = useState(() => homePageCache.recommendedFoodIds || []);
   const [under250PriceLimit, setUnder250PriceLimit] = useState(() => homePageCache.under250PriceLimit || 250);
   const [
     recommendedRestaurantsFromSettings,
@@ -241,6 +245,8 @@ export default function Home() {
   const [loadingLandingConfig, setLoadingLandingConfig] = useState(() => !homePageCache.landingExploreFetched);
   const [restaurantsData, setRestaurantsData] = useState(() => homePageCache.restaurantsData || []);
   const [loadingRestaurants, setLoadingRestaurants] = useState(() => !homePageCache.restaurantsData);
+  const [approvedFoodsData, setApprovedFoodsData] = useState(() => homePageCache.approvedFoodsData || []);
+  const [loadingFoodCatalog, setLoadingFoodCatalog] = useState(() => !homePageCache.approvedFoodsData);
   const [realCategories, setRealCategories] = useState([]);
   const [loadingRealCategories, setLoadingRealCategories] = useState(true);
   const [menuCategories, setMenuCategories] = useState([]);
@@ -511,11 +517,42 @@ export default function Home() {
     }));
   }, [landingCategories, normalizeImageUrl, slugifyCategory]);
 
+  const approvedFoodCategories = useMemo(() => {
+    if (!Array.isArray(approvedFoodsData) || approvedFoodsData.length === 0) {
+      return [];
+    }
+
+    const categoryMap = new Map();
+    approvedFoodsData.forEach((food, index) => {
+      const categoryName = String(food?.categoryName || food?.category || "").trim();
+      if (!categoryName) return;
+
+      const slug = slugifyCategory(categoryName);
+      if (!slug) return;
+
+      if (!categoryMap.has(slug)) {
+        categoryMap.set(slug, {
+          id: String(food?.categoryId || slug),
+          name: categoryName,
+          slug,
+          label: categoryName,
+          image:
+            normalizeImageUrl(food?.image) ||
+            foodImages[index % foodImages.length] ||
+            foodImages[0],
+        });
+      }
+    });
+
+    return Array.from(categoryMap.values());
+  }, [approvedFoodsData, normalizeImageUrl, slugifyCategory]);
+
   const displayCategories = useMemo(() => {
     if (realCategories.length > 0) return realCategories;
     if (menuCategories.length > 0) return menuCategories;
+    if (approvedFoodCategories.length > 0) return approvedFoodCategories;
     return normalizedLandingCategories;
-  }, [menuCategories, realCategories, normalizedLandingCategories]);
+  }, [menuCategories, realCategories, approvedFoodCategories, normalizedLandingCategories]);
 
   // Swipe functionality for hero banner carousel
   // Sync prevVegMode when vegMode changes from context
@@ -623,7 +660,7 @@ export default function Home() {
   const showBannerSkeleton = loadingBanners;
   const showCategorySkeleton = loadingRealCategories || loadingMenuCategories;
   const showExploreSkeleton = loadingLandingConfig;
-  const showRestaurantSkeleton = isLoadingFilterResults || loadingRestaurants;
+  const showRestaurantSkeleton = isLoadingFilterResults || loadingRestaurants || loadingFoodCatalog;
   // Safely get profile context - handle case when ProfileProvider is not available
   let profileContext = null;
   try {
@@ -648,10 +685,64 @@ export default function Home() {
     getDefaultAddress,
   } = profileContext;
   const { addToCart, cart } = useCart();
+
+  const handleFoodCardAdd = useCallback((food) => {
+    if (!food) return;
+
+    if (!isModuleAuthenticated("user")) {
+      toast.error("Please login to add items to cart");
+      navigate("/user/auth/login", { state: { from: "/food/user" } });
+      return;
+    }
+
+    addToCart(food);
+  }, [addToCart, navigate]);
   const { location, loading: effectiveZoneLoading, requestLocation, zoneId: effectiveZoneId, zoneStatus: effectiveZoneStatus, isOutOfService: isEffectiveLocationOutOfService } = useAppLocation();
   const [showToast, setShowToast] = useState(false);
   const [showManageCollections, setShowManageCollections] = useState(false);
   const [selectedRestaurantSlug, setSelectedRestaurantSlug] = useState(null);
+
+  useEffect(() => {
+      let cancelled = false;
+  
+      const fetchApprovedFoods = async () => {
+        try {
+          setLoadingFoodCatalog(true);
+          const params = { limit: 200 };
+          if (effectiveZoneId) {
+            params.zoneId = effectiveZoneId;
+          }
+          const data = await getPublicFoods(params);
+          const approvedFoods = Array.isArray(data?.foods)
+            ? data.foods.filter(
+                (food) =>
+                  String(food?.approvalStatus || "").toLowerCase() === "approved" &&
+                  food?.isAvailable !== false,
+              )
+            : [];
+  
+          if (!cancelled) {
+            setApprovedFoodsData(approvedFoods);
+            homePageCache.approvedFoodsData = approvedFoods;
+          }
+        } catch {
+          if (!cancelled) {
+            setApprovedFoodsData([]);
+            homePageCache.approvedFoodsData = [];
+          }
+        } finally {
+          if (!cancelled) {
+            setLoadingFoodCatalog(false);
+          }
+        }
+      };
+  
+      fetchApprovedFoods();
+  
+      return () => {
+        cancelled = true;
+      };
+    }, [effectiveZoneId]);
 
   // Memoize cartCount to prevent recalculation on every render - use cart directly
   const cartCount = useMemo(
@@ -800,10 +891,17 @@ export default function Home() {
     const run = async () => {
       try {
         setLoadingRealCategories(true);
-        const data = await getPublicCategories(effectiveZoneId || null);
+        const primaryData = await getPublicCategories(effectiveZoneId || null);
         if (cancelled) return;
 
-        const list = data?.categories || (Array.isArray(data) ? data : []);
+        const primaryList = primaryData?.categories || (Array.isArray(primaryData) ? primaryData : []);
+        const fallbackData = primaryList.length === 0 && effectiveZoneId
+          ? await getPublicCategories(null, { noCache: true })
+          : null;
+
+        if (cancelled) return;
+
+        const list = fallbackData?.categories || primaryList;
         const categories = Array.isArray(list)
           ? list.map((cat, idx) => ({
               id: String(cat?.id || cat?._id || cat?.slug || idx),
@@ -867,6 +965,7 @@ export default function Home() {
         const heading = settingsData.exploreMoreHeading || "Explore More";
         setExploreMoreHeading(heading);
         setRecommendedRestaurantIds(settingsData.recommendedRestaurantIds || []);
+        setRecommendedFoodIds(settingsData.recommendedFoodIds || []);
         setUnder250PriceLimit(Number(settingsData.under250PriceLimit) || 250);
 
         const recRest = settingsData.recommendedRestaurants || [];
@@ -879,6 +978,7 @@ export default function Home() {
         homePageCache.landingExploreMore = exploreMoreData;
         homePageCache.exploreMoreHeading = heading;
         homePageCache.recommendedRestaurantIds = settingsData.recommendedRestaurantIds || [];
+        homePageCache.recommendedFoodIds = settingsData.recommendedFoodIds || [];
         homePageCache.under250PriceLimit = Number(settingsData.under250PriceLimit) || 250;
         homePageCache.recommendedRestaurantsFromSettings = recRest;
         homePageCache.festBannerImages = images;
@@ -889,6 +989,7 @@ export default function Home() {
         if (!cancelled) {
           setLandingExploreMore([]);
           setExploreMoreHeading("Explore More");
+          setRecommendedFoodIds([]);
           setRecommendedRestaurantsFromSettings([]);
           setFestBannerImages([]);
         }
@@ -1805,6 +1906,96 @@ export default function Home() {
     return (restaurantsData || []).filter(matchesVegMode);
   }, [restaurantsData, matchesVegMode]);
 
+  const homeFoodItems = useMemo(() => {
+    if (!Array.isArray(approvedFoodsData) || approvedFoodsData.length === 0) {
+      return [];
+    }
+
+    const restaurantsById = new Map();
+    const restaurantsByName = new Map();
+    filteredRestaurants.forEach((restaurant) => {
+      const idCandidates = [restaurant?.restaurantId, restaurant?.id, restaurant?.mongoId].filter(Boolean).map((value) => String(value).trim());
+      idCandidates.forEach((value) => {
+        if (!restaurantsById.has(value)) {
+          restaurantsById.set(value, restaurant);
+        }
+      });
+
+      const normalizedName = String(restaurant?.name || "").trim().toLowerCase();
+      if (normalizedName && !restaurantsByName.has(normalizedName)) {
+        restaurantsByName.set(normalizedName, restaurant);
+      }
+    });
+
+    const liveQuery = String(query || heroSearch || "").trim().toLowerCase();
+
+    return approvedFoodsData
+      .map((food, index) => {
+        const restaurantId = String(food?.restaurantId || "").trim();
+        const restaurantName = String(food?.restaurantName || "The Food Galaxy").trim();
+        const matchedRestaurant = restaurantsById.get(restaurantId) || restaurantsByName.get(restaurantName.toLowerCase()) || null;
+        const image = normalizeImageUrl(food?.image) || foodImages[index % foodImages.length] || foodImages[0];
+        const price = Number(food?.price || 0);
+        const itemId = String(food?.id || food?._id || ("food-" + index));
+        const normalizedFoodType = String(food?.foodType || "Non-Veg");
+
+        return {
+          id: itemId,
+          itemId,
+          productId: itemId,
+          name: food?.name || "Unnamed Item",
+          description: food?.description || "",
+          image,
+          imageUrl: image,
+          price,
+          originalPrice: price,
+          foodType: normalizedFoodType,
+          categoryName: food?.categoryName || "Food",
+          preparationTime: food?.preparationTime || matchedRestaurant?.deliveryTime || "",
+          rating: Number(matchedRestaurant?.rating || 0),
+          distance: matchedRestaurant?.distance || "",
+          deliveryTime: matchedRestaurant?.deliveryTime || "",
+          restaurant: restaurantName,
+          restaurantName,
+          restaurantId: restaurantId || matchedRestaurant?.restaurantId || matchedRestaurant?.id || "single-store",
+          restaurantSlug: matchedRestaurant?.slug || restaurantName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "the-food-galaxy",
+          variants: Array.isArray(food?.variants) ? food.variants : [],
+          isAvailable: food?.isAvailable !== false,
+        };
+      })
+      .filter((food) => {
+        if (!food.isAvailable) return false;
+        if (vegMode && vegModeOption === "pure-veg" && food.foodType !== "Veg") {
+          return false;
+        }
+        if (!liveQuery) return true;
+        return String(food.name || "").toLowerCase().includes(liveQuery) || String(food.categoryName || "").toLowerCase().includes(liveQuery) || String(food.restaurantName || "").toLowerCase().includes(liveQuery);
+      })
+      .sort((a, b) => {
+        const ratingDiff = Number(b.rating || 0) - Number(a.rating || 0);
+        if (ratingDiff !== 0) return ratingDiff;
+        return Number(a.price || 0) - Number(b.price || 0);
+      });
+  }, [approvedFoodsData, filteredRestaurants, heroSearch, normalizeImageUrl, query, vegMode, vegModeOption]);
+
+  const recommendedFoodItems = useMemo(() => {
+    const orderedIds = (recommendedFoodIds || []).map((id) => String(id)).filter(Boolean);
+    if (orderedIds.length === 0) return [];
+
+    const recommendedIdSet = new Set(orderedIds);
+    const matchedItems = homeFoodItems.filter((item) =>
+      recommendedIdSet.has(String(item.id || item.itemId || item.productId)),
+    );
+    const itemMap = new Map(
+      matchedItems.map((item) => [String(item.id || item.itemId || item.productId), item]),
+    );
+
+    return orderedIds
+      .map((id) => itemMap.get(id))
+      .filter(Boolean)
+      .slice(0, 8);
+  }, [homeFoodItems, recommendedFoodIds]);
+
   const recommendedForYouRestaurants = useMemo(() => {
     const idsInOrder = (recommendedRestaurantIds || []).map((id) => String(id));
     const hasIds = idsInOrder.length > 0;
@@ -2301,7 +2492,7 @@ export default function Home() {
 
 
 
-        {recommendedForYouRestaurants.length > 0 && (
+        {recommendedFoodItems.length > 0 && (
           <motion.section
             className="content-auto pt-1 sm:pt-2"
             initial={false}
@@ -2311,14 +2502,14 @@ export default function Home() {
             </h2>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-4">
-              {recommendedForYouRestaurants.map((restaurant, index) => {
-                const restaurantSlug =
-                  restaurant.slug ||
-                  restaurant.name.toLowerCase().replace(/\s+/g, "-");
+              {recommendedFoodItems.map((food, index) => {
+                const restaurantSlug = food.restaurantSlug || "the-food-galaxy";
                 return (
-                  <div
-                    key={`recommended-${restaurant.mongoId || restaurant.id || restaurantSlug}`}
-                    className="transform transition-all duration-300 hover:-translate-y-1"
+                  <button
+                    key={`recommended-${food.id || restaurantSlug}`}
+                    type="button"
+                    onClick={() => handleFoodCardAdd(food)}
+                    className="w-full text-left rounded-[20px] overflow-hidden border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1"
                     style={
                       index < 6
                         ? {
@@ -2327,37 +2518,31 @@ export default function Home() {
                         : undefined
                     }
                   >
-                    <Link
-                      to={`/user/restaurants/${restaurantSlug}`}
-                      className="block rounded-[20px] overflow-hidden border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] shadow-sm hover:shadow-md transition-shadow">
-                      <div className="relative h-24 sm:h-28 md:h-32 bg-gray-50">
-                        <RestaurantImageCarousel
-                          restaurant={restaurant}
-                          backendOrigin={BACKEND_ORIGIN}
-                          className="h-24 sm:h-28 md:h-32"
-                          roundedClass="rounded-t-[20px]"
-                        />
-                        <div className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-lg ${Number(restaurant.rating) > 0 ? "bg-black/80 backdrop-blur-md text-white font-medium" : "bg-gray-200/90 text-gray-600 font-medium"} text-[10px] shadow-lg border border-white/10`}>
-                          {Number(restaurant.rating) > 0 ? Number(restaurant.rating).toFixed(1) : "NEW"}
-                        </div>
+                    <div className="relative h-24 sm:h-28 md:h-32 bg-gray-50">
+                      <img
+                        src={food.image}
+                        alt={food.name}
+                        className="h-24 sm:h-28 md:h-32 w-full object-cover rounded-t-[20px]"
+                      />
+                      <div className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-lg ${Number(food.rating) > 0 ? "bg-black/80 backdrop-blur-md text-white font-medium" : "bg-gray-200/90 text-gray-600 font-medium"} text-[10px] shadow-lg border border-white/10`}>
+                        {Number(food.rating) > 0 ? Number(food.rating).toFixed(1) : "NEW"}
                       </div>
-                      <div className="p-2.5">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate tracking-tight">
-                          {restaurant.name}
-                        </p>
-                        <p className="text-[10px] text-primary font-bold mt-1 flex items-center gap-1 uppercase tracking-wider">
-                          <Flame className="w-3.5 h-3.5 fill-primary" />
-                          Near & Fast
-                        </p>
+                    </div>
+                    <div className="p-2.5 space-y-2">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate tracking-tight">
+                        {food.name}
+                      </p>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-bold text-primary">{"₹"}{Number(food.price || 0).toFixed(0)}</span>
+                        <AddToCartButton item={food} className="shrink-0" />
                       </div>
-                    </Link>
-                  </div>
+                    </div>
+                  </button>
                 );
               })}
             </div>
           </motion.section>
         )}
-
         {/* Ads Banner Section (Moved here to separate from Hero Banners) */}
         <div className="pt-2 sm:pt-3 lg:pt-4">
           <AdsBannerCarousel banners={adsBannerImages} data={adsBannersData} />
@@ -2379,10 +2564,10 @@ export default function Home() {
             <div className="px-4 mb-3 lg:mb-4">
               <div className="flex flex-col gap-0.5 lg:gap-1">
                 <h2 className="text-xs sm:text-sm lg:text-base font-semibold text-gray-400 tracking-widest uppercase">
-                  {filteredRestaurants.length} Restaurants Delivering to You
+                  {homeFoodItems.length} Food Items Ready for You
                 </h2>
                 <span className="text-base sm:text-lg lg:text-2xl text-gray-500 font-normal">
-                  Featured
+                  Featured Catalog
                 </span>
               </div>
             </div>
@@ -2497,15 +2682,57 @@ export default function Home() {
               </motion.div>
             </div>
           ) : (
-            <RestaurantGrid
-              restaurants={filteredRestaurants}
-              backendOrigin={BACKEND_ORIGIN}
-              isOutOfService={isEffectiveLocationOutOfService}
-              showSkeleton={showRestaurantSkeleton}
-              isLoading={isLoadingFilterResults || loadingRestaurants}
-              isFavorite={isFavorite}
-              onToggleFavorite={handleRestaurantFavoriteToggle}
-            />
+            homeFoodItems.length === 0 ? (
+            <div className="px-4 py-16 text-center text-sm text-slate-500">
+              No food items are available right now.
+            </div>
+          ) : (
+            <div className={`px-4 pt-1 sm:pt-1.5 lg:pt-2 pb-10 ${
+              isLoadingFilterResults || loadingFoodCatalog ? "opacity-50" : "opacity-100"
+            } transition-opacity duration-300`}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 items-stretch pb-5">
+                {homeFoodItems.map((food, index) => (
+                  <button
+                    key={food.id || index}
+                    type="button"
+                    onClick={() => handleFoodCardAdd(food)}
+                    className="group w-full overflow-hidden rounded-[28px] border border-orange-100/70 bg-white text-left shadow-[0_10px_30px_rgba(249,115,22,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(249,115,22,0.14)]"
+                  >
+                    <div className="relative h-48 overflow-hidden bg-slate-100">
+                      <img
+                        src={food.image}
+                        alt={food.name}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute left-3 top-3 rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm">
+                        {food.categoryName || "Food"}
+                      </div>
+                      <div className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm ${food.foodType === "Veg" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+                        {food.foodType === "Veg" ? "Veg" : "Non-Veg"}
+                      </div>
+                    </div>
+                    <div className="space-y-3 p-4">
+                      <div className="space-y-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className="line-clamp-1 text-lg font-semibold tracking-tight text-slate-900">{food.name}</h3>
+                          <span className="whitespace-nowrap text-base font-bold text-primary">{"\u20B9"}{Number(food.price || 0).toFixed(0)}</span>
+                        </div>
+                        <p className="line-clamp-2 text-sm text-slate-500">{food.description || `${food.categoryName || "Food"} special`}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        {food.rating > 0 ? <span>{food.rating.toFixed(1)} *</span> : null}
+                        {food.preparationTime ? <span>{food.preparationTime}</span> : null}
+                      </div>
+                      <div className="flex items-center justify-between gap-3 pt-1">
+                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">Single Store Catalog</span>
+                        <AddToCartButton item={food} className="shrink-0" />
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
           )}
         </section>
               </motion.div>
