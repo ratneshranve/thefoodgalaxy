@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'indian-foods-api',
+      name: 'thefoodgalaxy-api',
       script: './server.js',
       instances: 'max',
       exec_mode: 'cluster',
@@ -15,7 +15,7 @@ module.exports = {
       },
     },
     {
-      name: 'indian-foods-socket',
+      name: 'thefoodgalaxy-socket',
       script: './socket-server.js',
       instances: 1,
       exec_mode: 'fork',
@@ -29,7 +29,7 @@ module.exports = {
       },
     },
     {
-      name: 'indian-foods-scheduler',
+      name: 'thefoodgalaxy-scheduler',
       script: './scheduler-server.js',
       instances: 1,
       exec_mode: 'fork',
@@ -43,7 +43,7 @@ module.exports = {
       },
     },
     {
-      name: 'indian-foods-worker-otp',
+      name: 'thefoodgalaxy-worker-otp',
       script: './src/queues/workers/otp.worker.js',
       instances: 1,
       exec_mode: 'fork',
@@ -54,7 +54,7 @@ module.exports = {
       env: { NODE_ENV: 'production' },
     },
     {
-      name: 'indian-foods-worker-notification',
+      name: 'thefoodgalaxy-worker-notification',
       script: './src/queues/workers/notification.worker.js',
       instances: 1,
       exec_mode: 'fork',
@@ -65,7 +65,7 @@ module.exports = {
       env: { NODE_ENV: 'production' },
     },
     {
-      name: 'indian-foods-worker-order',
+      name: 'thefoodgalaxy-worker-order',
       script: './src/queues/workers/order.worker.js',
       instances: 1,
       exec_mode: 'fork',
@@ -76,7 +76,7 @@ module.exports = {
       env: { NODE_ENV: 'production' },
     },
     {
-      name: 'indian-foods-worker-tracking',
+      name: 'thefoodgalaxy-worker-tracking',
       script: './src/queues/workers/tracking.worker.js',
       instances: 1,
       exec_mode: 'fork',
@@ -87,7 +87,7 @@ module.exports = {
       env: { NODE_ENV: 'production' },
     },
     {
-      name: 'indian-foods-worker-payment',
+      name: 'thefoodgalaxy-worker-payment',
       script: './src/queues/workers/payment.worker.js',
       instances: 1,
       exec_mode: 'fork',
