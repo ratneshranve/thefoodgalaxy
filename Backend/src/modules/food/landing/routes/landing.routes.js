@@ -56,7 +56,6 @@ import { getPublicPageController } from '../../admin/controllers/pageContent.con
 import { getPublicReferralSettingsController } from '../controllers/publicReferralSettings.controller.js';
 import { getPublicActiveAds } from '../../admin/controllers/appIntroAd.controller.js';
 import { reverseGeocodePublicController, computeDistancePublicController } from '../controllers/locationPublic.controller.js';
-import { getCategories as getAdminCategories, getFoods as getAdminFoods, getRestaurants as getAdminRestaurants } from '../../admin/services/admin.service.js';
 
 const router = express.Router();
 
@@ -137,75 +136,6 @@ router.get('/zones/nearby', listZonesNearbyPublicController);
 router.get('/zones/public', listZonesPublicController);
 router.get('/public/env', getPublicEnvController);
 router.get('/app-intro-ads/public', getPublicActiveAds);
-
-
-router.get('/catalog/categories/public', async (req, res, next) => {
-    try {
-        const data = await getAdminCategories({
-            ...req.query,
-            isApproved: true,
-            limit: req.query?.limit ?? '1000'
-        });
-        res.status(200).json({ success: true, message: 'Public catalog categories fetched successfully', data });
-    } catch (error) {
-        next(error);
-    }
-});
-
-router.get('/catalog/foods/public', async (req, res, next) => {
-    try {
-        const data = await getAdminFoods({
-            ...req.query,
-            singleStoreOnly: 'false',
-            limit: req.query?.limit ?? '1000'
-        });
-
-        const foods = Array.isArray(data?.foods)
-            ? data.foods.filter((food) => {
-                if (food?.isAvailable === false) return false;
-                const approvalStatus = String(food?.approvalStatus || 'approved').toLowerCase();
-                return approvalStatus !== 'pending' && approvalStatus !== 'rejected';
-            })
-            : [];
-
-        res.status(200).json({
-            success: true,
-            message: 'Public catalog foods fetched successfully',
-            data: {
-                ...data,
-                foods,
-                total: foods.length
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-router.get('/catalog/restaurants/public', async (req, res, next) => {
-    try {
-        const data = await getAdminRestaurants({
-            ...req.query,
-            limit: req.query?.limit ?? '1000'
-        });
-
-        const restaurants = Array.isArray(data?.restaurants)
-            ? data.restaurants.filter((restaurant) => String(restaurant?.status || 'approved').toLowerCase() !== 'rejected')
-            : [];
-
-        res.status(200).json({
-            success: true,
-            message: 'Public catalog restaurants fetched successfully',
-            data: {
-                ...data,
-                restaurants,
-                total: restaurants.length
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
 
 // Admin landing settings (old paths used by admin UI)
 router.get('/hero-banners/landing/settings', getAdminLandingSettingsController);

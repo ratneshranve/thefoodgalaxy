@@ -301,7 +301,7 @@ export default function UnifiedOTPFastLogin() {
             transition={{ duration: 0.5, type: "spring", bounce: 0.4 }}
             className="w-32 h-32 md:w-40 md:h-40 rounded-full shadow-[0_15px_35px_rgba(229,57,53,0.35)] border-4 border-white dark:border-gray-800 mb-8 overflow-hidden bg-white"
           >
-            <img src={logoNew} alt="The Food Galaxy Logo" className="w-full h-full object-cover" />
+            <img src={logoNew} alt="Indian Bite Logo" className="w-full h-full object-cover" />
           </motion.div>
 
           <motion.div
@@ -536,4 +536,3 @@ export default function UnifiedOTPFastLogin() {
     </div>
   )
 }
-

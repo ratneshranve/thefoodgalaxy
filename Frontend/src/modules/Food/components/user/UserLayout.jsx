@@ -102,10 +102,6 @@ function UserLayoutShell() {
     normalizedPath === "/profile" ||
     normalizedPath === "/user/profile"
 
-  const isCategoryRoute =
-    normalizedPath.startsWith("/category/") ||
-    normalizedPath.startsWith("/user/category/")
-
   const showBottomNav = !isOutOfService && (
     normalizedPath === "/" ||
     normalizedPath === "/user" ||
@@ -115,7 +111,6 @@ function UserLayoutShell() {
     normalizedPath === "/user/under-250" ||
     normalizedPath === "/orders" ||
     normalizedPath === "/user/orders" ||
-    isCategoryRoute ||
     isProfileRoot ||
     normalizedPath === ""
   )

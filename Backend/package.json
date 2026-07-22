@@ -18,7 +18,13 @@
     "migrate:legacy-core": "node scripts/migrate-legacy-core-data.js",
     "migrate:legacy-core:apply": "node scripts/migrate-legacy-core-data.js --apply",
     "cleanup:legacy-collections": "node scripts/cleanup-legacy-collections.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "backfill:images": "node scripts/backfill-image-fields.js",
+    "backfill:images:apply": "node scripts/backfill-image-fields.js --apply",
+    "backfill:food-images-by-name": "node scripts/backfill-food-images-by-name.js",
+    "backfill:food-images-by-name:apply": "node scripts/backfill-food-images-by-name.js --apply",
+    "backfill:category-images-by-name": "node scripts/backfill-category-images-by-name.js",
+    "backfill:category-images-by-name:apply": "node scripts/backfill-category-images-by-name.js --apply"
   },
   "keywords": [],
   "author": "",
@@ -47,7 +53,9 @@
     "nodemailer": "^8.0.2",
     "razorpay": "^2.9.2",
     "redis": "^4.6.14",
+    "sharp": "^0.35.3",
     "socket.io": "^4.7.5",
+    "uuid": "^14.0.1",
     "xlsx": "^0.18.5",
     "xss-clean": "^0.1.4",
     "zod": "^3.23.8"

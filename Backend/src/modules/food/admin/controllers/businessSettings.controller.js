@@ -8,8 +8,8 @@ export async function getBusinessSettings(req, res, next) {
         if (!settings) {
             // Create default settings if none exist
             settings = await FoodBusinessSettings.create({
-                companyName: 'The Food Galaxy',
-                email: 'admin@thefoodgalaxy.com'
+                companyName: 'Appzeto',
+                email: 'admin@appzeto.com'
             });
         }
         return sendResponse(res, 200, 'Business settings fetched successfully', settings);
@@ -169,8 +169,8 @@ export async function updateBusinessToggles(req, res, next) {
         let settings = await FoodBusinessSettings.findOne();
         if (!settings) {
             settings = await FoodBusinessSettings.create({
-                companyName: 'The Food Galaxy',
-                email: 'admin@thefoodgalaxy.com',
+                companyName: 'Appzeto',
+                email: 'admin@appzeto.com',
             });
         }
 
@@ -200,5 +200,3 @@ export async function updateBusinessToggles(req, res, next) {
         next(error);
     }
 }
-
-

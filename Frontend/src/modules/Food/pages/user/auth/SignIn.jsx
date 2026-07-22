@@ -150,7 +150,7 @@ export default function SignIn() {
           className="w-32 h-32 rounded-full bg-gradient-to-br from-[#E53935] to-[#D32F2F] flex flex-col items-center justify-center shadow-[0_15px_35px_rgba(229,57,53,0.35)] border-4 border-white dark:border-gray-800 mb-8"
         >
           <ChefHat className="w-12 h-12 text-white mb-1" />
-          <span className="text-white font-black tracking-wider text-sm">THE FOOD GALAXY</span>
+          <span className="text-white font-black tracking-wider text-sm">INDIAN BITE</span>
         </motion.div>
 
         {/* Headings */}
@@ -243,5 +243,4 @@ export default function SignIn() {
     </AnimatedPage>
   )
 }
-
 

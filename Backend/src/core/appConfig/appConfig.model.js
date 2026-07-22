@@ -15,10 +15,6 @@ const appConfigSchema = new mongoose.Schema({
         type: String,
         default: '#be123c'
     },
-    accentColor: {
-        type: String,
-        default: '#F9A809'
-    },
     logoUrl: {
         type: String,
         default: ''

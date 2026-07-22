@@ -84,7 +84,7 @@ export default function EnvManagements() {
 
   // Groups for UI rendering
   const groups = {
-    "Server & Database": ["PORT", "SOCKET_PORT", "NODE_ENV", "MONGODB_URI", "SOCKET_CORS_ORIGIN", "FRONTEND_URL", "UPLOAD_PATH"],
+    "Server & Database": ["PORT", "NODE_ENV", "MONGODB_URI", "SOCKET_CORS_ORIGIN", "FRONTEND_URL", "UPLOAD_PATH"],
     "Authentication (JWT)": ["JWT_ACCESS_SECRET", "JWT_ACCESS_EXPIRES", "JWT_REFRESH_SECRET", "JWT_REFRESH_EXPIRES", "BCRYPT_SALT_ROUNDS"],
     "Admin Auth": ["ADMIN_REGISTRATION_CODE", "ADMIN_NOTIFICATION_EMAILS", "PASSWORD_RESET_OTP_EXPIRY_MINUTES", "PASSWORD_RESET_MAX_ATTEMPTS", "PASSWORD_RESET_TOKEN_EXPIRY_MINUTES"],
     "Redis & Queues": ["REDIS_ENABLED", "REDIS_URL", "BULLMQ_ENABLED"],
@@ -193,4 +193,3 @@ export default function EnvManagements() {
     </div>
   );
 }
-

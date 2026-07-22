@@ -4,6 +4,7 @@
 
 import apiClient, { userClient, restaurantClient, deliveryClient, adminClient } from "./axios.js";
 import { API_ENDPOINTS } from "./config.js";
+import { getImageUrl } from "@food/utils/getImageUrl";
 import * as authService from "./auth.js";
 
 const stub = () =>
@@ -469,6 +470,8 @@ export const adminAPI = {
     adminClient.patch(`/food/admin/customers/${String(id)}/status`, { isActive: isActive !== false }),
   topupCustomerWallet: (id, amount, description) =>
     adminClient.post(`/food/admin/customers/${String(id)}/wallet-topup`, { amount: Number(amount), description }),
+  deductCustomerWallet: (id, amount, description) =>
+    adminClient.post(`/food/admin/customers/${String(id)}/wallet-deduct`, { amount: Number(amount), description }),
   /** Orders (admin) â€“ list, get by id, assign delivery partner */
   getOrders: (params = {}) =>
     adminClient.get("/food/admin/orders", { params: { limit: 50, page: 1, ...params } }),
@@ -779,14 +782,32 @@ export const restaurantAPI = {
     if (!file) return Promise.reject(new Error("File is required"));
     const formData = new FormData();
     formData.append("file", file);
-    return restaurantClient.post("/food/restaurant/profile/profile-image", formData);
+    restaurantCurrentInFlight = null;
+    restaurantCurrentCached = null;
+    restaurantCurrentCacheTime = 0;
+    return restaurantClient
+      .post("/food/restaurant/profile/profile-image", formData)
+      .finally(() => {
+        restaurantCurrentInFlight = null;
+        restaurantCurrentCached = null;
+        restaurantCurrentCacheTime = 0;
+      });
   },
   /** Upload a menu/cover image (multipart). Does not auto-attach; use updateProfile(menuImages) after. */
   uploadMenuImage: (file) => {
     if (!file) return Promise.reject(new Error("File is required"));
     const formData = new FormData();
     formData.append("file", file);
-    return restaurantClient.post("/food/restaurant/profile/menu-image", formData);
+    restaurantCurrentInFlight = null;
+    restaurantCurrentCached = null;
+    restaurantCurrentCacheTime = 0;
+    return restaurantClient
+      .post("/food/restaurant/profile/menu-image", formData)
+      .finally(() => {
+        restaurantCurrentInFlight = null;
+        restaurantCurrentCached = null;
+        restaurantCurrentCacheTime = 0;
+      });
   },
   uploadCoverImages: (files = []) => {
     const normalizedFiles = Array.from(files || []).filter(Boolean);
@@ -795,7 +816,16 @@ export const restaurantAPI = {
     }
     const formData = new FormData();
     normalizedFiles.forEach((file) => formData.append("files", file));
-    return restaurantClient.post("/food/restaurant/profile/cover-images", formData);
+    restaurantCurrentInFlight = null;
+    restaurantCurrentCached = null;
+    restaurantCurrentCacheTime = 0;
+    return restaurantClient
+      .post("/food/restaurant/profile/cover-images", formData)
+      .finally(() => {
+        restaurantCurrentInFlight = null;
+        restaurantCurrentCached = null;
+        restaurantCurrentCacheTime = 0;
+      });
   },
   uploadMenuImages: (files = []) => {
     const normalizedFiles = Array.from(files || []).filter(Boolean);
@@ -804,7 +834,16 @@ export const restaurantAPI = {
     }
     const formData = new FormData();
     normalizedFiles.forEach((file) => formData.append("files", file));
-    return restaurantClient.post("/food/restaurant/profile/menu-images", formData);
+    restaurantCurrentInFlight = null;
+    restaurantCurrentCached = null;
+    restaurantCurrentCacheTime = 0;
+    return restaurantClient
+      .post("/food/restaurant/profile/menu-images", formData)
+      .finally(() => {
+        restaurantCurrentInFlight = null;
+        restaurantCurrentCached = null;
+        restaurantCurrentCacheTime = 0;
+      });
   },
   /** Public Offers for users (global/selected restaurant) */
   getPublicOffers: () => userClient.get("/food/restaurant/offers"),
@@ -1207,17 +1246,6 @@ export const getPublicExploreIcons = (zoneId = null) =>
     params: zoneId ? { zoneId } : {},
   }).then((res) => res?.data?.data ?? res?.data ?? {});
 
-const retryPublicCatalogRequest = (primaryPath, fallbackPath, params = {}, axiosConfig = {}) => {
-  const requestConfig = { params, ...axiosConfig };
-  return userClient.get(primaryPath, requestConfig).catch((error) => {
-    const status = Number(error?.response?.status || 0);
-    if (status === 404 || status === 410) {
-      return userClient.get(fallbackPath, requestConfig);
-    }
-    throw error;
-  });
-};
-
 const getPublicCategoriesOnce = (params = {}, config = {}) => {
   const { noCache, ...axiosConfig } = config || {};
   const keyParams =
@@ -1225,12 +1253,18 @@ const getPublicCategoriesOnce = (params = {}, config = {}) => {
   if (keyParams._ts) delete keyParams._ts;
 
   if (noCache) {
-    return retryPublicCatalogRequest("/food/restaurant/categories/public", "/food/catalog/categories/public", keyParams, axiosConfig);
+    return userClient.get("/food/restaurant/categories/public", {
+      params: keyParams,
+      ...axiosConfig,
+    });
   }
 
   const key = `categories:${stableStringify(keyParams)}`;
   return publicCategoriesCache.getOrCreate(key, () =>
-    retryPublicCatalogRequest("/food/restaurant/categories/public", "/food/catalog/categories/public", keyParams, axiosConfig),
+    userClient.get("/food/restaurant/categories/public", {
+      params: keyParams,
+      ...axiosConfig,
+    }),
   );
 };
 
@@ -1247,12 +1281,18 @@ const getPublicFoodsOnce = (params = {}, config = {}) => {
   if (keyParams._ts) delete keyParams._ts;
 
   if (noCache) {
-    return retryPublicCatalogRequest("/food/restaurant/foods/public", "/food/catalog/foods/public", keyParams, axiosConfig);
+    return userClient.get("/food/restaurant/foods/public", {
+      params: keyParams,
+      ...axiosConfig,
+    });
   }
 
   const key = `foods:${stableStringify(keyParams)}`;
   return publicFoodsCache.getOrCreate(key, () =>
-    retryPublicCatalogRequest("/food/restaurant/foods/public", "/food/catalog/foods/public", keyParams, axiosConfig),
+    userClient.get("/food/restaurant/foods/public", {
+      params: keyParams,
+      ...axiosConfig,
+    }),
   );
 };
 
@@ -1265,9 +1305,12 @@ export const getPublicFoods = (params = {}, config = {}) =>
 const getPublicRestaurantsOnce = (params = {}, config = {}) => {
   const { noCache, ...axiosConfig } = config || {};
   if (noCache) {
-    return retryPublicCatalogRequest("/food/restaurant/restaurants", "/food/catalog/restaurants/public", { limit: 1000, ...params }, axiosConfig);
+    return userClient.get("/food/restaurant/restaurants", {
+      params: { limit: 15, ...params },
+      ...axiosConfig,
+    });
   }
-  const keyParams = { limit: 1000, ...params };
+  const keyParams = { limit: 15, ...params };
   // `_ts` is an explicit cache-buster in many call sites; ignore it for dedupe purposes.
   if (keyParams && typeof keyParams === "object") {
     delete keyParams._ts;
@@ -1281,7 +1324,10 @@ const getPublicRestaurantsOnce = (params = {}, config = {}) => {
   }
   const key = `restaurants:${stableStringify(keyParams)}`;
   return publicRestaurantsCache.getOrCreate(key, () =>
-    retryPublicCatalogRequest("/food/restaurant/restaurants", "/food/catalog/restaurants/public", { limit: 1000, ...params }, axiosConfig),
+    userClient.get("/food/restaurant/restaurants", {
+      params: { limit: 15, ...params },
+      ...axiosConfig,
+    }),
   );
 };
 
@@ -1300,10 +1346,13 @@ const getPublicRestaurantMenuOnce = (id, config = {}) => {
   if (noCache) {
     return userClient.get(`/food/restaurant/restaurants/${safeId}/menu`, {
       ...axiosConfig,
+      params: {
+        ...(axiosConfig?.params || {}),
+        _ts: Date.now(),
+      },
     });
   }
-  const key = `menu:${safeId}`;
-  return publicRestaurantMenuCache.getOrCreate(key, () =>
+  return publicRestaurantMenuCache.getOrCreate(`menu:${safeId}`, () =>
     userClient.get(`/food/restaurant/restaurants/${safeId}/menu`, {
       ...axiosConfig,
     }),
@@ -1922,6 +1971,16 @@ export const uploadAPI = {
 
     return userClient.post("/uploads/image", formData, {
       timeout: 300000,
+    }).then((response) => {
+      const nextResponse = response;
+      const media = nextResponse?.data?.data || nextResponse?.data;
+      if (media?.url) {
+        media.url = getImageUrl(media.url);
+      }
+      if (media?.file?.url) {
+        media.file.url = getImageUrl(media.file.url);
+      }
+      return nextResponse;
     });
   },
   /**

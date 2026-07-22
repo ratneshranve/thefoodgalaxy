@@ -14,7 +14,7 @@ import { restaurantAPI } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
 import { useDelayedLoading } from "@food/hooks/useDelayedLoading"
 
-const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "")
+const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api(?:\/v\d+)?\/?$/, "")
 
 const normalizeImageUrl = (imageUrl) => {
   if (typeof imageUrl !== "string" || !imageUrl.trim()) return ""
@@ -29,12 +29,12 @@ const normalizeImageUrl = (imageUrl) => {
 
 const pickRestaurantImage = (restaurant) => {
   const candidates = [
+    restaurant?.profileImage?.url,
+    restaurant?.profileImage,
     restaurant?.coverImage?.url,
     restaurant?.coverImage,
     ...(Array.isArray(restaurant?.coverImages) ? restaurant.coverImages.map((img) => img?.url || img) : []),
     ...(Array.isArray(restaurant?.menuImages) ? restaurant.menuImages.map((img) => img?.url || img) : []),
-    restaurant?.profileImage?.url,
-    restaurant?.profileImage,
   ]
   const firstValid = candidates.find((value) => typeof value === "string" && value.trim())
   return normalizeImageUrl(firstValid || "")

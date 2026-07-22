@@ -11,11 +11,6 @@ const foodLandingSettingsSchema = new mongoose.Schema(
             ref: 'FoodRestaurant',
             default: []
         },
-        recommendedFoodIds: {
-            type: [mongoose.Schema.Types.ObjectId],
-            ref: 'FoodItem',
-            default: []
-        },
         showHeroBanners: {
             type: Boolean,
             default: true

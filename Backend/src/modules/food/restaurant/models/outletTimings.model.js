@@ -1,22 +1,36 @@
-import mongoose from 'mongoose';
-const outletTimingItemSchema = new mongoose.Schema(
-    {
-        day: { type: String, trim: true, default: '' },
-        open: { type: String, trim: true, default: '' },
-        close: { type: String, trim: true, default: '' },
-        isClosed: { type: Boolean, default: false }
-    },
-    { _id: false }
+import mongoose from "mongoose";
+
+const dayTimingSchema = new mongoose.Schema(
+  {
+    day: { type: String, required: true, trim: true },
+    isOpen: { type: Boolean, default: true },
+    openingTime: { type: String, trim: true }, // "HH:mm"
+    closingTime: { type: String, trim: true }, // "HH:mm"
+  },
+  { _id: false },
 );
+
 const outletTimingsSchema = new mongoose.Schema(
-    {
-        restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodRestaurant', index: true },
-        outletTimings: { type: [outletTimingItemSchema], default: [] }
+  {
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "FoodRestaurant",
+      required: true,
+      unique: true,
+      index: true,
     },
-    {
-        collection: 'food_restaurant_outlet_timings',
-        timestamps: true,
-        strict: false
-    }
+    timings: {
+      type: [dayTimingSchema],
+      default: [],
+    },
+  },
+  {
+    collection: "food_restaurant_outlet_timings",
+    timestamps: true,
+  },
 );
-export const FoodRestaurantOutletTimings = mongoose.models.FoodRestaurantOutletTimings || mongoose.model('FoodRestaurantOutletTimings', outletTimingsSchema);
+
+export const FoodRestaurantOutletTimings = mongoose.model(
+  "FoodRestaurantOutletTimings",
+  outletTimingsSchema,
+);

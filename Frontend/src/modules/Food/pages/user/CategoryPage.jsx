@@ -5,8 +5,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, Star, Clock, Search, SlidersHorizontal, ChevronDown, Bookmark, BadgePercent, MapPin, ArrowDownUp, Timer, IndianRupee, UtensilsCrossed, ShieldCheck, X, Loader2, Grid2x2 } from "lucide-react"
 import { Card, CardContent } from "@food/components/ui/card"
 import { Button } from "@food/components/ui/button"
-import AddToCartButton from "@food/components/user/AddToCartButton"
-import StickyCartCard from "@food/components/user/StickyCartCard"
 import { Input } from "@food/components/ui/input"
 import {
   CategoryChipRowSkeleton,
@@ -95,7 +93,7 @@ export default function CategoryPage() {
       }
     }
   }, [observerTarget.current])
-  const BACKEND_ORIGIN = useMemo(() => API_BASE_URL.replace(/\/api\/?$/, ""), [])
+  const BACKEND_ORIGIN = useMemo(() => API_BASE_URL.replace(/\/api(?:\/v\d+)?\/?$/, ""), [])
   const slugify = (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
   const buildRestaurantLink = (restaurant) => {
     const restaurantIdentifier = restaurant?.slug || restaurant?.restaurantId || restaurant?.mongoId || slugify(restaurant?.name || "")
@@ -151,32 +149,6 @@ export default function CategoryPage() {
       return false
     })
   }
-  const buildCategoryDishCartItem = (restaurant) => {
-    const resolvedItemId = String(
-      restaurant?.dishId ||
-      restaurant?.categoryDish?.itemId ||
-      restaurant?.categoryDish?._id ||
-      restaurant?.categoryDish?.id ||
-      restaurant?.id ||
-      "category-dish"
-    )
-
-    return {
-      id: resolvedItemId,
-      itemId: resolvedItemId,
-      name: restaurant?.categoryDishName || restaurant?.featuredDish || restaurant?.name || "Food Item",
-      price: Number(restaurant?.categoryDishPrice || restaurant?.featuredPrice || 0),
-      image: restaurant?.categoryDishImage || restaurant?.image || restaurant?.coverImage || "",
-      imageUrl: restaurant?.categoryDishImage || restaurant?.image || restaurant?.coverImage || "",
-      restaurant: restaurant?.name || "The Food Galaxy",
-      restaurantId: restaurant?.restaurantId || restaurant?.mongoId || restaurant?._id || restaurant?.id,
-      restaurantSlug: restaurant?.slug || restaurant?.restaurantSlug || "the-food-galaxy",
-      description: restaurant?.categoryDish?.description || restaurant?.description || "",
-      foodType: restaurant?.categoryDishFoodType || restaurant?.foodType || "",
-      preparationTime: restaurant?.deliveryTime || restaurant?.preparationTime || "",
-    }
-  }
-
   const uniqueByRestaurant = (list) => {
     const seen = new Set()
     return list.filter((row) => {
@@ -317,7 +289,7 @@ export default function CategoryPage() {
         description: food?.description || "",
         price: Number(food?.price || 0),
         originalPrice: Number(food?.originalPrice || food?.price || 0),
-        image: normalizeImageUrl(food?.image),
+        image: normalizeImageUrl(food?.image, BACKEND_ORIGIN),
         foodType: food?.foodType || "Non-Veg",
         isAvailable: food?.isAvailable !== false,
         categoryName: food?.categoryName || sectionName,
@@ -383,7 +355,7 @@ export default function CategoryPage() {
 
         const fallbackRestaurantName = restaurantName || "Restaurant"
         const fallbackSlug = slugify(fallbackRestaurantName)
-        const fallbackImage = normalizeImageUrl(food?.image)
+        const fallbackImage = normalizeImageUrl(food?.image, BACKEND_ORIGIN)
 
         return {
           ...(matchedRestaurant || {}),
@@ -759,7 +731,7 @@ export default function CategoryPage() {
               : originalPrice
 
             // Get dish image (prioritize item image, then section image)
-            const dishImage = normalizeImageUrl(item.image?.url || item.image || section.image?.url || section.image)
+            const dishImage = normalizeImageUrl(item.image?.url || item.image || section.image?.url || section.image, BACKEND_ORIGIN)
 
             matchingDishes.push({
               name: item.name,
@@ -795,7 +767,8 @@ export default function CategoryPage() {
                 : originalPrice
 
               const dishImage = normalizeImageUrl(
-                item?.image?.url || item?.image || subsection?.image?.url || subsection?.image || section?.image?.url || section?.image
+                item?.image?.url || item?.image || subsection?.image?.url || subsection?.image || section?.image?.url || section?.image,
+                BACKEND_ORIGIN
               )
 
               matchingDishes.push({
@@ -876,19 +849,21 @@ export default function CategoryPage() {
                 ? restaurant.cuisines.join(", ")
                 : null
 
+              const profileImages = [restaurant.profileImage?.url, restaurant.profileImage]
+                .map((img) => normalizeImageUrl(typeof img === "string" ? img : (img?.url || ""), BACKEND_ORIGIN))
+                .filter(Boolean)
+
               const coverImages = restaurant.coverImages && restaurant.coverImages.length > 0
-                ? restaurant.coverImages.map(img => normalizeImageUrl(img.url || img)).filter(Boolean)
+                ? restaurant.coverImages.map(img => normalizeImageUrl(img.url || img, BACKEND_ORIGIN)).filter(Boolean)
                 : []
 
               const fallbackImages = restaurant.menuImages && restaurant.menuImages.length > 0
-                ? restaurant.menuImages.map(img => normalizeImageUrl(img.url || img)).filter(Boolean)
+                ? restaurant.menuImages.map(img => normalizeImageUrl(img.url || img, BACKEND_ORIGIN)).filter(Boolean)
                 : []
 
-              const allImages = coverImages.length > 0
-                ? coverImages
-                : (fallbackImages.length > 0
-                  ? fallbackImages
-                  : (restaurant.profileImage?.url ? [normalizeImageUrl(restaurant.profileImage.url)] : []))
+              const allImages = profileImages.length > 0
+                ? profileImages
+                : (coverImages.length > 0 ? coverImages : fallbackImages)
 
               const image = allImages[0] || null
               const restaurantId = restaurant.restaurantId || restaurant._id
@@ -951,7 +926,7 @@ export default function CategoryPage() {
                       let menu = null
                       for (const lookupId of lookupIds) {
                         try {
-                          const menuResponse = await restaurantAPI.getMenuByRestaurantId(lookupId)
+                          const menuResponse = await restaurantAPI.getMenuByRestaurantId(lookupId, { noCache: true })
                           const rawMenu = getMenuFromResponse(menuResponse)
                           const normalizedMenu = normalizeMenu(rawMenu)
                           if (menuResponse?.data?.success && normalizedMenu?.sections?.length > 0) {
@@ -1425,7 +1400,7 @@ export default function CategoryPage() {
       </div>
 
       {/* Content */}
-      <div className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 lg:py-10 pb-28 md:pb-10 space-y-6 md:space-y-8 lg:space-y-10">
+      <div className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 lg:py-10 space-y-6 md:space-y-8 lg:space-y-10">
         <div className="max-w-7xl mx-auto">
           {/* MATCHED DISHES Section */}
           {filteredRecommended.length > 0 && selectedCategory !== 'all' && (
@@ -1434,64 +1409,83 @@ export default function CategoryPage() {
                 MATCHED DISHES
               </h2>
 
-              {/* Dishes List - Compact Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+              {/* Dishes List - Horizontal Cards */}
+              <div className="flex flex-col gap-3 md:gap-4">
                 {filteredRecommended.slice(0, visibleCount).map((restaurant) => {
                   return (
-                    <motion.div
+                    <Link
                       key={restaurant.id}
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`flex h-full flex-col overflow-hidden bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 p-2 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 ${shouldShowGrayscale ? "grayscale opacity-75" : ""}`}
+                      to={buildRestaurantLink(restaurant)}
+                      className="block w-full"
                     >
-                      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-                        <div className="absolute top-1.5 left-1.5 z-10 bg-white/90 backdrop-blur-sm rounded-sm p-0.5 border border-gray-200">
-                          <div className={`w-2.5 h-2.5 rounded-full ${restaurant.categoryDishFoodType === "Veg" ? "bg-green-500" : "bg-red-500"}`} />
-                        </div>
-
-                        {restaurant.categoryDishImage ? (
-                          <img
-                            src={restaurant.categoryDishImage}
-                            alt={restaurant.categoryDishName || restaurant.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none'
-                              e.target.parentElement.innerHTML += '<div class="w-full h-full flex items-center justify-center text-gray-300"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg></div>'
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-100 dark:bg-gray-800">
-                             <UtensilsCrossed className="w-8 h-8" />
+                      <motion.div
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`flex gap-3 md:gap-4 bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 p-2 md:p-3 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 ${shouldShowGrayscale ? 'grayscale opacity-75' : ''}`}
+                      >
+                        {/* Image Container */}
+                        <div className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-xl md:rounded-2xl overflow-hidden flex-shrink-0 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                          {/* Veg/Non-veg icon */}
+                          <div className="absolute top-1.5 left-1.5 z-10 bg-white/90 backdrop-blur-sm rounded-sm p-0.5 border border-gray-200">
+                            <div className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full ${restaurant.categoryDishFoodType === 'Veg' ? 'bg-green-500' : 'bg-red-500'}`} />
                           </div>
-                        )}
-                      </div>
 
-                      <div className="flex flex-1 flex-col pt-2 min-w-0">
-                        <h3 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm leading-tight line-clamp-2 min-h-[2.25rem]">
-                          {restaurant.categoryDishName || restaurant.featuredDish || restaurant.name}
-                        </h3>
-
-                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
-                          <div className="flex items-center gap-1 font-semibold text-gray-700 dark:text-gray-300">
-                            <Star className="w-3 h-3 text-red-500 fill-red-500" />
-                            <span>{restaurant.rating || "New"}</span>
-                          </div>
-                          {restaurant.deliveryTime && (
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              <span>{restaurant.deliveryTime}</span>
+                          {restaurant.categoryDishImage ? (
+                            <img
+                              src={restaurant.categoryDishImage}
+                              alt={restaurant.categoryDishName || restaurant.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none'
+                                e.target.parentElement.innerHTML += '<div class="w-full h-full flex items-center justify-center text-gray-300"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg></div>'
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-100 dark:bg-gray-800">
+                               <UtensilsCrossed className="w-8 h-8" />
                             </div>
                           )}
                         </div>
 
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white shrink-0">
-                            {"₹"}{(restaurant.categoryDishPrice || restaurant.featuredPrice || 0).toFixed(0)}
+                        {/* Content */}
+                        <div className="flex-1 py-1 flex flex-col min-w-0">
+                          {/* Restaurant Name Pill */}
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="bg-pink-50 dark:bg-pink-950/30 text-pink-700 dark:text-pink-400 text-[9px] md:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full line-clamp-1">
+                              {restaurant.name}
+                            </span>
                           </div>
-                          <AddToCartButton item={buildCategoryDishCartItem(restaurant)} compact label="Add" className="shrink-0" />
+
+                          {/* Dish Name */}
+                          <h3 className="font-bold text-gray-900 dark:text-white text-sm md:text-base leading-tight mb-2 line-clamp-2">
+                            {restaurant.categoryDishName || restaurant.featuredDish || restaurant.name}
+                          </h3>
+
+                          <div className="mt-auto flex items-end justify-between gap-2">
+                            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                              <div className="flex items-center gap-1 font-semibold text-gray-700 dark:text-gray-300">
+                                <Star className="w-3 h-3 text-red-500 fill-red-500" />
+                                <span>{restaurant.rating || "New"}</span>
+                              </div>
+                              {restaurant.deliveryTime && (
+                                <>
+                                  <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    <span>{restaurant.deliveryTime}</span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            
+                            {/* Price */}
+                            <div className="text-sm md:text-base font-bold text-gray-900 dark:text-white shrink-0">
+                              ₹{(restaurant.categoryDishPrice || restaurant.featuredPrice || 0).toFixed(2)}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
+                      </motion.div>
+                    </Link>
                   )
                 })}
               </div>
@@ -2007,8 +2001,6 @@ export default function CategoryPage() {
           </AnimatePresence>,
           document.body
         )}
-
-      <StickyCartCard />
 
       <style>{`
         @keyframes slideUp {

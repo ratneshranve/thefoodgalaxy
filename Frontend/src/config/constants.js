@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  NAME: 'The Food Galaxy',
+  NAME: 'Indian Bites',
   VERSION: '1.0.0',
 };
 
@@ -15,4 +15,3 @@ export const ROLES = {
   RESTAURANT: 'restaurant',
   DELIVERY: 'delivery',
 };
-

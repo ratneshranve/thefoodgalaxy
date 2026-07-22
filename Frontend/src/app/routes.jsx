@@ -79,7 +79,7 @@ const AppRoutes = () => {
       {/* Auth Module */}
       <Route path="/user/auth/*" element={<AuthApp />} />
       <Route path="/delivery/auth/*" element={<AuthApp />} />
-
+      <Route path="/restaurant/auth/*" element={<AuthApp />} />
 
       {/* Food Module - Handle both /food and root / for the user app */}
       <Route path="/food/*" element={<FoodAppWrapper />} />
@@ -99,4 +99,3 @@ const AppRoutes = () => {
 }
 
 export default AppRoutes
-

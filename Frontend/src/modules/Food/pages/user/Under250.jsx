@@ -14,7 +14,7 @@ import PageNavbar from "@food/components/user/PageNavbar"
 import offerImage from "@food/assets/offerimage.png"
 import AddToCartAnimation from "@food/components/user/AddToCartAnimation"
 import OptimizedImage from "@food/components/OptimizedImage"
-import api, { restaurantAPI, adminAPI, getPublicFoods, getPublicLandingSettings } from "@food/api"
+import api, { restaurantAPI, adminAPI, getPublicLandingSettings } from "@food/api"
 import { isModuleAuthenticated } from "@food/utils/auth"
 import { flattenMenuItems, getMenuFromResponse } from "@food/utils/menuItems"
 import { calculateDistance, formatDistance } from "@food/utils/common"
@@ -431,67 +431,67 @@ export default function Under250() {
     return 999
   }
 
-  // Flatten under-250 catalog into food items and then apply filters/sorting.
+  // Sort and filter restaurants based on selected sort and filters
   const sortedAndFilteredRestaurants = useMemo(() => {
-    let filtered = under250Restaurants.flatMap((restaurant) =>
-      (restaurant.menuItems || []).map((item, itemIndex) => ({
-        ...item,
-        restaurantId: restaurant.restaurantId,
-        restaurant: restaurant.name,
-        restaurantSlug: restaurant.slug || restaurant.restaurantId || "the-food-galaxy",
-        rating: restaurant.rating || 0,
-        totalRatings: restaurant.totalRatings || 0,
-        deliveryTime: restaurant.deliveryTime,
-        distance: restaurant.distance,
-        distanceInKm: restaurant.distanceInKm,
-        discount: restaurant.discount || 0,
-        itemDiscounts: Array.isArray(restaurant.itemDiscounts) ? restaurant.itemDiscounts : [],
-        discountRules: Array.isArray(restaurant.discountRules) ? restaurant.discountRules : [],
-        isRestaurantActive: restaurant.isActive !== false,
-        isAcceptingOrders: restaurant.isAcceptingOrders !== false,
-        openDays: Array.isArray(restaurant.openDays) ? restaurant.openDays : [],
-        outletTimings: restaurant.outletTimings || null,
-        deliveryTimings: restaurant.deliveryTimings || null,
-        openingTime: restaurant.openingTime || null,
-        closingTime: restaurant.closingTime || null,
-        originalIndex: (restaurant.originalIndex || 0) * 1000 + itemIndex,
-      }))
-    )
+    let filtered = under250Restaurants.map(r => ({ ...r, menuItems: [...(r.menuItems || [])] }))
 
+    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
-      filtered = filtered.filter((item) =>
-        item.name?.toLowerCase().includes(query) ||
-        item.description?.toLowerCase().includes(query) ||
-        item.category?.toLowerCase().includes(query) ||
-        item.sectionName?.toLowerCase().includes(query) ||
-        item.subsectionName?.toLowerCase().includes(query) ||
-        item.restaurant?.toLowerCase().includes(query)
-      )
+      filtered = filtered.map(restaurant => {
+        const matchRestaurant = restaurant.name.toLowerCase().includes(query)
+        const matchingDishes = restaurant.menuItems.filter(item => 
+          item.name.toLowerCase().includes(query) ||
+          (item.description && item.description.toLowerCase().includes(query)) ||
+          (item.category && item.category.toLowerCase().includes(query))
+        )
+
+        if (matchRestaurant) {
+          return restaurant
+        } else if (matchingDishes.length > 0) {
+          return { ...restaurant, menuItems: matchingDishes }
+        }
+        return null
+      }).filter(Boolean)
     }
 
+    // Apply category filter
     if (activeCategory) {
-      const selectedCat = categories.find((cat) => cat.id === activeCategory)
+      const selectedCat = categories.find(cat => cat.id === activeCategory)
       if (selectedCat) {
         const catNameLower = selectedCat.name.toLowerCase()
-        filtered = filtered.filter((item) =>
-          (item.category || "").toLowerCase() === catNameLower ||
-          (item.sectionName || "").toLowerCase() === catNameLower ||
-          (item.subsectionName || "").toLowerCase() === catNameLower
-        )
+        filtered = filtered.map(restaurant => {
+          const matches = restaurant.menuItems.filter(item => 
+            (item.category || "").toLowerCase() === catNameLower ||
+            (item.sectionName || "").toLowerCase() === catNameLower ||
+            (item.subsectionName || "").toLowerCase() === catNameLower
+          )
+          if (matches.length > 0) {
+            return { ...restaurant, menuItems: matches }
+          }
+          return null
+        }).filter(Boolean)
       }
     }
 
+    // Apply "Under 30 mins" filter
     if (under30MinsFilter) {
-      filtered = filtered.filter((item) => parseDeliveryTime(item.deliveryTime) <= 30)
+      filtered = filtered.filter(restaurant => {
+        const deliveryTime = parseDeliveryTime(restaurant.deliveryTime)
+        return deliveryTime <= 30
+      })
     }
 
+    // Apply sorting
     if (selectedSort === 'rating-high') {
       filtered.sort((a, b) => {
-        if ((b.rating || 0) !== (a.rating || 0)) {
-          return (b.rating || 0) - (a.rating || 0)
+        const ratingA = a.rating || 0
+        const ratingB = b.rating || 0
+        if (ratingB !== ratingA) {
+          return ratingB - ratingA
         }
-        return (a.originalIndex || 0) - (b.originalIndex || 0)
+        // Secondary sort by number of dishes
+        return (b.menuItems?.length || 0) - (a.menuItems?.length || 0)
       })
     } else if (selectedSort === 'delivery-time-low') {
       filtered.sort((a, b) => {
@@ -499,6 +499,9 @@ export default function Under250() {
         const timeB = parseDeliveryTime(b.deliveryTime)
         if (timeA !== timeB) {
           return timeA - timeB
+        }
+        if ((b.rating || 0) !== (a.rating || 0)) {
+          return (b.rating || 0) - (a.rating || 0)
         }
         return (a.originalIndex || 0) - (b.originalIndex || 0)
       })
@@ -509,8 +512,14 @@ export default function Under250() {
         if (distA !== distB) {
           return distA - distB
         }
+        if ((b.rating || 0) !== (a.rating || 0)) {
+          return (b.rating || 0) - (a.rating || 0)
+        }
         return (a.originalIndex || 0) - (b.originalIndex || 0)
       })
+    } else {
+      // Default: Relevance (keep original order from backend - already sorted by rating)
+      // No additional sorting needed
     }
 
     return filtered
@@ -665,6 +674,10 @@ export default function Under250() {
           params.lat = location.latitude
           params.lng = location.longitude
         }
+        // Increase limit to 1000 to ensure we fetch all available restaurants 
+        // in the zone before filtering them for under-250 items on the frontend
+        params.limit = 1000;
+        
         const response = await restaurantAPI.getRestaurants(params)
         const restaurantsRaw = Array.isArray(response?.data?.data?.restaurants)
           ? response.data.data.restaurants
@@ -732,7 +745,7 @@ export default function Under250() {
             if (!restaurantId) return null
 
             try {
-              const menuResponse = await restaurantAPI.getMenuByRestaurantId(restaurantId)
+              const menuResponse = await restaurantAPI.getMenuByRestaurantId(restaurantId, { noCache: true })
               const menu = getMenuFromResponse(menuResponse)
               const menuItems = flattenMenuItems(menu)
                 .filter((item) => Number(item?.price || 0) <= under250PriceLimit && item?.isAvailable !== false)
@@ -746,11 +759,12 @@ export default function Under250() {
                     isVeg,
                     image:
                       item?.image ||
+                      restaurant?.profileImage?.url ||
+                      restaurant?.profileImage ||
                       restaurant?.coverImages?.[0]?.url ||
                       restaurant?.coverImages?.[0] ||
                       restaurant?.menuImages?.[0]?.url ||
                       restaurant?.menuImages?.[0] ||
-                      restaurant?.profileImage?.url ||
                       "",
                   }
                 })
@@ -823,64 +837,7 @@ export default function Under250() {
         )
 
         if (!cancelled) {
-          let validNewRestaurants = newRestaurantsWithUnder250Dishes.filter(Boolean)
-
-          if (validNewRestaurants.length === 0) {
-            try {
-              const fallbackData = await getPublicFoods(zoneId ? { zoneId, limit: 1000 } : { limit: 1000 })
-              const fallbackFoods = Array.isArray(fallbackData?.foods)
-                ? fallbackData.foods.filter((food) => Number(food?.price || 0) <= under250PriceLimit && food?.isAvailable !== false)
-                : []
-
-              if (fallbackFoods.length > 0) {
-                const groupedFoods = new Map()
-                fallbackFoods.forEach((food, index) => {
-                  const fallbackRestaurantId = String(food?.restaurantId || 'the-food-galaxy')
-                  if (!groupedFoods.has(fallbackRestaurantId)) {
-                    groupedFoods.set(fallbackRestaurantId, {
-                      id: fallbackRestaurantId,
-                      restaurantId: fallbackRestaurantId,
-                      slug: 'the-food-galaxy',
-                      name: food?.restaurantName || 'The Food Galaxy',
-                      rating: 0,
-                      totalRatings: 0,
-                      deliveryTime: '20-40mins',
-                      distance: '',
-                      distanceInKm: null,
-                      distanceText: null,
-                      distanceInfo: null,
-                      discount: 0,
-                      itemDiscounts: [],
-                      discountRules: [],
-                      isActive: true,
-                      isAcceptingOrders: true,
-                      openDays: [],
-                      outletTimings: null,
-                      deliveryTimings: null,
-                      openingTime: null,
-                      closingTime: null,
-                      originalIndex: index,
-                      menuItems: [],
-                    })
-                  }
-
-                  const foodType = String(food?.foodType || '').toLowerCase()
-                  groupedFoods.get(fallbackRestaurantId).menuItems.push({
-                    ...food,
-                    id: String(food?.id || food?._id || `${fallbackRestaurantId}-${index}`),
-                    price: Number(food?.price || 0),
-                    isVeg: foodType.includes('veg') && !foodType.includes('non'),
-                    image: food?.image || '',
-                    category: food?.categoryName || food?.category || '',
-                    sectionName: food?.categoryName || food?.category || '',
-                  })
-                })
-                validNewRestaurants = Array.from(groupedFoods.values())
-              }
-            } catch {
-              validNewRestaurants = []
-            }
-          }
+          const validNewRestaurants = newRestaurantsWithUnder250Dishes.filter(Boolean)
           
           // Mark IDs as fetched ONLY after successful completion (not before async call)
           // This prevents React StrictMode double-mount from skipping restaurants
@@ -1082,15 +1039,20 @@ export default function Under250() {
     }))
 
     // Find restaurant name from the item or use provided parameter
-    const restaurant = restaurantName || item.restaurant || "The Food Galaxy"
+    const restaurant = restaurantName || item.restaurant || "Under 250"
 
-    // Evaluate item-specific and smart-rule discounts from the parent food source.
-    let discountPercentage = item?.discount || 0;
-    const specificItemDiscount = (item?.itemDiscounts || []).find(d => String(d.itemId) === String(item.id || item._id));
+    // Find restaurant to get its discount
+    const restaurantObj = under250Restaurants.find(r => 
+      r.menuItems?.some(m => m.id === item.id)
+    );
+    
+    // Evaluate Item-Specific and Smart Rules Discounts
+    let discountPercentage = restaurantObj?.discount || 0;
+    const specificItemDiscount = (restaurantObj?.itemDiscounts || []).find(d => String(d.itemId) === String(item.id || item._id));
     if (specificItemDiscount) {
       discountPercentage = specificItemDiscount.discountValue || 0;
     } else {
-      const matchingRule = (item?.discountRules || []).find(rule => {
+      const matchingRule = (restaurantObj?.discountRules || []).find(rule => {
         const val = Number(rule.conditionValue);
         if (rule.conditionType === 'PRICE_ABOVE' && item.price > val) return true;
         if (rule.conditionType === 'PRICE_BELOW' && item.price < val) return true;
@@ -1114,8 +1076,6 @@ export default function Under250() {
       otherPlatformGst: item.otherPlatformGst ?? null,
       isVeg: item.isVeg,
       foodType: item.foodType,
-      restaurantId: item.restaurantId,
-      restaurantSlug: item.restaurantSlug,
     }
 
     // Get source position for animation from event target
@@ -1196,7 +1156,7 @@ export default function Under250() {
       ...item,
       restaurant: restaurant.name,
       restaurantSlug: restaurant.slug || restaurant.restaurantId || "",
-      description: item.description || `${item.name} special`,
+      description: item.description || `${item.name} from ${restaurant.name}`,
       customisable: item.customisable || false,
       notEligibleForCoupons: item.notEligibleForCoupons || false,
     }
@@ -1367,7 +1327,7 @@ export default function Under250() {
                   <input
                     autoFocus
                     type="text"
-                    placeholder="Search food items..."
+                    placeholder="Search dishes or restaurants..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-9 pr-10 py-2.5 bg-gray-100 dark:bg-gray-900 border border-transparent focus:border-primary/30 rounded-xl outline-none text-sm md:text-base text-gray-900 dark:text-white placeholder:text-gray-400 transition-colors"
@@ -1438,7 +1398,7 @@ export default function Under250() {
       </div>
 
       {/* Content Section */}
-      <div className="relative max-w-7xl mx-auto space-y-0 pb-28 md:pb-10 lg:pb-12">
+      <div className="relative max-w-7xl mx-auto space-y-0 pb-6 md:pb-8 lg:pb-10">
 
         <div className={`sticky z-30 transition-all duration-300 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl shadow-sm border-b border-gray-100 dark:border-gray-800 top-0 pt-2 sm:pt-3 md:pt-4 px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12`}>
           <section className="space-y-1 sm:space-y-1.5">
@@ -1537,7 +1497,7 @@ export default function Under250() {
         </div>
 
         {/* Restaurant Menu Sections */}
-        <div className="px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12 pt-4 pb-6 md:pb-0">
+        <div className="px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12 pt-4">
         {loadingRestaurants || isSwitchingCategory ? (
           <div className="space-y-8 sm:space-y-10 md:space-y-12">
             {Array.from({ length: 3 }).map((_, rIndex) => (
@@ -1576,176 +1536,69 @@ export default function Under250() {
           <div className="flex justify-center items-center py-12">
             <div className="text-gray-500 dark:text-gray-400">
               {under250Restaurants.length === 0
-                ? `No food items under ${RUPEE_SYMBOL}${under250PriceLimit} found.`
-                : "No food items match the selected filters."}
+                ? `No restaurants with dishes under ${RUPEE_SYMBOL}${under250PriceLimit} found.`
+                : "No restaurants match the selected filters."}
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            {sortedAndFilteredRestaurants.map((item, index) => {
-              const quantity = quantities[item.id] || 0
-              const availability = getRestaurantAvailabilityStatus({
-                isActive: item.isRestaurantActive,
-                isAcceptingOrders: item.isAcceptingOrders,
-                openDays: item.openDays,
-                outletTimings: item.outletTimings,
-                deliveryTimings: item.deliveryTimings,
-                openingTime: item.openingTime,
-                closingTime: item.closingTime,
-              })
-              const isClosed = !availability.isOpen
+          sortedAndFilteredRestaurants.map((restaurant) => {
+            const restaurantSlug = restaurant.slug || restaurant.name.toLowerCase().replace(/\s+/g, "-")
+            const availability = getRestaurantAvailabilityStatus(restaurant)
+            const isClosed = !availability.isOpen
 
-              let discountPercentage = item.discount || 0
-              const specificItemDiscount = (item.itemDiscounts || []).find((discount) => String(discount.itemId) === String(item.id || item._id))
-              if (specificItemDiscount) {
-                discountPercentage = specificItemDiscount.discountValue || 0
-              } else {
-                const matchingRule = (item.discountRules || []).find((rule) => {
-                  const val = Number(rule.conditionValue)
-                  if (rule.conditionType === 'PRICE_ABOVE' && item.price > val) return true
-                  if (rule.conditionType === 'PRICE_BELOW' && item.price < val) return true
-                  return false
-                })
-                if (matchingRule) discountPercentage = matchingRule.discountValue || 0
-              }
-
-              const finalPrice = discountPercentage > 0
-                ? Math.round(item.price * (1 - discountPercentage / 100))
-                : Math.round(item.price)
-
-              return (
-                <motion.div
-                  key={`${item.restaurantId || 'food'}-${item.id}`}
-                  className={`bg-white dark:bg-[#1a1a1a] rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm ${isClosed ? 'opacity-70 grayscale' : ''}`}
-                  whileHover={{ y: -3 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => !isClosed && handleItemClick(item, item)}
-                    className="w-full text-left"
-                  >
-                    <div className="relative aspect-[1/1] overflow-hidden bg-gray-100 dark:bg-gray-900">
-                      <OptimizedImage
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full"
-                        objectFit="cover"
-                        sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                        priority={index < 6}
-                        placeholder="blur"
-                      />
-                      {isClosed && (
-                        <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
-                          <span className="bg-black/75 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">Closed</span>
+            return (
+              <section key={restaurant.id} className={`p-4 md:p-5 lg:p-6 mb-6 md:mb-8 rounded-2xl bg-slate-50 dark:bg-[#1a1a1a] ${isClosed ? 'opacity-70 grayscale' : ''}`}>
+                {/* Restaurant Header */}
+                <div className="flex items-start justify-between mb-4 md:mb-5">
+                  <div className="flex-1">
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1.5">
+                      {restaurant.name}
+                    </h3>
+                    <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 text-sm md:text-base font-bold text-gray-700 dark:text-gray-300">
+                        <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center">
+                           <Star className="h-3 w-3 fill-white text-white" />
                         </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          handleBookmarkClick(item.id)
-                        }}
-                        className={`absolute top-2 right-2 h-9 w-9 rounded-full border flex items-center justify-center backdrop-blur-sm transition-all ${bookmarkedItems.has(item.id)
-                          ? 'border-red-500 bg-red-50 text-red-500'
-                          : 'border-white/70 bg-white/90 text-gray-600'
-                          }`}
-                      >
-                        <Bookmark className={`h-4 w-4 ${bookmarkedItems.has(item.id) ? 'fill-red-500' : ''}`} />
-                      </button>
-                    </div>
-                  </button>
-
-                  <div className="p-3 sm:p-4 space-y-2.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          {item.isVeg ? (
-                            <div className="h-3.5 w-3.5 rounded border border-green-600 flex items-center justify-center flex-shrink-0">
-                              <div className="h-2 w-2 rounded-full bg-green-600" />
-                            </div>
-                          ) : (
-                            <div className="h-3.5 w-3.5 rounded border border-red-600 flex items-center justify-center flex-shrink-0">
-                              <div className="h-2 w-2 rounded-full bg-red-600" />
-                            </div>
-                          )}
-                          <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white line-clamp-2">{item.name}</h3>
-                        </div>
-                        <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                          {item.category || item.sectionName || item.subsectionName || 'Food item'}
-                        </p>
+                        <span>{restaurant.rating} {restaurant.totalRatings > 0 ? `(${restaurant.totalRatings >= 1000 ? `${(restaurant.totalRatings / 1000).toFixed(1)}K+` : restaurant.totalRatings}+)` : ''}</span>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 flex-wrap">
-                      {item.rating > 0 && (
-                        <span className="inline-flex items-center gap-1 font-semibold text-gray-700 dark:text-gray-300">
-                          <Star className="h-3.5 w-3.5 fill-current text-green-600" />
-                          {item.rating.toFixed(1)}
-                        </span>
+                      <span className="text-gray-500 dark:text-gray-400 text-sm md:text-base">•</span>
+                      {restaurant.distance && (
+                        <>
+                          <div className="flex items-center text-sm md:text-base font-semibold text-gray-700 dark:text-gray-300">
+                            <span>{restaurant.distance}</span>
+                          </div>
+                          <span className="text-gray-500 dark:text-gray-400 text-sm md:text-base">•</span>
+                        </>
                       )}
-                      {item.deliveryTime && <span>{item.deliveryTime}</span>}
-                      {item.distance && <span>{item.distance}</span>}
-                    </div>
-
-                    <div className="flex items-end justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                            {RUPEE_SYMBOL}{finalPrice}
-                          </span>
-                          {discountPercentage > 0 && (
-                            <span className="text-xs text-gray-400 line-through">
-                              {RUPEE_SYMBOL}{Math.round(item.price)}
-                            </span>
-                          )}
-                        </div>
-                        {discountPercentage > 0 && (
-                          <span className="inline-flex mt-1 text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded uppercase">
-                            {discountPercentage}% OFF
-                          </span>
-                        )}
+                      <div className="flex items-center text-sm md:text-base font-semibold text-gray-700 dark:text-gray-300">
+                        <span>{restaurant.deliveryTime}</span>
                       </div>
-
-                      {isClosed ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={true}
-                          className="rounded-xl h-9 px-4 text-[12px] font-bold uppercase bg-gray-200 dark:bg-gray-800 text-gray-500 cursor-not-allowed shadow-none"
-                        >
-                          Closed
-                        </Button>
-                      ) : quantity > 0 ? (
-                        <Link to="/user/cart" onClick={(event) => event.stopPropagation()}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-xl h-9 px-4 text-[12px] font-bold uppercase border-primary text-primary hover:bg-primary/5"
-                          >
-                            View Cart
-                          </Button>
-                        </Link>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-xl h-9 px-5 text-[12px] font-bold uppercase bg-white dark:bg-black border-primary text-primary hover:bg-primary/5 shadow-sm"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            updateItemQuantity(item, 1, event, item.restaurant)
-                          }}
-                        >
-                          ADD
-                        </Button>
-                      )}
                     </div>
                   </div>
-                </motion.div>
-              )
-            })}
-          </div>
-        )}
+                  
+                  {/* View Items Link */}
+                  <Link to={`/user/restaurants/${restaurantSlug}?under250=true`} className="flex-shrink-0 mt-1">
+                    <span className="text-primary font-bold text-sm md:text-base flex items-center hover:underline">
+                      View Items <ArrowRight className="h-4 w-4 ml-0.5" />
+                    </span>
+                  </Link>
+                </div>
+
+                {/* Menu Items Horizontal Scroll */}
+                {restaurant.menuItems && restaurant.menuItems.length > 0 && (
+                  <div className="mt-4">
+                    <HorizontalMenuScroller 
+                      restaurant={restaurant}
+                      quantities={quantities}
+                      isClosed={isClosed}
+                      handleItemClick={handleItemClick}
+                      RUPEE_SYMBOL={RUPEE_SYMBOL}
+                    />
+                  </div>
+                )}
+              </section>
+            )
+          }))}
         </div>
       </div>
 
@@ -1967,7 +1820,7 @@ export default function Under250() {
 
                 {/* Description */}
                 <p className="text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 mb-4 md:mb-6 lg:mb-8 leading-relaxed">
-                  {selectedItem.description || `${selectedItem.name} special`}
+                  {selectedItem.description || `${selectedItem.name} from ${selectedItem.restaurant || 'Under 250'}`}
                 </p>
 
                 {/* Highly Reordered Progress Bar */}
@@ -2054,14 +1907,17 @@ export default function Under250() {
                     <div className="flex items-center gap-1 md:gap-2">
                       {/* Check if we have a restaurant discount for the selected item */}
                       {(() => {
-                        if (selectedItem?.discount > 0) {
+                        const restaurant = under250Restaurants.find(r => 
+                          r.menuItems?.some(m => m.id === selectedItem.id)
+                        );
+                        if (restaurant?.discount > 0) {
                           return (
                             <>
                               <span className="text-sm md:text-base lg:text-lg line-through text-red-200">
                                 {RUPEE_SYMBOL}{Math.round(selectedItem.price)}
                               </span>
                               <span className="text-base md:text-lg lg:text-xl font-bold">
-                                {RUPEE_SYMBOL}{Math.round(selectedItem.price * (1 - selectedItem.discount / 100))}
+                                {RUPEE_SYMBOL}{Math.round(selectedItem.price * (1 - restaurant.discount / 100))}
                               </span>
                             </>
                           );

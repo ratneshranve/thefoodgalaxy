@@ -22,7 +22,7 @@ const legalPageSchema = new mongoose.Schema(
 
 const aboutPageSchema = new mongoose.Schema(
     {
-        appName: { type: String, default: 'The Food Galaxy' },
+        appName: { type: String, default: 'Indian Bites' },
         version: { type: String, default: '1.0.0' },
         description: { type: String, default: '' },
         logo: { type: String, default: '' },
@@ -74,4 +74,3 @@ const pageContentSchema = new mongoose.Schema(
 );
 
 export const FoodPageContent = mongoose.model('FoodPageContent', pageContentSchema);
-

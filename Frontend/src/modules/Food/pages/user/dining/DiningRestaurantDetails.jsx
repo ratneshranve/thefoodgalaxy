@@ -154,7 +154,7 @@ export default function DiningRestaurantDetails() {
           setIsFetchingBookings(false)
       }
 
-      const menuResponse = await restaurantAPI.getMenuByRestaurantId(restaurantId).catch(() => null)
+      const menuResponse = await restaurantAPI.getMenuByRestaurantId(restaurantId, { noCache: true }).catch(() => null)
       const resolvedMenu = menuResponse ? getMenuFromResponse(menuResponse) : null
       setMenuSections(Array.isArray(resolvedMenu?.sections) ? resolvedMenu.sections : [])
     } catch {
@@ -221,7 +221,7 @@ export default function DiningRestaurantDetails() {
   const handleShare = async () => {
     const shareData = {
       title: restaurantName,
-      text: `Check out ${restaurantName} on The Food Galaxy!`,
+      text: `Check out ${restaurantName} on Indian Bites!`,
       url: window.location.href,
     }
 
@@ -614,4 +614,3 @@ export default function DiningRestaurantDetails() {
     </div>
   )
 }
-

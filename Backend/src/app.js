@@ -12,6 +12,7 @@ import { requestIdMiddleware } from './middleware/requestId.js';
 import { healthCheck } from './config/health.js';
 import { config } from './config/env.js';
 import compression from 'compression';
+import { resolveUploadRoot } from './utils/uploadPaths.js';
 
 const app = express();
 
@@ -78,14 +79,15 @@ app.use(helmet({
     hsts: config.nodeEnv === 'production' ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
     xssFilter: true,
     noSniff: true,
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json({
     limit: '15mb',
     verify: (req, res, buf) => {
-        // ✅ Store rawBody for signature verification (Razorpay Webhooks)
+        // Store rawBody for signature verification (Razorpay webhooks)
         if (req.originalUrl && req.originalUrl.includes('/webhook/razorpay')) {
             req.rawBody = buf;
         }
@@ -110,6 +112,11 @@ app.use('/api', responseTimeLogger);
 
 // API Routes
 app.use('/api', routes);
+
+// Static Uploads Serving
+const uploadDir = resolveUploadRoot();
+app.use('/uploads', express.static(uploadDir));
+app.use('/api/v1/uploads', express.static(uploadDir));
 
 // Error Handling
 app.use(errorHandler);

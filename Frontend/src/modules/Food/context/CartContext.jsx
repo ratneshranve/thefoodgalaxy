@@ -69,13 +69,6 @@ const normalizeCartData = (rawCart) => {
         item.product?.image ||
         ""
 
-      const normalizedRestaurantSlug =
-        item.restaurantSlug ||
-        item.restaurant_slug ||
-        item.slug ||
-        item.restaurant?.slug ||
-        "the-food-galaxy"
-
       const baseItemId =
         item.itemId ||
         item.productId ||
@@ -118,7 +111,6 @@ const normalizeCartData = (rawCart) => {
         price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
         restaurant: normalizedRestaurantName,
         restaurantId: normalizedRestaurantId,
-        restaurantSlug: String(normalizedRestaurantSlug || 'the-food-galaxy'),
         image: normalizedImage,
         imageUrl: normalizedImage,
       }

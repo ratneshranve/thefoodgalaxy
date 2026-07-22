@@ -25,15 +25,14 @@ export const getAppConfigByName = async (req, res) => {
 export const updateAppConfig = async (req, res) => {
     try {
         const { appName } = req.params;
-        const { primaryColor, secondaryColor, accentColor, logoUrl, fontFamily } = req.body;
+        const { primaryColor, secondaryColor, logoUrl, fontFamily } = req.body;
         
         let config = await AppConfig.findOne({ appName });
         if (!config) {
-            config = new AppConfig({ appName, primaryColor, secondaryColor, accentColor, logoUrl, fontFamily });
+            config = new AppConfig({ appName, primaryColor, secondaryColor, logoUrl, fontFamily });
         } else {
             if (primaryColor) config.primaryColor = primaryColor;
             if (secondaryColor) config.secondaryColor = secondaryColor;
-            if (accentColor) config.accentColor = accentColor;
             if (logoUrl !== undefined) config.logoUrl = logoUrl;
             if (fontFamily) config.fontFamily = fontFamily;
         }

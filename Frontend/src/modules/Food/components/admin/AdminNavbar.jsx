@@ -40,7 +40,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@food/components/ui/popover";
-import quickSpicyLogo from "@food/assets/quicky-spicy-logo.png";
+
 import { adminAPI } from "@food/api";
 import { clearModuleAuth } from "@food/utils/auth";
 import { getCachedSettings, loadBusinessSettings } from "@food/utils/businessSettings";
@@ -288,16 +288,13 @@ export default function AdminNavbar({ onMenuClick }) {
                     className="w-10 h-10 object-contain"
                     loading="lazy"
                     onError={(e) => {
-                      // Fallback to default logo if company logo fails to load
-                      e.target.src = quickSpicyLogo;
+                      e.target.style.display = "none";
                     }}
                   />
-                ) : (
-                  <img src={quickSpicyLogo} alt={businessSettings?.companyName || "Company"} className="w-10 h-10 object-contain" loading="lazy" />
-                )}
+                ) : null}
               </div>
               <span className="text-red-600 font-extrabold text-xl ml-1 tracking-tight">
-                {businessSettings?.companyName || "The Food Galaxy"}
+                {businessSettings?.companyName || "Indian Bites"}
               </span>
             </div>
           </div>
@@ -619,5 +616,4 @@ export default function AdminNavbar({ onMenuClick }) {
     </>
   );
 }
-
 

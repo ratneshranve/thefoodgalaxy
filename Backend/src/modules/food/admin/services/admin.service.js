@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { buildRawDownloadUrlFromFileUrl } from '../../../../services/cloudinary.service.js';
+import { normalizeMediaUrl, toMediaObject } from '../../../../utils/mediaUrl.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
 import { DeliverySupportTicket } from '../../delivery/models/supportTicket.model.js';
 import { FoodZone } from '../models/zone.model.js';
@@ -792,7 +793,7 @@ export async function getTransactionReport(query = {}) {
     // We will query the FoodTransaction table directly as it is the ledger
     const transactionRows = await FoodTransaction.find(match)
         .populate('orderId')
-        .populate('userId', 'name')
+        .populate('userId', 'name phone')
         .populate('restaurantId', 'restaurantName')
         .sort({ createdAt: -1 })
         .lean();
@@ -828,10 +829,12 @@ export async function getTransactionReport(query = {}) {
             orderId: tx.orderReadableId || order.orderId || 'N/A',
             restaurant: tx.restaurantId?.restaurantName || 'N/A',
             customerName: tx.userId?.name || 'Guest',
+            customerPhone: tx.userId?.phone || order?.phone || 'N/A',
             totalItemAmount: subtotal,
             itemDiscount: pricing.discount || 0,
-            couponDiscount: 0, // Placeholder if you add coupon logic
+            couponDiscount: Number(pricing.couponDiscount || 0),
             referralDiscount: 0, // Placeholder
+            discountAmount: pricing.discount || 0,
             discountedAmount: Math.max(0, (pricing.subtotal || 0) - (pricing.discount || 0)),
             vatTax: tx.amounts?.taxAmount || pricing.tax || 0,
             deliveryCharge: pricing.deliveryFee || 0,
@@ -1386,6 +1389,18 @@ export async function getCustomerById(id) {
         }
     ]);
     const stats = orderStats?.[0] || {};
+
+    let walletBalance = 0;
+    try {
+        const { FoodUserWallet } = await import('../../user/models/userWallet.model.js');
+        const wallet = await FoodUserWallet.findOne({ userId: customerObjectId }).select('balance').lean();
+        if (wallet) {
+            walletBalance = Number(wallet.balance || 0);
+        }
+    } catch (err) {
+        // Fallback gracefully
+    }
+
     const sanitizeUrl = (s) => {
         if (!s) return '';
         const str = String(s).trim();
@@ -1405,6 +1420,7 @@ export async function getCustomerById(id) {
         totalOrders: Number(stats.totalOrders || 0),
         totalOrder: Number(stats.totalOrders || 0),
         totalOrderAmount: Number(stats.totalOrderAmount || 0),
+        walletBalance: walletBalance,
         joiningDate: u.createdAt,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
@@ -3173,11 +3189,6 @@ export async function getFoods(query) {
 
     if (query.restaurantId && mongoose.Types.ObjectId.isValid(query.restaurantId)) {
         filter.restaurantId = query.restaurantId;
-    } else if (String(query.singleStoreOnly || '').toLowerCase() !== 'false') {
-        const store = await resolveSingleAdminStore();
-        if (store?._id) {
-            filter.restaurantId = store._id;
-        }
     }
     if (query.search && String(query.search).trim()) {
         const term = String(query.search).trim();
@@ -3204,13 +3215,12 @@ export async function getFoods(query) {
         ? await FoodRestaurant.find({ _id: { $in: restaurantIds } }).select('restaurantName').lean()
         : [];
     const restaurantMap = new Map(restaurants.map((r) => [String(r._id), r.restaurantName]));
-    const defaultRestaurantName = restaurants[0]?.restaurantName || SINGLE_STORE_NAME;
 
     const foods = list.map((f) => ({
         id: f._id,
         _id: f._id,
         restaurantId: f.restaurantId,
-        restaurantName: restaurantMap.get(String(f.restaurantId)) || defaultRestaurantName,
+        restaurantName: restaurantMap.get(String(f.restaurantId)) || 'Unknown Restaurant',
         categoryId: f.categoryId || null,
         categoryName: f.categoryName || '',
         name: f.name,
@@ -3285,47 +3295,6 @@ const getAdminFoodCreatePricing = (body = {}) => {
     };
 };
 
-const SINGLE_STORE_NAME = 'The Food Galaxy';
-const SINGLE_STORE_SLUG = 'the-food-galaxy';
-
-const resolveSingleAdminStore = async () => {
-    let store = await FoodRestaurant.findOne({
-        $or: [
-            { slug: SINGLE_STORE_SLUG },
-            { restaurantName: SINGLE_STORE_NAME }
-        ]
-    })
-        .select('restaurantName pureVegRestaurant slug status isActive')
-        .sort({ createdAt: 1 })
-        .lean();
-
-    if (store?._id) {
-        return store;
-    }
-
-    const fallbackStore = await FoodRestaurant.findOne({})
-        .sort({ createdAt: 1 })
-        .select('restaurantName pureVegRestaurant slug status isActive')
-        .lean();
-
-    if (fallbackStore?._id) {
-        return fallbackStore;
-    }
-
-    const createdStore = await FoodRestaurant.create({
-        restaurantName: SINGLE_STORE_NAME,
-        slug: SINGLE_STORE_SLUG,
-        status: 'approved',
-        isActive: true,
-        isAcceptingOrders: true,
-        pureVegRestaurant: false,
-        city: 'Single Store',
-        area: 'Admin Managed'
-    });
-
-    return createdStore.toObject();
-};
-
 const getAdminFoodUpdatedPricing = (existing = {}, body = {}) => {
     const variantsTouched = body.variants !== undefined || body.variations !== undefined;
     const existingHasVariants = hasFoodVariants(existing);
@@ -3361,17 +3330,16 @@ const getAdminFoodUpdatedPricing = (existing = {}, body = {}) => {
 };
 
 export async function createFood(body) {
-    const requestedRestaurantId = body.restaurantId;
-    const hasValidRequestedRestaurant = requestedRestaurantId && mongoose.Types.ObjectId.isValid(requestedRestaurantId);
-    const restaurant = hasValidRequestedRestaurant
-        ? await FoodRestaurant.findById(requestedRestaurantId)
-            .select('restaurantName pureVegRestaurant')
-            .lean()
-        : await resolveSingleAdminStore();
-    if (!restaurant?._id) {
-        throw new ValidationError('Admin store not found');
+    const restaurantId = body.restaurantId;
+    if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) {
+        throw new ValidationError('Valid restaurantId is required');
     }
-    const restaurantId = restaurant._id;
+    const restaurant = await FoodRestaurant.findById(restaurantId)
+        .select('pureVegRestaurant')
+        .lean();
+    if (!restaurant?._id) {
+        throw new ValidationError('Restaurant not found');
+    }
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name) throw new ValidationError('Food name is required');
     const foodType = body.foodType === 'Veg' ? 'Veg' : 'Non-Veg';
@@ -3415,16 +3383,11 @@ export async function updateFood(id, body) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const doc = await FoodItem.findById(id);
     if (!doc) return null;
-    const restaurant = doc.restaurantId
-        ? await FoodRestaurant.findById(doc.restaurantId)
-            .select('restaurantName pureVegRestaurant')
-            .lean()
-        : await resolveSingleAdminStore();
+    const restaurant = await FoodRestaurant.findById(doc.restaurantId)
+        .select('pureVegRestaurant')
+        .lean();
     if (!restaurant?._id) {
-        throw new ValidationError('Admin store not found');
-    }
-    if (!doc.restaurantId) {
-        doc.restaurantId = restaurant._id;
+        throw new ValidationError('Restaurant not found');
     }
     if (body.name !== undefined) doc.name = String(body.name || '').trim();
     if (body.description !== undefined) doc.description = String(body.description || '').trim();
@@ -3876,7 +3839,7 @@ export async function getDeliveryJoinRequests(query) {
         status: doc.status === 'rejected' ? 'denied' : doc.status,
         rejectionReason: doc.rejectionReason || undefined,
         profilePhoto: doc.profilePhoto || null,
-        profileImage: doc.profilePhoto ? { url: doc.profilePhoto } : null
+        profileImage: toMediaObject(doc.profilePhoto)
     }));
 
     return { requests };
@@ -4068,7 +4031,7 @@ export async function getDeliveryPartners(query) {
         status: doc.status,
         totalOrders: countsMap.get(String(doc._id)) || 0,
         profilePhoto: doc.profilePhoto || null,
-        profileImage: doc.profilePhoto ? { url: doc.profilePhoto } : null
+        profileImage: toMediaObject(doc.profilePhoto)
     }));
 
     return {
@@ -4663,28 +4626,28 @@ export async function getDeliveryPartnerById(id) {
         email: partner.email || null,
         deliveryId,
         status: partner.status === 'rejected' ? 'blocked' : partner.status,
-        profileImage: partner.profilePhoto ? { url: partner.profilePhoto } : null,
+        profileImage: toMediaObject(partner.profilePhoto),
         documents: {
             aadhar: (partner.aadharPhoto || partner.aadharFrontPhoto || partner.aadharBackPhoto || partner.aadharNumber)
                 ? { 
                     number: partner.aadharNumber || null, 
-                    document: partner.aadharFrontPhoto || partner.aadharPhoto || null,
-                    front: partner.aadharFrontPhoto || partner.aadharPhoto || null,
-                    back: partner.aadharBackPhoto || null
+                    document: normalizeMediaUrl(partner.aadharFrontPhoto || partner.aadharPhoto || null),
+                    front: normalizeMediaUrl(partner.aadharFrontPhoto || partner.aadharPhoto || null),
+                    back: normalizeMediaUrl(partner.aadharBackPhoto || null)
                   }
                 : null,
             pan: (partner.panPhoto || partner.panNumber)
-                ? { number: partner.panNumber || null, document: partner.panPhoto || null }
+                ? { number: partner.panNumber || null, document: normalizeMediaUrl(partner.panPhoto || null) }
                 : null,
             drivingLicense: (partner.drivingLicensePhoto || partner.drivingLicenseFrontPhoto || partner.drivingLicenseBackPhoto || partner.drivingLicenseNumber) 
                 ? { 
                     number: partner.drivingLicenseNumber || null,
-                    document: partner.drivingLicenseFrontPhoto || partner.drivingLicensePhoto || null,
-                    front: partner.drivingLicenseFrontPhoto || partner.drivingLicensePhoto || null,
-                    back: partner.drivingLicenseBackPhoto || null
+                    document: normalizeMediaUrl(partner.drivingLicenseFrontPhoto || partner.drivingLicensePhoto || null),
+                    front: normalizeMediaUrl(partner.drivingLicenseFrontPhoto || partner.drivingLicensePhoto || null),
+                    back: normalizeMediaUrl(partner.drivingLicenseBackPhoto || null)
                   } 
                 : null,
-            vehicleRC: partner.rcPhoto ? { document: partner.rcPhoto } : null,
+            vehicleRC: partner.rcPhoto ? { document: normalizeMediaUrl(partner.rcPhoto) } : null,
             bankDetails:
                 partner.bankAccountHolderName || partner.bankAccountNumber || partner.bankIfscCode || partner.bankName
                     ? {
@@ -5510,5 +5473,4 @@ export async function deleteSubAdmin(id) {
     const deleted = await FoodAdmin.findOneAndDelete({ _id: id, role: 'SUB_ADMIN' });
     return deleted !== null;
 }
-
 

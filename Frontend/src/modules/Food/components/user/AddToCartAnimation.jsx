@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useCart } from "@food/context/CartContext";
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ChevronRight } from 'lucide-react';
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -39,7 +39,10 @@ export default function AddToCartAnimation({
   const flyingThumbnailRef = useRef(null);
   const prevItemsRef = useRef(items);
 
+  // Get restaurant info from first cart item
+  const restaurantName = cart[0]?.restaurant || "Restaurant";
   const restaurantImage = cart[0]?.image || "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=200&h=200&fit=crop";
+  const restaurantSlug = restaurantName.toLowerCase().replace(/\s+/g, "-");
 
   // Hide pill on cart pages, order pages, and account page (if enabled)
   const iscartPage = location.pathname === '/cart' ||
@@ -477,13 +480,17 @@ export default function AddToCartAnimation({
                 )}
               </div>
 
+              {/* Restaurant Info */}
               <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
                 <h3 className="font-bold text-gray-900 text-sm md:text-[15px] line-clamp-1 leading-tight mb-1">
-                  Cart Summary
+                  {restaurantName}
                 </h3>
-                <p className="text-[10px] md:text-[11px] text-gray-500 font-medium">
-                  Ready to checkout
-                </p>
+                <button 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/food/user/restaurants/${restaurantSlug}`); }}
+                  className="bg-[#fff0e6] text-[#ff7a29] rounded-full px-2.5 py-0.5 text-[10px] md:text-[11px] font-bold inline-flex items-center gap-0.5 w-fit hover:bg-orange-100 transition-colors"
+                >
+                  Menu <ChevronRight className="w-3 h-3" />
+                </button>
               </div>
 
               {/* Checkout Button (Green) */}

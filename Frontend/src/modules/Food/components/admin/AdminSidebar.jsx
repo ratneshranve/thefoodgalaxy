@@ -51,11 +51,21 @@ import { cn } from "@food/utils/utils"
 import { Input } from "@food/components/ui/input"
 import { adminSidebarMenu } from "@food/utils/adminSidebarMenu"
 import { getCachedSettings, loadBusinessSettings } from "@food/utils/businessSettings"
-import quickSpicyLogo from "@food/assets/quicky-spicy-logo.png"
+
 import { adminAPI } from "@food/api"
+import { API_BASE_URL } from "@food/api/config"
+import { normalizeImageUrl } from "@food/utils/common"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
+
+const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api(?:\/v\d+)?\/?$/, "")
+const resolveAdminLogo = (media) => {
+  if (!media) return null
+  if (typeof media === "string") return normalizeImageUrl(media, BACKEND_ORIGIN) || null
+  const raw = media?.url || media?.secure_url || media?.imageUrl || media?.image || media?.src || ""
+  return normalizeImageUrl(raw, BACKEND_ORIGIN) || null
+}
 
 
 // Icon mapping
@@ -175,7 +185,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
 
     return 0
   }
-  const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem('admin_app_logo') || getCachedSettings()?.logo?.url || null)
+  const [logoUrl, setLogoUrl] = useState(() => resolveAdminLogo(localStorage.getItem('admin_app_logo')) || resolveAdminLogo(getCachedSettings()?.logo) || null)
   const [companyName, setCompanyName] = useState(() => getCachedSettings()?.companyName || null)
 
   // Load business settings logo
@@ -184,13 +194,13 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       try {
         const adminLogo = localStorage.getItem('admin_app_logo');
         if (adminLogo) {
-          setLogoUrl(adminLogo);
+          setLogoUrl(resolveAdminLogo(adminLogo));
         } else {
           // First check cache
           let cached = getCachedSettings()
           if (cached) {
             if (cached.logo?.url) {
-              setLogoUrl(cached.logo.url)
+              setLogoUrl(resolveAdminLogo(cached.logo))
             }
             if (cached.companyName) {
               setCompanyName(cached.companyName)
@@ -201,7 +211,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
           const settings = await loadBusinessSettings()
           if (settings) {
             if (settings.logo?.url) {
-              setLogoUrl(settings.logo.url)
+              setLogoUrl(resolveAdminLogo(settings.logo))
             }
             if (settings.companyName) {
               setCompanyName(settings.companyName)
@@ -220,12 +230,12 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     const handleSettingsUpdate = () => {
       const adminLogo = localStorage.getItem('admin_app_logo');
       if (adminLogo) {
-        setLogoUrl(adminLogo);
+        setLogoUrl(resolveAdminLogo(adminLogo));
       } else {
         const cached = getCachedSettings()
         if (cached) {
           if (cached.logo?.url) {
-            setLogoUrl(cached.logo.url)
+            setLogoUrl(resolveAdminLogo(cached.logo))
           }
           if (cached.companyName) {
             setCompanyName(cached.companyName)
@@ -237,7 +247,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     // Listen for themeLoaded
     const handleThemeLoaded = () => {
        const adminLogo = localStorage.getItem('admin_app_logo');
-       if (adminLogo) setLogoUrl(adminLogo);
+       if (adminLogo) setLogoUrl(resolveAdminLogo(adminLogo));
     };
 
     window.addEventListener('businessSettingsUpdated', handleSettingsUpdate)
@@ -715,23 +725,17 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                 <div className="w-24 h-12 rounded-lg flex items-center justify-center shadow-black/20">
                   {logoUrl ? (
                     <img
-                      src={logoUrl || quickSpicyLogo}
+                      src={logoUrl }
                       alt={companyName || "Company"}
                       className="w-24 h-10 object-contain"
                       loading="lazy"
-                      onError={(e) => {
-                        if (e.target.src !== quickSpicyLogo) {
-                          e.target.src = quickSpicyLogo
-                        }
-                      }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
                     />
                   ) : companyName ? (
                     <span className="text-xs font-semibold text-white px-2 truncate">
                       {companyName}
                     </span>
-                  ) : (
-                    <img src={quickSpicyLogo} alt="Company" className="w-24 h-10 object-contain" loading="lazy" />
-                  )}
+                  ) : null}
                 </div>
               </div>
             )}
@@ -740,19 +744,13 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shadow-lg shadow-black/20 ring-1 ring-white/10">
                   {logoUrl || companyName ? (
                     <img
-                      src={logoUrl || quickSpicyLogo}
+                      src={logoUrl }
                       alt={companyName || "Company"}
                       className="w-10 h-10 object-contain"
                       loading="lazy"
-                      onError={(e) => {
-                        if (e.target.src !== quickSpicyLogo) {
-                          e.target.src = quickSpicyLogo
-                        }
-                      }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
                     />
-                  ) : (
-                    <img src={quickSpicyLogo} alt="Company" className="w-10 h-10 object-contain" loading="lazy" />
-                  )}
+                  ) : null}
                 </div>
               </div>
             )}

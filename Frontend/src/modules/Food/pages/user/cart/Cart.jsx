@@ -20,6 +20,7 @@ import { getCompanyNameAsync } from "@food/utils/businessSettings"
 import { calculateDistance } from "@food/utils/common"
 import { useCompanyName } from "@food/hooks/useCompanyName"
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability"
+import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
 import zoopSound from "@food/assets/audio/zomato_sms.mp3"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -81,6 +82,7 @@ const CART_ORDER_NOTE_STORAGE_KEY = "food-cart-order-note-v1"
 export default function Cart() {
   const companyName = useCompanyName()
   const navigate = useNavigate()
+  const goBack = useAppBackNavigation()
   const orderSuccessAudioRef = useRef(null)
   const hasRestoredRecipientRef = useRef(false)
   const hasRestoredNoteRef = useRef(false)
@@ -1291,7 +1293,13 @@ export default function Cart() {
   }
 
   const handleBack = () => {
-    navigate("/food/user")
+    // Priority: slug > restaurantId (both work for the restaurant details route)
+    const idOrSlug = restaurantData?.slug || restaurantId
+    if (idOrSlug) {
+      navigate(`/food/user/restaurants/${idOrSlug}`)
+    } else {
+      goBack()
+    }
   }
 
   // Handler to select address by label (Home, Office, Other)
@@ -2051,7 +2059,7 @@ export default function Cart() {
           `2. Backend is accessible at ${backendUrl}\n` +
           `3. Check browser console (F12) for more details\n\n` +
           `If backend is not running, start it with:\n` +
-          `cd food-galaxy/Backend && npm start`
+          `cd appzetofood/backend && npm start`
 
         debugError("?? Network Error Details:", {
           code: error.code,
@@ -2146,6 +2154,7 @@ export default function Cart() {
                 <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
               <div className="min-w-0">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">{restaurantName}</p>
                 <p className="text-sm md:text-base font-medium text-gray-800 dark:text-white truncate">
                   {restaurantData?.estimatedDeliveryTime || "10-15 mins"} to <span className="font-semibold">Location</span>
                   <span className="text-gray-400 dark:text-gray-500 ml-1 text-xs md:text-sm">{defaultAddress ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || defaultAddress?.city || "Select address") : "Select address"}</span>
@@ -3702,4 +3711,3 @@ export default function Cart() {
     </div>
   )
 }      
-

@@ -406,10 +406,10 @@ export default function Help() {
                       We'll respond within 24 hours
                     </p>
                     <a
-                      href="mailto:support@thefoodgalaxy.com"
+                      href="mailto:support@indianbites.com"
                       className="text-sm text-primary hover:underline font-medium"
                     >
-                      support@thefoodgalaxy.com
+                      support@indianbites.com
                     </a>
                   </div>
                 </div>
@@ -446,4 +446,3 @@ export default function Help() {
     </AnimatedPage>
   )
 }
-

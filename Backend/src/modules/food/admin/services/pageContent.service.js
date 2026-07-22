@@ -76,7 +76,7 @@ export const upsertLegalPage = async (key, payload, updatedBy) => {
 };
 
 export const upsertAboutPage = async (payload, updatedBy) => {
-    const appName = decodeHtmlEntities(String(payload?.appName || '')).trim() || 'The Food Galaxy';
+    const appName = decodeHtmlEntities(String(payload?.appName || '')).trim() || 'Appzeto Food';
     const version = decodeHtmlEntities(String(payload?.version || '')).trim() || '1.0.0';
     const description = decodeHtmlEntities(String(payload?.description || '')).trim();
     const logo = decodeHtmlEntities(String(payload?.logo || '')).trim();
@@ -108,5 +108,4 @@ export const upsertAboutPage = async (payload, updatedBy) => {
 
     return { key: 'about', data: normalizeAboutForResponse(doc?.about || null) };
 };
-
 

@@ -1,10 +1,12 @@
 import dotenv from 'dotenv';
+import { resolveUploadRoot } from '../utils/uploadPaths.js';
 
 dotenv.config();
 
 export const config = {
     // Basic server config
     port: process.env.PORT || 5000,
+    publicBaseUrl: process.env.PUBLIC_BASE_URL || process.env.APP_URL || process.env.BACKEND_BASE_URL || '',
     socketPort: process.env.SOCKET_PORT || 5001,
     host: process.env.HOST || '0.0.0.0',
     nodeEnv: process.env.NODE_ENV || 'development',
@@ -41,7 +43,7 @@ export const config = {
     bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS || 10),
 
     // Uploads
-    uploadPath: process.env.UPLOAD_PATH || 'uploads/',
+    uploadPath: resolveUploadRoot(),
 
     // Redis
     redisEnabled: process.env.REDIS_ENABLED === 'true',
@@ -75,9 +77,9 @@ export const config = {
     // Razorpay (payments)
     razorpayKeyId: process.env.RAZORPAY_KEY_ID,
     razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET,
-    razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET, // ✅ NEW
+    razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET,
 
-    // Email (SMTP) – for admin forgot password OTP etc.
+    // Email (SMTP) for admin forgot password OTP etc.
     emailHost: process.env.EMAIL_HOST,
     emailPort: Number(process.env.EMAIL_PORT) || 587,
     emailUser: process.env.EMAIL_USER,
@@ -95,6 +97,7 @@ export const config = {
 
 export const updateConfig = () => {
     config.port = process.env.PORT || config.port;
+    config.publicBaseUrl = process.env.PUBLIC_BASE_URL || process.env.APP_URL || process.env.BACKEND_BASE_URL || config.publicBaseUrl;
     config.socketPort = process.env.SOCKET_PORT || config.socketPort;
     config.host = process.env.HOST || config.host;
     config.nodeEnv = process.env.NODE_ENV || config.nodeEnv;
@@ -117,7 +120,7 @@ export const updateConfig = () => {
     config.authRateLimitWindowMinutes = Number(process.env.AUTH_RATE_LIMIT_WINDOW || config.authRateLimitWindowMinutes);
     config.authRateLimitMax = Number(process.env.AUTH_RATE_LIMIT_MAX || config.authRateLimitMax);
     config.bcryptSaltRounds = Number(process.env.BCRYPT_SALT_ROUNDS || config.bcryptSaltRounds);
-    config.uploadPath = process.env.UPLOAD_PATH || config.uploadPath;
+    config.uploadPath = resolveUploadRoot();
     config.redisEnabled = process.env.REDIS_ENABLED === 'true';
     config.redisUrl = process.env.REDIS_URL || config.redisUrl;
     config.bullmqEnabled = process.env.BULLMQ_ENABLED === 'true';
