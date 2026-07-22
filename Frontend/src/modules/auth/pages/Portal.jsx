@@ -117,7 +117,7 @@ export default function SuperAppPortal() {
           className="text-5xl md:text-7xl font-black text-[#1A202C] tracking-tight leading-none"
         >
           Welcome to <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-[#a64a85] to-primary bg-[length:200%_auto] animate-gradient block mt-2">Indian Bites</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-[#a64a85] to-primary bg-[length:200%_auto] animate-gradient block mt-2">The Food Galaxy</span>
         </motion.h1>
 
         <motion.p 
@@ -243,7 +243,7 @@ export default function SuperAppPortal() {
       <div className="mt-16 flex flex-col items-center gap-3 opacity-50">
          <div className="flex items-center gap-1.5 grayscale">
             <ShieldCheck className="w-4 h-4" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Secure by Indian Bites</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Secure by The Food Galaxy</span>
          </div>
       </div>
     </div>

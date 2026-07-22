@@ -2404,7 +2404,7 @@ export default function OrdersMain() {
           
           <div class="center" style="margin-top: 15px;">
             <p class="bold">Thank you for ordering!</p>
-            <p style="font-size: 10px;">Powered by ${settings.companyName || "Indian Bites"}</p>
+            <p style="font-size: 10px;">Powered by ${settings.companyName || "The Food Galaxy"}</p>
           </div>
         </body>
         </html>

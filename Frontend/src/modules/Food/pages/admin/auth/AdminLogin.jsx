@@ -85,7 +85,7 @@ export default function AdminLogin() {
             >
               <img 
                 src={logoNew} 
-                alt="Indian Bites Logo" 
+                alt="The Food Galaxy Logo" 
                 className="w-full h-full object-cover scale-[1.15]"
                 style={{ borderRadius: '50%' }}
               />
@@ -128,7 +128,7 @@ export default function AdminLogin() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="block w-full pl-12 pr-6 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border-2 border-transparent focus:border-primary/50 rounded-2xl outline-none transition-all placeholder:text-gray-300 font-bold"
-                      placeholder="admin@indianbites.com"
+                      placeholder="admin@thefoodgalaxy.in"
                     />
                   </div>
                 </div>

@@ -86,7 +86,7 @@ export default function LandingPageManagement() {
           { label: 'Sitemap', url: '#' }
       ]
     },
-    copyrightText: '© 2026 Indian Bites™ Ltd. All rights reserved.',
+    copyrightText: '© 2026 The Food Galaxy™ Ltd. All rights reserved.',
     heroSlides: []
   })
   const [settingsLoading, setSettingsLoading] = useState(true)
@@ -1107,7 +1107,7 @@ export default function LandingPageManagement() {
                 { label: 'Sitemap', url: '#' }
             ]
           },
-          copyrightText: nextSettings.copyrightText || '© 2026 Indian Bites™ Ltd. All rights reserved.',
+          copyrightText: nextSettings.copyrightText || '© 2026 The Food Galaxy™ Ltd. All rights reserved.',
           heroSlides: Array.isArray(nextSettings.heroSlides) ? nextSettings.heroSlides : []
         })
       }
@@ -2339,7 +2339,7 @@ export default function LandingPageManagement() {
 
               <div className="mb-6">
                   <Label>Copyright Text</Label>
-                  <Input value={settings.copyrightText || ''} onChange={(e) => setSettings({...settings, copyrightText: e.target.value})} placeholder="© 2026 Indian Bites™ Ltd." />
+                  <Input value={settings.copyrightText || ''} onChange={(e) => setSettings({...settings, copyrightText: e.target.value})} placeholder="© 2026 The Food Galaxy™ Ltd." />
               </div>
 
               <div className="mb-6 space-y-6 mt-8">

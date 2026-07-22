@@ -82,7 +82,7 @@ const foodLandingSettingsSchema = new mongoose.Schema(
         },
         copyrightText: {
             type: String,
-            default: '© 2026 Indian Bites™ Ltd. All rights reserved.'
+            default: '© 2026 The Food Galaxy™ Ltd. All rights reserved.'
         },
         heroSlides: {
             type: Array,

@@ -36,7 +36,7 @@ export async function sendAdminResetOtpEmail(to, otp) {
         return false;
     }
     const from = config.emailFrom || config.emailUser;
-    const subject = 'Your password reset code – Appzeto Admin';
+    const subject = 'Your password reset code – The Food Galaxy Admin';
     const html = `
 <!DOCTYPE html>
 <html>
@@ -47,14 +47,14 @@ export async function sendAdminResetOtpEmail(to, otp) {
   <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px; background: #f5f5f5; padding: 12px 16px; border-radius: 8px;">${otp}</p>
   <p style="color: #666; font-size: 14px;">If you did not request this, you can ignore this email.</p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-  <p style="color: #999; font-size: 12px;">Appzeto Admin</p>
+  <p style="color: #999; font-size: 12px;">The Food Galaxy Admin</p>
 </body>
 </html>`;
     const text = `Your password reset code is: ${otp}. It is valid for 10 minutes. If you did not request this, ignore this email.`;
 
     try {
         await trans.sendMail({
-            from: typeof from === 'string' && from.includes('<') ? from : `Appzeto <${from}>`,
+            from: typeof from === 'string' && from.includes('<') ? from : `The Food Galaxy <${from}>`,
             to,
             subject,
             text,
@@ -82,7 +82,7 @@ export async function sendRestaurantOnboardingEmail(to, restaurantName, pdfUrl) 
         return false;
     }
     const from = config.emailFrom || config.emailUser;
-    const subject = `Welcome to Appzeto, ${restaurantName}!`;
+    const subject = `Welcome to The Food Galaxy, ${restaurantName}!`;
     
     const html = `
 <!DOCTYPE html>
@@ -90,18 +90,18 @@ export async function sendRestaurantOnboardingEmail(to, restaurantName, pdfUrl) 
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <h2 style="color: #111;">Welcome aboard, ${restaurantName}!</h2>
-  <p>Your restaurant has been successfully onboarded to Appzeto.</p>
+  <p>Your restaurant has been successfully onboarded to The Food Galaxy.</p>
   <p>Please find attached the official Terms and Conditions regarding our partnership.</p>
   <p>We look forward to growing together!</p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-  <p style="color: #999; font-size: 12px;">Appzeto Team</p>
+  <p style="color: #999; font-size: 12px;">The Food Galaxy Team</p>
 </body>
 </html>`;
     
-    const text = `Welcome aboard, ${restaurantName}!\n\nYour restaurant has been successfully onboarded to Appzeto.\nPlease find attached the official Terms and Conditions regarding our partnership.\n\nWe look forward to growing together!\n\nAppzeto Team`;
+    const text = `Welcome aboard, ${restaurantName}!\n\nYour restaurant has been successfully onboarded to The Food Galaxy.\nPlease find attached the official Terms and Conditions regarding our partnership.\n\nWe look forward to growing together!\n\nTheFoodGalaxy Team`;
 
     const mailOptions = {
-        from: typeof from === 'string' && from.includes('<') ? from : `Appzeto <${from}>`,
+        from: typeof from === 'string' && from.includes('<') ? from : `The Food Galaxy <${from}>`,
         to,
         subject,
         text,

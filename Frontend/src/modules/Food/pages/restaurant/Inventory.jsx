@@ -874,7 +874,7 @@ export default function Inventory() {
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       downloadFile({
         data: wbout,
-        filename: "indianbites_inventory_template.xlsx",
+        filename: "thefoodgalaxy_inventory_template.xlsx",
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       });
     } catch (err) {
@@ -1336,7 +1336,7 @@ export default function Inventory() {
     try {
       let imageUrl = addonImagePreview && !addonImagePreview.startsWith("blob:") ? addonImagePreview : ""
       if (addonImageFile) {
-        const uploadRes = await uploadAPI.uploadMedia(addonImageFile, { folder: "appzeto/restaurant/addons" })
+        const uploadRes = await uploadAPI.uploadMedia(addonImageFile, { folder: "thefoodgalaxy/restaurant/addons" })
         imageUrl = uploadRes?.data?.data?.url || uploadRes?.data?.url || ""
       }
       const payload = {

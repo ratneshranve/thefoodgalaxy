@@ -7,7 +7,7 @@ const ABSOLUTE_URL_RE = /^(https?:)?\/\//i;
 const DEFAULT_PUBLIC_MEDIA_ORIGIN =
   typeof import.meta !== "undefined" && import.meta.env?.VITE_PUBLIC_MEDIA_ORIGIN
     ? String(import.meta.env.VITE_PUBLIC_MEDIA_ORIGIN).trim().replace(/\/+$/, "")
-    : "https://theindianbite.com";
+    : "https://thefoodgalaxy.in";
 
 const trimSlashes = (value = "") => String(value || "").trim().replace(/\/+$/, "");
 

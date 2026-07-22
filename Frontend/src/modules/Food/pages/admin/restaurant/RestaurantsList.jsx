@@ -922,16 +922,16 @@ export default function RestaurantsList() {
       setSavingDetails(true)
 
       const profileImage = profileImageFile
-        ? await uploadMediaFile(profileImageFile, "appzeto/restaurant/profile")
+        ? await uploadMediaFile(profileImageFile, "thefoodgalaxy/restaurant/profile")
         : undefined
       const panImage = docFiles.panImage
-        ? await uploadMediaFile(docFiles.panImage, "appzeto/restaurant/documents/pan")
+        ? await uploadMediaFile(docFiles.panImage, "thefoodgalaxy/restaurant/documents/pan")
         : undefined
       const gstImage = docFiles.gstImage
-        ? await uploadMediaFile(docFiles.gstImage, "appzeto/restaurant/documents/gst")
+        ? await uploadMediaFile(docFiles.gstImage, "thefoodgalaxy/restaurant/documents/gst")
         : undefined
       const fssaiImage = docFiles.fssaiImage
-        ? await uploadMediaFile(docFiles.fssaiImage, "appzeto/restaurant/documents/fssai")
+        ? await uploadMediaFile(docFiles.fssaiImage, "thefoodgalaxy/restaurant/documents/fssai")
         : undefined
 
       const cuisines = String(detailsForm.cuisinesText || "")
