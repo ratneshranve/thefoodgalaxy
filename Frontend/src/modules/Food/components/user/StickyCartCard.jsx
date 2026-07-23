@@ -38,12 +38,19 @@ export default function StickyCartCard() {
     }
   }, [])
 
-  // Get restaurant info from first cart item or use default
-  const restaurantName = cart[0]?.restaurant || "Restaurant"
-  const restaurantImage = cart[0]?.image || "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=200&h=200&fit=crop"
+  // Re-enable visibility when new items are added to cart or cartCount updates
+  useEffect(() => {
+    if (cartCount > 0) {
+      setIsVisible(true)
+    }
+  }, [cartCount, cart])
 
-  // Create restaurant slug from restaurant name
-  const restaurantSlug = restaurantName.toLowerCase().replace(/\s+/g, "-")
+  // Get restaurant info from first cart item or use default
+  const restaurantName = cart[0]?.restaurantName || cart[0]?.restaurant || "Food Galaxy"
+  const restaurantImage = cart[0]?.image || cart[0]?.imageUrl || "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=200&h=200&fit=crop"
+
+  // Create restaurant slug or use ID
+  const restaurantSlug = cart[0]?.restaurantSlug || cart[0]?.slug || cart[0]?.restaurantId || restaurantName.toLowerCase().replace(/\s+/g, "-")
 
   // Calculate total price
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity * 83), 0)

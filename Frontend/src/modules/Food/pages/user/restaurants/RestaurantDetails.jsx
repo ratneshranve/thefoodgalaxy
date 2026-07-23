@@ -161,7 +161,8 @@ function RestaurantDetailsContent() {
   const getDishQuantity = (item, preferredVariantId = "") => {
     const variant = getVariantForDish(item, preferredVariantId)
     const lineItemId = getLineItemIdForDish(item, variant)
-    return quantities[lineItemId] || 0
+    const rawItemId = String(item?.id || item?._id || "")
+    return quantities[lineItemId] ?? quantities[rawItemId] ?? 0
   }
 
   // Initialize default filters
@@ -280,13 +281,16 @@ function RestaurantDetailsContent() {
                     const searchResponse = await restaurantAPI.getRestaurants(searchParams, { noCache: true })
                     const restaurants = searchResponse?.data?.data?.restaurants || searchResponse?.data?.data || []
 
-                    // Try to find by slug match or name match
+                    // Try to find by slug match, ID match, or name match, fallback to first restaurant
                     const restaurantName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
                     const matchingRestaurant = restaurants.find(r =>
                       r.slug === slug ||
+                      String(r._id || r.restaurantId || '') === slug ||
+                      r.restaurantName?.toLowerCase().replace(/\s+/g, '-') === slug.toLowerCase() ||
                       r.name?.toLowerCase().replace(/\s+/g, '-') === slug.toLowerCase() ||
-                      r.name?.toLowerCase() === restaurantName.toLowerCase()
-                    )
+                      r.name?.toLowerCase() === restaurantName.toLowerCase() ||
+                      r.restaurantName?.toLowerCase() === restaurantName.toLowerCase()
+                    ) || (restaurants.length > 0 ? restaurants[0] : null)
 
                     if (matchingRestaurant) {
                       // Get full restaurant details by ID
@@ -1172,19 +1176,40 @@ function RestaurantDetailsContent() {
     }
   }, [userLocation?.latitude, userLocation?.longitude, restaurantLat, restaurantLng])
 
-  // Sync quantities from cart on mount and when restaurant changes
+  // Sync quantities from cart on mount and when restaurant or cart changes
   useEffect(() => {
-    if (!restaurant || !restaurant.name) return
+    if (!restaurant) return
+
+    const normalize = (val) => (val ? String(val).trim().toLowerCase() : "")
+    const targetRestName = normalize(restaurant.name)
+    const targetRestId = normalize(restaurant.id || restaurant._id || restaurant.restaurantId)
 
     const cartQuantities = {}
-    cart.forEach((item) => {
-      if (item.restaurant === restaurant.name) {
-        cartQuantities[item.id] = item.quantity || 0
+    cart.forEach((cartItem) => {
+      const cartRestName = normalize(cartItem.restaurant || cartItem.restaurantName)
+      const cartRestId = normalize(cartItem.restaurantId)
+
+      const isSameRest =
+        !cartRestName ||
+        !targetRestName ||
+        cartRestName === 'the food galaxy' ||
+        targetRestName === 'the food galaxy' ||
+        cartRestName === 'food galaxy' ||
+        targetRestName === 'food galaxy' ||
+        cartRestName === targetRestName ||
+        (cartRestId && targetRestId && cartRestId === targetRestId)
+
+      if (isSameRest) {
+        const key1 = cartItem.id
+        const key2 = cartItem.lineItemId
+        const key3 = cartItem.itemId
+        if (key1) cartQuantities[key1] = cartItem.quantity || 0
+        if (key2) cartQuantities[key2] = cartItem.quantity || 0
+        if (key3) cartQuantities[key3] = cartItem.quantity || 0
       }
     })
     setQuantities(cartQuantities)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurant?.name, cart])
+  }, [restaurant, cart])
 
   useEffect(() => {
     if (!selectedItem) {
@@ -1223,6 +1248,7 @@ function RestaurantDetailsContent() {
     setQuantities((prev) => ({
       ...prev,
       [lineItemId]: newQuantity,
+      [String(item?.id || item?._id || '')]: newQuantity,
     }))
 
     // CRITICAL: Validate restaurant data before adding to cart

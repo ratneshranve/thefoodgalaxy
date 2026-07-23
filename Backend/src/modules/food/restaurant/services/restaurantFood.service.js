@@ -495,7 +495,7 @@ export async function deleteFood(userId, foodId) {
 
 /** Public: approved food items for user app (zone-scoped, paginated). */
 export async function listPublicApprovedFoods(query = {}) {
-    const limit = parseQueryLimit(query.limit, 100, 1000);
+    const limit = parseQueryLimit(query.limit, 20, 1000);
     const page = parseQueryPage(query.page, 1);
     const skip = (page - 1) * limit;
 
@@ -527,28 +527,46 @@ export async function listPublicApprovedFoods(query = {}) {
     );
     const restaurants = restaurantIds.length
         ? await FoodRestaurant.find({ _id: { $in: restaurantIds } })
-            .select('restaurantName')
+            .select('restaurantName slug')
             .lean()
         : [];
+
+    const defaultRestaurant = (restaurants.length > 0 ? restaurants[0] : null) || (await FoodRestaurant.findOne({ status: 'approved' }).select('restaurantName slug').lean());
+    const defaultRestaurantName = defaultRestaurant?.restaurantName || 'Food Galaxy';
+    const defaultRestaurantSlug = defaultRestaurant?.slug || (defaultRestaurant?._id ? String(defaultRestaurant._id) : 'food-galaxy');
+
     const restaurantMap = new Map(
-        restaurants.map((r) => [String(r._id), r.restaurantName])
+        restaurants.map((r) => [String(r._id), {
+            name: r.restaurantName,
+            slug: r.slug || String(r._id),
+            id: String(r._id)
+        }])
     );
 
-    const foods = list.map((f) => ({
-        id: f._id,
-        _id: f._id,
-        restaurantId: f.restaurantId,
-        restaurantName: restaurantMap.get(String(f.restaurantId)) || '',
-        categoryId: f.categoryId || null,
-        categoryName: f.categoryName || '',
-        name: f.name,
-        description: f.description || '',
-        price: getFoodDisplayPrice(f),
-        image: normalizeMediaUrl(f.image || ''),
-        foodType: f.foodType || 'Non-Veg',
-        isAvailable: f.isAvailable !== false,
-        approvalStatus: f.approvalStatus || 'approved'
-    }));
+    const foods = list.map((f) => {
+        const rInfo = restaurantMap.get(String(f.restaurantId)) || {};
+        const rName = rInfo.name || f.restaurantName || defaultRestaurantName;
+        const rSlug = rInfo.slug || f.restaurantSlug || defaultRestaurantSlug;
+        const rId = f.restaurantId ? String(f.restaurantId) : (rInfo.id || (defaultRestaurant?._id ? String(defaultRestaurant._id) : ''));
+
+        return {
+            id: f._id,
+            _id: f._id,
+            restaurantId: rId,
+            restaurantName: rName,
+            restaurantSlug: rSlug,
+            restaurant: rName,
+            categoryId: f.categoryId || null,
+            categoryName: f.categoryName || '',
+            name: f.name,
+            description: f.description || '',
+            price: getFoodDisplayPrice(f),
+            image: normalizeMediaUrl(f.image || ''),
+            foodType: f.foodType || 'Non-Veg',
+            isAvailable: f.isAvailable !== false,
+            approvalStatus: f.approvalStatus || 'approved'
+        };
+    });
 
     return { foods, total, page, limit };
 }

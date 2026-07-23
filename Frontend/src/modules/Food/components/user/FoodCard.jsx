@@ -56,9 +56,12 @@ const FoodCard = ({
     addToCart({
       ...item,
       id: itemId,
+      itemId,
       price: itemPrice,
       isVeg,
       image: imageUrl,
+      restaurant: item.restaurant || item.restaurantName || item.restaurant?.restaurantName || item.restaurant?.name || "The Food Galaxy",
+      restaurantId: item.restaurantId || item.restaurant_id || item.restaurant?._id || "",
     })
   }
 

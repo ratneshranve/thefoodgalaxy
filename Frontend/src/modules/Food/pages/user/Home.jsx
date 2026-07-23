@@ -88,7 +88,7 @@ import {
 import { useAppLocation } from "@food/hooks/useAppLocation";
 
 import offerImage from "@food/assets/offerimage.png";
-import api, { publicGetOnce, restaurantAPI, getPublicLandingSettings, getPublicExploreIcons, getPublicCategories } from "@food/api";
+import api, { publicGetOnce, restaurantAPI, getPublicLandingSettings, getPublicExploreIcons, getPublicCategories, getPublicFoods } from "@food/api";
 import { API_BASE_URL } from "@food/api/config";
 import OptimizedImage, { ShopPlaceholder } from "@food/components/OptimizedImage";
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability";
@@ -249,6 +249,12 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [hasMoreRestaurants, setHasMoreRestaurants] = useState(true);
   const [loadingMoreRestaurants, setLoadingMoreRestaurants] = useState(false);
+  const [zoneFoodsData, setZoneFoodsData] = useState([]);
+  const [foodPage, setFoodPage] = useState(1);
+  const [hasMoreFoods, setHasMoreFoods] = useState(true);
+  const [loadingFoods, setLoadingFoods] = useState(true);
+  const [loadingMoreFoods, setLoadingMoreFoods] = useState(false);
+  const foodsRequestSeqRef = useRef(0);
   const loadMoreObserverRef = useRef(null);
   const [realCategories, setRealCategories] = useState([]);
   const [loadingRealCategories, setLoadingRealCategories] = useState(true);
@@ -1605,6 +1611,109 @@ export default function Home() {
     return () => observer.disconnect();
   }, [hasMoreRestaurants, loadingMoreRestaurants, loadingRestaurants, page, appliedFilters, fetchRestaurants]);
 
+  // Fetch zone-scoped foods paginated by 20 items per page
+  const fetchZoneFoods = useCallback(
+    async (pageToLoad = 1) => {
+      if (effectiveZoneLoading) return;
+
+      const requestSeq = ++foodsRequestSeqRef.current;
+      if (pageToLoad === 1) {
+        setLoadingFoods(true);
+      } else {
+        setLoadingMoreFoods(true);
+      }
+
+      try {
+        const params = {
+          page: pageToLoad,
+          limit: 20,
+        };
+        if (effectiveZoneId) {
+          params.zoneId = effectiveZoneId;
+        }
+
+        const data = await getPublicFoods(params, { noCache: pageToLoad > 1 });
+        if (requestSeq !== foodsRequestSeqRef.current) return;
+
+        const rawList = Array.isArray(data?.foods) ? data.foods : (Array.isArray(data) ? data : []);
+        const formattedList = rawList.map((f) => ({
+          ...f,
+          id: String(f.id || f._id || ''),
+          _id: String(f._id || f.id || ''),
+          name: f.name || 'Food Item',
+          price: Number(f.price || 0),
+          originalPrice: Number(f.originalPrice || f.mrp || 0),
+          image: f.image || f.imageUrl || '',
+          foodType: f.foodType || (f.isVeg ? 'Veg' : 'Non-Veg'),
+          isVeg: f.isVeg !== undefined ? f.isVeg : (String(f.foodType || '').toLowerCase().includes('veg') && !String(f.foodType || '').toLowerCase().includes('non')),
+          description: f.description || '',
+          rating: f.rating || 4.5,
+        }));
+
+        const totalCount = Number(data?.total || 0);
+
+        startTransition(() => {
+          if (pageToLoad === 1) {
+            setZoneFoodsData(formattedList);
+          } else {
+            setZoneFoodsData((prev) => {
+              const existingIds = new Set(prev.map((item) => String(item.id || item._id)));
+              const uniqueNew = formattedList.filter((item) => !existingIds.has(String(item.id || item._id)));
+              return [...prev, ...uniqueNew];
+            });
+          }
+
+          setFoodPage(pageToLoad);
+
+          if (totalCount > 0) {
+            const currentCount = pageToLoad === 1 ? formattedList.length : zoneFoodsData.length + formattedList.length;
+            setHasMoreFoods(currentCount < totalCount && formattedList.length > 0);
+          } else {
+            setHasMoreFoods(formattedList.length === 20);
+          }
+        });
+      } catch (error) {
+        debugError("Error fetching zone foods:", error);
+        if (pageToLoad === 1) setZoneFoodsData([]);
+        setHasMoreFoods(false);
+      } finally {
+        if (requestSeq === foodsRequestSeqRef.current) {
+          if (pageToLoad === 1) {
+            setLoadingFoods(false);
+          } else {
+            setLoadingMoreFoods(false);
+          }
+        }
+      }
+    },
+    [effectiveZoneId, effectiveZoneLoading, zoneFoodsData.length]
+  );
+
+  useEffect(() => {
+    fetchZoneFoods(1);
+  }, [effectiveZoneId, effectiveZoneLoading]);
+
+  // Infinite scroll for foods
+  useEffect(() => {
+    if (!loadMoreObserverRef.current || !hasMoreFoods || loadingMoreFoods || loadingFoods) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchZoneFoods(foodPage + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const el = loadMoreObserverRef.current;
+    observer.observe(el);
+
+    return () => {
+      if (el) observer.unobserve(el);
+    };
+  }, [hasMoreFoods, loadingMoreFoods, loadingFoods, foodPage, fetchZoneFoods]);
+
   // Recalculate distances when user location updates
   useEffect(() => {
     if (!effectiveLocation?.latitude || !effectiveLocation?.longitude) return;
@@ -1951,11 +2060,94 @@ export default function Home() {
     })).filter(matchesVegMode);
   }, [recommendedFoodsFromSettings, matchesVegMode]);
 
-  // Featured foods removed - will be handled by restaurants data from API
-  const filteredFeaturedFoods = useMemo(() => {
-    // Return empty array - featured foods will come from API if needed
-    return [];
-  }, [activeFilters, sortBy]);
+  // Featured food cards for Popular Dishes & Menu section (zone-scoped paginated food items)
+  const featuredFoodItems = useMemo(() => {
+    const itemMap = new Map();
+
+    // 1. First add admin-recommended foods from settings if available
+    if (Array.isArray(recommendedFoodsFromSettings)) {
+      recommendedFoodsFromSettings.forEach((item) => {
+        if (item && (item._id || item.id)) {
+          const id = String(item._id || item.id);
+          if (!itemMap.has(id)) {
+            itemMap.set(id, {
+              ...item,
+              id,
+              name: item.name,
+              price: Number(item.price || 0),
+              originalPrice: Number(item.originalPrice || item.mrp || 0),
+              image: item.image || item.imageUrl || "",
+              foodType: item.foodType || (item.isVeg ? "veg" : "non-veg"),
+              isVeg: item.isVeg,
+              description: item.description || "",
+            });
+          }
+        }
+      });
+    }
+
+    // 2. Add zone-scoped food items fetched with 20-item pagination
+    if (Array.isArray(zoneFoodsData)) {
+      zoneFoodsData.forEach((item) => {
+        if (item && (item.id || item._id)) {
+          const id = String(item.id || item._id);
+          if (!itemMap.has(id)) {
+            itemMap.set(id, {
+              ...item,
+              id,
+              name: item.name,
+              price: Number(item.price || 0),
+              originalPrice: Number(item.originalPrice || item.mrp || 0),
+              image: item.image || item.imageUrl || "",
+              foodType: item.foodType || (item.isVeg ? "veg" : "non-veg"),
+              isVeg: item.isVeg,
+              description: item.description || "",
+            });
+          }
+        }
+      });
+    }
+
+    // 3. Fallback: menuItems from restaurantsData if zoneFoodsData is not yet loaded
+    if (itemMap.size === 0) {
+      const sourceRestaurants = (Array.isArray(filteredRestaurants) && filteredRestaurants.length > 0)
+        ? filteredRestaurants
+        : (Array.isArray(restaurantsData) ? restaurantsData : []);
+
+      sourceRestaurants.forEach((restaurant) => {
+        const items = Array.isArray(restaurant.menuItems) && restaurant.menuItems.length > 0
+          ? restaurant.menuItems
+          : (Array.isArray(restaurant.popularItems) && restaurant.popularItems.length > 0
+            ? restaurant.popularItems
+            : (restaurant.menu?.sections
+              ? restaurant.menu.sections.reduce((acc, sec) => acc.concat(sec.items || []), [])
+              : []));
+
+        if (Array.isArray(items)) {
+          items.forEach((item) => {
+            if (item && (item._id || item.id || item.name)) {
+              const id = String(item._id || item.id || item.name);
+              if (!itemMap.has(id)) {
+                itemMap.set(id, {
+                  ...item,
+                  id,
+                  name: item.name,
+                  price: Number(item.price || item.cost || 0),
+                  originalPrice: Number(item.originalPrice || item.mrp || 0),
+                  image: item.image || item.imageUrl || item.profileImage || restaurant.image || "",
+                  foodType: item.foodType || (item.isVeg ? "veg" : (restaurant.pureVegRestaurant ? "veg" : "non-veg")),
+                  isVeg: item.isVeg !== undefined ? item.isVeg : (restaurant.pureVegRestaurant || false),
+                  description: item.description || "",
+                });
+              }
+            }
+          });
+        }
+      });
+    }
+
+    return Array.from(itemMap.values()).filter(matchesVegMode);
+  }, [recommendedFoodsFromSettings, zoneFoodsData, filteredRestaurants, restaurantsData, matchesVegMode]);
 
   // Memoize callbacks to prevent unnecessary re-renders
   const handleLocationClick = useCallback(() => {
@@ -2573,15 +2765,19 @@ export default function Home() {
             </div>
           ) : (
             <>
-              <RestaurantGrid
-                restaurants={filteredRestaurants}
-                backendOrigin={BACKEND_ORIGIN}
-                isOutOfService={isEffectiveLocationOutOfService}
-                showSkeleton={showRestaurantSkeleton}
-                isLoading={isLoadingFilterResults || loadingRestaurants}
-                isFavorite={isFavorite}
-                onToggleFavorite={handleRestaurantFavoriteToggle}
-              />
+              {showRestaurantSkeleton && featuredFoodItems.length === 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 px-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={`food-skel-${i}`} className="h-56 bg-gray-100 dark:bg-gray-800 rounded-2xl animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-5 px-4">
+                  {featuredFoodItems.map((item) => (
+                    <FoodCard key={`featured-dish-${item.id || item._id}`} item={item} />
+                  ))}
+                </div>
+              )}
               {/* Infinite scroll trigger */}
               <div ref={loadMoreObserverRef} className="h-12 w-full mt-6 mb-8 flex items-center justify-center bg-transparent">
                 {loadingMoreRestaurants && (

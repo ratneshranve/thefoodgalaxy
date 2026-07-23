@@ -82,7 +82,6 @@ async function hasVisibleClientForTarget(payload = {}) {
 
 async function loadFirebaseWebConfig() {
   const candidates = [
-    "/api/v1/food/public/env",
     "/api/v1/env/public",
     "/api/env/public",
   ];

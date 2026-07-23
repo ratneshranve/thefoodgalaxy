@@ -40,6 +40,35 @@ const defaultCartContext = {
 
 const CartContext = createContext(defaultCartContext)
 
+const extractRestaurantName = (item) => {
+  if (!item) return "The Food Galaxy"
+  if (typeof item.restaurant === "string" && item.restaurant.trim()) {
+    return item.restaurant.trim()
+  }
+  if (typeof item.restaurantName === "string" && item.restaurantName.trim()) {
+    return item.restaurantName.trim()
+  }
+  if (typeof item.restaurant?.restaurantName === "string" && item.restaurant.restaurantName.trim()) {
+    return item.restaurant.restaurantName.trim()
+  }
+  if (typeof item.restaurant?.name === "string" && item.restaurant.name.trim()) {
+    return item.restaurant.name.trim()
+  }
+  return "The Food Galaxy"
+}
+
+const extractRestaurantId = (item) => {
+  if (!item) return ""
+  const raw =
+    item.restaurantId ||
+    item.restaurant_id ||
+    item.restaurant?._id ||
+    item.restaurant?.restaurantId ||
+    ""
+  if (typeof raw === "object" && raw?._id) return String(raw._id)
+  return String(raw || "")
+}
+
 const normalizeCartData = (rawCart) => {
   if (!Array.isArray(rawCart)) return []
 
@@ -48,19 +77,8 @@ const normalizeCartData = (rawCart) => {
     .map((item, index) => {
       const parsedQuantity = Number(item.quantity)
       const parsedPrice = Number(item.price)
-      const normalizedRestaurantName =
-        typeof item.restaurant === "string"
-          ? item.restaurant
-          : typeof item.restaurant?.name === "string"
-            ? item.restaurant.name
-            : ""
-
-      const normalizedRestaurantId =
-        item.restaurantId ||
-        item.restaurant_id ||
-        item.restaurant?._id ||
-        item.restaurant?.restaurantId ||
-        null
+      const normalizedRestaurantName = extractRestaurantName(item)
+      const normalizedRestaurantId = extractRestaurantId(item)
 
       const normalizedImage =
         item.image ||
@@ -174,126 +192,98 @@ export function CartProvider({ children }) {
 
   const addToCart = (item, sourcePosition = null) => {
     const safeCart = normalizeCartData(cart)
-    if (safeCart.length > 0) {
-      const firstItemRestaurantId = safeCart[0]?.restaurantId
-      const firstItemRestaurantName = safeCart[0]?.restaurant
-      const newItemRestaurantId = item?.restaurantId
-      const newItemRestaurantName = item?.restaurant
-      const normalizeName = (name) => (name ? String(name).trim().toLowerCase() : '')
+    const formattedItem = {
+      ...item,
+      restaurant: extractRestaurantName(item),
+      restaurantId: extractRestaurantId(item) || (safeCart.length > 0 ? extractRestaurantId(safeCart[0]) : "")
+    }
 
+    if (safeCart.length > 0) {
+      const firstItemRestaurantName = extractRestaurantName(safeCart[0])
+      const newItemRestaurantName = extractRestaurantName(formattedItem)
+      const firstItemRestaurantId = extractRestaurantId(safeCart[0])
+      const newItemRestaurantId = extractRestaurantId(formattedItem)
+
+      const normalizeName = (name) => (name ? String(name).trim().toLowerCase() : '')
       const firstRestaurantNameNormalized = normalizeName(firstItemRestaurantName)
       const newRestaurantNameNormalized = normalizeName(newItemRestaurantName)
-      const hasNameMismatch =
-        firstRestaurantNameNormalized &&
-        newRestaurantNameNormalized &&
-        firstRestaurantNameNormalized !== newRestaurantNameNormalized
 
-      const hasIdMismatch =
-        !firstRestaurantNameNormalized &&
-        !newRestaurantNameNormalized &&
-        firstItemRestaurantId &&
-        newItemRestaurantId &&
-        String(firstItemRestaurantId) !== String(newItemRestaurantId)
+      const isDefaultFallback = (name) => !name || name === 'the food galaxy' || name === 'restaurant'
+      const isSameRestaurant =
+        isDefaultFallback(firstRestaurantNameNormalized) ||
+        isDefaultFallback(newRestaurantNameNormalized) ||
+        firstRestaurantNameNormalized === newRestaurantNameNormalized ||
+        (firstItemRestaurantId && newItemRestaurantId && firstItemRestaurantId === newItemRestaurantId)
 
-      if (hasNameMismatch || hasIdMismatch) {
+      if (!isSameRestaurant) {
         const message = `Cart already contains items from "${firstItemRestaurantName || 'another restaurant'}". Please clear cart or complete order first.`
         return { ok: false, error: message, code: 'RESTAURANT_MISMATCH' }
       }
     }
 
-    if (!item?.restaurantId && !item?.restaurant) {
-      return {
-        ok: false,
-        error: 'Item is missing restaurant information. Please refresh the page.',
-        code: 'MISSING_RESTAURANT'
-      }
-    }
-
     setCart((prev) => {
       const safePrev = normalizeCartData(prev)
-      // CRITICAL: Validate restaurant consistency
-      // If cart already has items, ensure new item belongs to the same restaurant
       if (safePrev.length > 0) {
-        const firstItemRestaurantId = safePrev[0]?.restaurantId;
-        const firstItemRestaurantName = safePrev[0]?.restaurant;
-        const newItemRestaurantId = item?.restaurantId;
-        const newItemRestaurantName = item?.restaurant;
-        
-        // Normalize restaurant names for comparison (trim and case-insensitive)
-        const normalizeName = (name) => name ? name.trim().toLowerCase() : '';
-        const firstRestaurantNameNormalized = normalizeName(firstItemRestaurantName);
-        const newRestaurantNameNormalized = normalizeName(newItemRestaurantName);
-        
-        // Check restaurant name first (more reliable than IDs which can have different formats)
-        // If names match, allow it even if IDs differ (same restaurant, different ID format)
-        if (firstRestaurantNameNormalized && newRestaurantNameNormalized) {
-          if (firstRestaurantNameNormalized !== newRestaurantNameNormalized) {
-            debugError('❌ Cannot add item: Restaurant name mismatch!', {
-              cartRestaurantId: firstItemRestaurantId,
-              cartRestaurantName: firstItemRestaurantName,
-              newItemRestaurantId: newItemRestaurantId,
-              newItemRestaurantName: newItemRestaurantName
-            });
-            return safePrev;
-          }
-          // Names match - allow it (even if IDs differ, it's the same restaurant)
-        } else if (firstItemRestaurantId && newItemRestaurantId) {
-          // If names are not available, fallback to ID comparison
-          if (firstItemRestaurantId !== newItemRestaurantId) {
-            debugError('❌ Cannot add item: Cart contains items from different restaurant!', {
-              cartRestaurantId: firstItemRestaurantId,
-              cartRestaurantName: firstItemRestaurantName,
-              newItemRestaurantId: newItemRestaurantId,
-              newItemRestaurantName: newItemRestaurantName
-            });
-            return safePrev;
-          }
+        const firstItemRestaurantName = extractRestaurantName(safePrev[0])
+        const newItemRestaurantName = extractRestaurantName(formattedItem)
+        const firstItemRestaurantId = extractRestaurantId(safePrev[0])
+        const newItemRestaurantId = extractRestaurantId(formattedItem)
+
+        const normalizeName = (name) => (name ? String(name).trim().toLowerCase() : '')
+        const firstRestaurantNameNormalized = normalizeName(firstItemRestaurantName)
+        const newRestaurantNameNormalized = normalizeName(newItemRestaurantName)
+
+        const isDefaultFallback = (name) => !name || name === 'the food galaxy' || name === 'restaurant'
+        const isSameRestaurant =
+          isDefaultFallback(firstRestaurantNameNormalized) ||
+          isDefaultFallback(newRestaurantNameNormalized) ||
+          firstRestaurantNameNormalized === newRestaurantNameNormalized ||
+          (firstItemRestaurantId && newItemRestaurantId && firstItemRestaurantId === newItemRestaurantId)
+
+        if (!isSameRestaurant) {
+          debugError('❌ Cannot add item: Restaurant name mismatch!', {
+            cartRestaurantName: firstItemRestaurantName,
+            newItemRestaurantName: newItemRestaurantName
+          });
+          return safePrev;
         }
       }
-      
-      const existing = safePrev.find((i) => i.id === item.id)
+
+      const existing = safePrev.find((i) => i.id === formattedItem.id || i.itemId === formattedItem.id || (formattedItem.itemId && i.itemId === formattedItem.itemId))
       if (existing) {
-        // Set last add event for animation when incrementing existing item
         if (sourcePosition) {
           setLastAddEvent({
             product: {
-              id: item.id,
-              name: item.name,
-              imageUrl: item.image || item.imageUrl,
+              id: formattedItem.id,
+              name: formattedItem.name,
+              price: formattedItem.price,
+              image: formattedItem.image || formattedItem.imageUrl,
             },
             sourcePosition,
+            timestamp: Date.now(),
           })
-          // Clear after animation completes (increased delay)
-          setTimeout(() => setLastAddEvent(null), 1500)
         }
         return safePrev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+          (i.id === formattedItem.id || i.itemId === formattedItem.id || (formattedItem.itemId && i.itemId === formattedItem.itemId))
+            ? { ...i, quantity: i.quantity + (formattedItem.quantity || 1) }
+            : i
         )
       }
-      
-      // Validate item has required restaurant info
-      if (!item.restaurantId && !item.restaurant) {
-        debugError('❌ Cannot add item: Missing restaurant information!', item);
-        return safePrev;
-      }
-      
-      const newItem = { ...item, quantity: 1 }
-      
-      // Set last add event for animation if sourcePosition is provided
+
       if (sourcePosition) {
         setLastAddEvent({
           product: {
-            id: item.id,
-            name: item.name,
-            imageUrl: item.image || item.imageUrl,
+            id: formattedItem.id,
+            name: formattedItem.name,
+            price: formattedItem.price,
+            image: formattedItem.image || formattedItem.imageUrl,
           },
           sourcePosition,
+          timestamp: Date.now(),
         })
-        // Clear after animation completes (increased delay to allow full animation)
-        setTimeout(() => setLastAddEvent(null), 1500)
       }
-      
-      return [...safePrev, newItem]
+
+      return [...safePrev, normalizeCartData([formattedItem])[0]]
     })
 
     return { ok: true }

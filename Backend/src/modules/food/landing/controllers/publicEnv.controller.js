@@ -1,45 +1,25 @@
 import { config } from '../../../../config/env.js';
-import EnvSetting from '../../../../models/EnvSetting.js';
-import { decrypt } from '../../../../utils/encryption.js';
 
 const sanitize = (value) => (value ? String(value).trim().replace(/^['"]|['"]$/g, '') : '');
 
-async function resolveGoogleMapsKey() {
-    const fromConfig =
-        sanitize(config.googleMapsApiKey) ||
-        sanitize(process.env.VITE_GOOGLE_MAPS_API_KEY) ||
-        sanitize(process.env.GOOGLE_MAPS_API_KEY);
-
-    if (fromConfig) return fromConfig;
-
-    try {
-        const setting = await EnvSetting.findOne({ key: 'GOOGLE_MAPS_API_KEY' }).lean();
-        if (setting?.value) {
-            const raw = setting.isEncrypted ? decrypt(setting.value) : String(setting.value);
-            const key = sanitize(raw);
-            if (key) return key;
-        }
-    } catch {
-        /* fall through */
-    }
-
-    return '';
-}
-
 /**
  * Public environment variables for frontend runtime.
- * IMPORTANT: Only expose non-secret keys safe for clients.
+ * Reads strictly from .env / process.env only (no DB queries).
  */
 export const getPublicEnvController = async (_req, res, next) => {
     try {
-        const googleMapsKey = await resolveGoogleMapsKey();
+        const googleMapsKey =
+            sanitize(config.googleMapsApiKey) ||
+            sanitize(process.env.VITE_GOOGLE_MAPS_API_KEY) ||
+            sanitize(process.env.GOOGLE_MAPS_API_KEY) ||
+            '';
 
         return res.status(200).json({
             success: true,
-            message: 'Public environment variables fetched',
+            message: 'Public environment variables fetched from .env',
             data: {
-                VITE_GOOGLE_MAPS_API_KEY: googleMapsKey || '',
-                GOOGLE_MAPS_API_KEY: googleMapsKey || '',
+                VITE_GOOGLE_MAPS_API_KEY: googleMapsKey,
+                GOOGLE_MAPS_API_KEY: googleMapsKey,
                 VITE_FIREBASE_API_KEY: sanitize(process.env.VITE_FIREBASE_API_KEY) || '',
                 VITE_FIREBASE_AUTH_DOMAIN: sanitize(process.env.VITE_FIREBASE_AUTH_DOMAIN) || '',
                 VITE_FIREBASE_PROJECT_ID: sanitize(process.env.VITE_FIREBASE_PROJECT_ID) || '',
@@ -63,4 +43,3 @@ export const getPublicEnvController = async (_req, res, next) => {
         next(error);
     }
 };
-
