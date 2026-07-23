@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ChevronRight,
+  Crown,
   Wallet,
   Tag,
   User,
@@ -580,6 +581,44 @@ export default function Profile() {
                       whileHover={{ x: 4 }}
                       transition={{ duration: 0.2 }}>
                       <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                    </motion.div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </Link>
+
+          {/* Subscription & VIP Membership */}
+          <Link to="/food/user/subscriptions" className="block">
+            <motion.div
+              whileHover={{ x: 4, scale: 1.01 }}
+              transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
+              <Card className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border border-amber-500/30 cursor-pointer">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <motion.div
+                      className="bg-amber-500/20 rounded-full p-2 text-amber-600 dark:text-amber-400"
+                      whileHover={{ rotate: 15, scale: 1.1 }}
+                      transition={{ duration: 0.3 }}>
+                      <Crown className="h-5 w-5" />
+                    </motion.div>
+                    <div>
+                      <span className="text-base font-bold text-gray-900 dark:text-white">
+                        My Subscription & Membership
+                      </span>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                        Free delivery & discounts on food orders
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500 text-white shadow-xs">
+                      VIP
+                    </span>
+                    <motion.div
+                      whileHover={{ x: 4 }}
+                      transition={{ duration: 0.2 }}>
+                      <ChevronRight className="h-5 w-5 text-amber-500" />
                     </motion.div>
                   </div>
                 </CardContent>

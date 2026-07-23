@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
-import { CheckCircle, MapPin, CreditCard, ArrowLeft } from "lucide-react"
+import { CheckCircle, MapPin, CreditCard, ArrowLeft, Crown, Sparkles } from "lucide-react"
 import { Link } from "react-router-dom"
 import AnimatedPage from "@food/components/user/AnimatedPage"
 import ScrollReveal from "@food/components/user/ScrollReveal"
@@ -13,6 +13,7 @@ import { Badge } from "@food/components/ui/badge"
 import { useCart } from "@food/context/CartContext"
 import { useProfile } from "@food/context/ProfileContext"
 import { useOrders } from "@food/context/OrdersContext"
+import { userSubscriptionAPI } from "@/services/api/subscription"
 
 export default function Checkout() {
   const navigate = useNavigate()
@@ -27,6 +28,8 @@ export default function Checkout() {
   const selectedAddress = addresses.find(addr => getAddressId(addr) === selectedAddressId) || getDefaultAddress()
   const defaultPayment = paymentMethods.find(pm => pm.id === selectedPayment) || getDefaultPaymentMethod()
 
+  const [activeSub, setActiveSub] = useState(null)
+
   useEffect(() => {
     const defaultId = getAddressId(getDefaultAddress())
     const selectedStillExists = addresses.some(addr => getAddressId(addr) === selectedAddressId)
@@ -34,12 +37,46 @@ export default function Checkout() {
     if (!selectedAddressId || !selectedStillExists) {
       setSelectedAddressId(defaultId || "")
     }
+
+    userSubscriptionAPI.getActiveSubscription()
+      .then((res) => {
+        if (res?.data?.data?.subscription) {
+          setActiveSub(res.data.data.subscription)
+        }
+      })
+      .catch(() => {})
   }, [addresses, selectedAddressId, getDefaultAddress])
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity * 83, 0)
-  const deliveryFee = 2.99 * 83
+  let baseDeliveryFee = 2.99 * 83
+  let deliveryFee = baseDeliveryFee
+  let foodDiscount = 0
+  let deliveryDiscount = 0
+  let subscriptionPlanName = null
+
+  if (activeSub && activeSub.planSnapshot) {
+    subscriptionPlanName = activeSub.planSnapshot.name || "Subscription Plan"
+    const benefits = Array.isArray(activeSub.planSnapshot.benefits) ? activeSub.planSnapshot.benefits : []
+
+    for (const b of benefits) {
+      if (b.type === "FREE_DELIVERY") {
+        deliveryDiscount = baseDeliveryFee
+        deliveryFee = 0
+      } else if (b.type === "FOOD_DISCOUNT") {
+        if (b.discountType === "percentage") {
+          const raw = subtotal * ((Number(b.discountValue) || 0) / 100)
+          const capped = Number(b.maxDiscount) > 0 ? Math.min(raw, Number(b.maxDiscount)) : raw
+          foodDiscount = Math.floor(capped)
+        } else if (b.discountType === "flat") {
+          foodDiscount = Math.min(subtotal, Math.floor(Number(b.discountValue) || 0))
+        }
+      }
+    }
+  }
+
   const tax = subtotal * 0.08
-  const total = subtotal + deliveryFee + tax
+  const totalSubscriptionSavings = foodDiscount + deliveryDiscount
+  const total = Math.max(0, subtotal + deliveryFee + tax - foodDiscount)
 
   const [restaurantNote, setRestaurantNote] = useState("")
 
@@ -311,14 +348,36 @@ export default function Checkout() {
                       <span className="text-muted-foreground">Subtotal</span>
                       <span className="dark:text-gray-200">₹{subtotal.toFixed(0)}</span>
                     </div>
-                    <div className="flex justify-between text-sm md:text-base">
+                    <div className="flex justify-between text-sm md:text-base items-center">
                       <span className="text-muted-foreground">Delivery Fee</span>
-                      <span className="dark:text-gray-200">₹{deliveryFee.toFixed(0)}</span>
+                      {deliveryDiscount > 0 ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                          <span className="line-through text-xs text-gray-400">₹{baseDeliveryFee.toFixed(0)}</span> FREE
+                        </span>
+                      ) : (
+                        <span className="dark:text-gray-200">₹{deliveryFee.toFixed(0)}</span>
+                      )}
                     </div>
+                    {foodDiscount > 0 && (
+                      <div className="flex justify-between text-sm md:text-base text-emerald-600 dark:text-emerald-400 font-medium">
+                        <span className="flex items-center gap-1">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Food Discount ({subscriptionPlanName})
+                        </span>
+                        <span>-₹{foodDiscount.toFixed(0)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm md:text-base">
                       <span className="text-muted-foreground">Tax</span>
                       <span className="dark:text-gray-200">₹{tax.toFixed(0)}</span>
                     </div>
+                    {totalSubscriptionSavings > 0 && (
+                      <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 font-semibold flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Crown className="w-4 h-4 text-amber-500" /> Member Savings
+                        </span>
+                        <span>Saved ₹{totalSubscriptionSavings.toFixed(0)} on this order!</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-bold text-lg md:text-xl lg:text-2xl pt-2 md:pt-3 border-t dark:border-gray-700">
                       <span className="dark:text-white">Total</span>
                       <span className="text-primary dark:text-orange-400">₹{total.toFixed(0)}</span>

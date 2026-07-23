@@ -44,8 +44,9 @@ const UserOrderDetails = lazy(() => import("@food/pages/user/orders/UserOrderDet
 // Offers
 const Offers = lazy(() => import("@food/pages/user/Offers"))
 
-// Gourmet
+// Gourmet & Subscriptions
 const Gourmet = lazy(() => import("@food/pages/user/Gourmet"))
+const SubscriptionsPage = lazy(() => import("@food/pages/user/profile/SubscriptionsPage"))
 
 
 // Collections
@@ -170,8 +171,10 @@ export default function UserRouter() {
           {/* Offers */}
           <Route path="offers" element={<Offers />} />
 
-          {/* Gourmet */}
+          {/* Gourmet & Subscriptions */}
           <Route path="gourmet" element={<Gourmet />} />
+          <Route path="subscriptions" element={<SubscriptionsPage />} />
+          <Route path="profile/subscriptions" element={<SubscriptionsPage />} />
 
 
           {/* Collections */}

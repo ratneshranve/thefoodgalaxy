@@ -132,6 +132,12 @@ export const adminSidebarMenu = [
     items: [
       {
         type: "link",
+        label: "Subscription Plans",
+        path: "/admin/food/subscriptions",
+        icon: "Award",
+      },
+      {
+        type: "link",
         label: "Restaurant Coupons & Offers",
         path: "/admin/food/coupons",
         icon: "Gift",

@@ -8,6 +8,7 @@ import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model
 import { FoodZone } from '../../admin/models/zone.model.js';
 import { FoodFeeSettings } from '../../admin/models/feeSettings.model.js';
 import { FoodBusinessSettings } from '../../admin/models/businessSettings.model.js';
+import { FoodUserSubscription } from '../../user/models/userSubscription.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { ValidationError, ForbiddenError, NotFoundError } from '../../../../core/auth/errors.js';
 import { buildPaginationOptions, buildPaginatedResult, parseQueryLimit, parseQueryPage } from '../../../../utils/helpers.js';
@@ -265,6 +266,10 @@ export async function createOrder(userId, dto) {
     deliveryFee: Number(dto.pricing?.deliveryFee ?? 0),
     platformFee: Number(dto.pricing?.platformFee ?? 0),
     discount: Number(dto.pricing?.discount ?? 0),
+    subscriptionPlanName: dto.pricing?.subscriptionPlanName || null,
+    foodDiscount: Number(dto.pricing?.foodDiscount ?? 0),
+    deliveryDiscount: Number(dto.pricing?.deliveryDiscount ?? 0),
+    totalSubscriptionSavings: Number(dto.pricing?.totalSubscriptionSavings ?? 0),
     total: Number(dto.pricing?.total ?? 0),
     currency: String(dto.pricing?.currency || "INR"),
   };
@@ -374,6 +379,10 @@ export async function createOrder(userId, dto) {
     customerName: dto.customerName || deliveryAddress.fullName || "",
     customerPhone: dto.customerPhone || deliveryAddress.phone || "",
     pricing: normalizedPricing,
+    subscriptionPlanName: normalizedPricing.subscriptionPlanName,
+    foodDiscount: normalizedPricing.foodDiscount,
+    deliveryDiscount: normalizedPricing.deliveryDiscount,
+    totalSubscriptionSavings: normalizedPricing.totalSubscriptionSavings,
     payment,
     orderStatus: "created",
     dispatch: { modeAtCreation: dispatchMode, status: "unassigned" },
@@ -395,6 +404,13 @@ export async function createOrder(userId, dto) {
     deliveryBonusAmount,
     platformProfit,
   });
+
+  if (normalizedPricing.totalSubscriptionSavings > 0 && userId) {
+    FoodUserSubscription.updateOne(
+      { userId, status: 'active', endDate: { $gte: new Date() } },
+      { $inc: { totalSavingsAccrued: normalizedPricing.totalSubscriptionSavings } }
+    ).catch((err) => console.error('Failed to update totalSavingsAccrued on subscription:', err));
+  }
 
   let razorpayPayload = null;
 

@@ -9,6 +9,7 @@ import { FoodZone } from '../../admin/models/zone.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { haversineKm } from './order.helpers.js';
 import { getDrivingDistances } from '../../../../services/googleMaps.service.js';
+import { FoodUserSubscription } from '../../user/models/userSubscription.model.js';
 
 function isOfferEndDateValid(endDate, now = new Date()) {
   if (!endDate) return true;
@@ -185,6 +186,41 @@ export async function calculateOrderPricing(userId, dto) {
     }
   }
 
+  let subscriptionPlanName = null;
+  let foodDiscount = 0;
+  let deliveryDiscount = 0;
+  const originalDeliveryFee = deliveryFee;
+
+  if (userId) {
+    const activeSub = await FoodUserSubscription.findOne({
+      userId,
+      status: 'active',
+      endDate: { $gte: new Date() }
+    }).lean();
+
+    if (activeSub && activeSub.planSnapshot) {
+      subscriptionPlanName = activeSub.planSnapshot.name || 'Subscription Plan';
+      const benefits = Array.isArray(activeSub.planSnapshot.benefits) ? activeSub.planSnapshot.benefits : [];
+
+      for (const b of benefits) {
+        if (b.type === 'FREE_DELIVERY') {
+          deliveryDiscount = deliveryFee;
+          deliveryFee = 0;
+        } else if (b.type === 'FOOD_DISCOUNT') {
+          if (b.discountType === 'percentage') {
+            const rawDiscount = subtotal * ((Number(b.discountValue) || 0) / 100);
+            const capped = Number(b.maxDiscount) > 0 ? Math.min(rawDiscount, Number(b.maxDiscount)) : rawDiscount;
+            foodDiscount = Math.floor(capped);
+          } else if (b.discountType === 'flat') {
+            foodDiscount = Math.min(subtotal, Math.floor(Number(b.discountValue) || 0));
+          }
+        }
+      }
+    }
+  }
+
+  const totalSubscriptionSavings = foodDiscount + deliveryDiscount;
+
   const gstRate = feeSettings.gstRate != null ? Number(feeSettings.gstRate) : 0;
   const gstOnDeliveryFee = feeSettings.gstOnDeliveryFee != null ? Number(feeSettings.gstOnDeliveryFee) : 0;
   const gstOnPlatformFee = feeSettings.gstOnPlatformFee != null ? Number(feeSettings.gstOnPlatformFee) : 0;
@@ -330,7 +366,7 @@ export async function calculateOrderPricing(userId, dto) {
   }
 
   const couponDiscount = discount;
-  const totalDiscount = couponDiscount;
+  const totalDiscount = couponDiscount + foodDiscount;
   const totalBeforeDiscount = subtotal + deliveryFee + tax + platformFee + packagingFee;
   const total = Math.max(0, totalBeforeDiscount - totalDiscount);
 
@@ -346,12 +382,17 @@ export async function calculateOrderPricing(userId, dto) {
       },
       packagingFee,
       deliveryFee,
+      originalDeliveryFee,
       deliveryFeeBreakdown: deliveryFeeBreakdown || undefined,
       freeDeliveryUpTo: Number.isFinite(freeUpTo) ? freeUpTo : undefined,
       platformFee,
       discount: totalDiscount,
       itemDiscount: itemDiscountTotal > 0 ? itemDiscountTotal : undefined,
       couponDiscount: couponDiscount > 0 ? couponDiscount : undefined,
+      subscriptionPlanName,
+      foodDiscount,
+      deliveryDiscount,
+      totalSubscriptionSavings,
       total,
       currency: "INR",
       couponCode: appliedCoupon?.code || codeRaw || null,

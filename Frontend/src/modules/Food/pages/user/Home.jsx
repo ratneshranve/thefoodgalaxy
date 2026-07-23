@@ -475,10 +475,10 @@ export default function Home() {
         href: "/food/user/offers",
       },
       {
-        id: "gourmet",
-        label: "Gourmet",
+        id: "subscription",
+        label: "Subscription",
         image: exploreGourmet,
-        href: "/food/user/gourmet",
+        href: "/food/user/subscriptions",
       },
       {
         id: "collection",

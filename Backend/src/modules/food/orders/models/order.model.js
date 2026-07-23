@@ -48,6 +48,10 @@ const pricingSchema = new mongoose.Schema(
         paymentGatewayFee: { type: Number, default: 0, min: 0 },
         tcs: { type: Number, default: 0, min: 0 },
         discount: { type: Number, default: 0, min: 0 },
+        subscriptionPlanName: { type: String, default: null },
+        foodDiscount: { type: Number, default: 0, min: 0 },
+        deliveryDiscount: { type: Number, default: 0, min: 0 },
+        totalSubscriptionSavings: { type: Number, default: 0, min: 0 },
         total: { type: Number, required: true, min: 0 },
         currency: { type: String, default: 'INR' }
     },
@@ -251,6 +255,10 @@ const orderSchema = new mongoose.Schema(
             type: pricingSchema,
             required: false
         },
+        subscriptionPlanName: { type: String, default: null },
+        foodDiscount: { type: Number, default: 0, min: 0 },
+        deliveryDiscount: { type: Number, default: 0, min: 0 },
+        totalSubscriptionSavings: { type: Number, default: 0, min: 0, index: true },
         /**
          * Denormalized payment snapshot for fast reads & legacy clients.
          * Authoritative audit trail: collection `food_order_payments` (FoodOrderPayment model).

@@ -23,6 +23,9 @@ import promocodeRoutes from './promocodeRoutes.js';
 import { requireZone } from '../middlewares/zone.middleware.js';
 import envSettingRoutes from './admin/envSettingRoutes.js';
 
+import subscriptionAdminRoutes from '../modules/food/admin/routes/subscriptionAdmin.routes.js';
+import userSubscriptionRoutes from '../modules/food/user/routes/userSubscription.routes.js';
+
 const router = express.Router();
 
 // Apply Global Zone Interceptor (Reads X-Zone-Id from Frontend Axios)
@@ -34,6 +37,10 @@ router.get('/v1/health', (req, res) => {
 
 // App Config Route
 router.use('/v1/app-config', appConfigRoutes);
+
+// Subscription Routes
+router.use('/v1/food/admin/subscriptions', subscriptionAdminRoutes);
+router.use('/v1/food/user/subscriptions', userSubscriptionRoutes);
 
 // Food-prefixed auth routes
 router.use('/v1/food/auth', authRoutes);
