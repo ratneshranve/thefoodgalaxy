@@ -8,6 +8,7 @@ import { RestaurantGridSkeleton } from "@food/components/ui/loading-skeletons"
 import StickyCartCard from "@food/components/user/StickyCartCard"
 import { useProfile } from "@food/context/ProfileContext"
 import { useAppLocation } from "@food/hooks/useAppLocation"
+import FoodCard from "@food/components/user/FoodCard"
 import { restaurantAPI, adminAPI } from "@food/api"
 import { useDelayedLoading } from "@food/hooks/useDelayedLoading"
 import { normalizeImageUrl } from "@food/utils/common"
@@ -966,62 +967,14 @@ export default function SearchResults() {
               RECOMMENDED FOR YOU
             </h2>
 
-            {/* Small Restaurant Cards - Horizontal Scroll */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 lg:gap-5">
-              {filteredRecommended.slice(0, 6).map((restaurant) => {
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-5">
+              {filteredRecommended.slice(0, 6).map((item) => {
                 return (
-                  <Link
-                    key={restaurant.id}
-                    to={`/user/restaurants/${restaurant.slug || restaurant.name.toLowerCase().replace(/\s+/g, '-')}`}
-                    className="block"
-                  >
-                    <div className={`group ${shouldShowGrayscale ? 'grayscale opacity-75' : ''}`}>
-                      {/* Image Container */}
-                      <div className="relative aspect-square rounded-xl overflow-hidden mb-2 bg-gray-200 dark:bg-gray-800">
-                        {restaurant.image ? (
-                          <img
-                            src={restaurant.image}
-                            alt={restaurant.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            onError={(e) => {
-                              e.target.style.display = 'none'
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-2xl">???</span>
-                          </div>
-                        )}
-                        {/* Offer Badge - Only show if offer exists */}
-                        {restaurant.offer && (
-                          <div className="absolute top-1.5 left-1.5 bg-gradient-to-r from-primary to-secondary text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">
-                            {restaurant.offer}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Rating Badge - Only show if rating exists */}
-                      {restaurant.rating && (
-                        <div className="flex items-center gap-1 mb-1">
-                          <div className="bg-green-600 text-white text-[11px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                            {restaurant.rating}
-                            <Star className="h-2.5 w-2.5 fill-white" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Restaurant Info */}
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-xs line-clamp-1">
-                        {restaurant.name}
-                      </h3>
-                      {restaurant.deliveryTime && (
-                        <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-[10px]">
-                          <Clock className="h-2.5 w-2.5" />
-                          <span>{restaurant.deliveryTime}</span>
-                        </div>
-                      )}
-                    </div>
-                  </Link>
+                  <FoodCard
+                    key={item.id || item._id}
+                    item={item}
+                    compact
+                  />
                 )
               })}
             </div>

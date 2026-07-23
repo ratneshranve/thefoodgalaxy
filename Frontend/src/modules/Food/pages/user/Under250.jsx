@@ -14,6 +14,7 @@ import PageNavbar from "@food/components/user/PageNavbar"
 import offerImage from "@food/assets/offerimage.png"
 import AddToCartAnimation from "@food/components/user/AddToCartAnimation"
 import OptimizedImage from "@food/components/OptimizedImage"
+import FoodCard from "@food/components/user/FoodCard"
 import api, { restaurantAPI, adminAPI, getPublicLandingSettings } from "@food/api"
 import { isModuleAuthenticated } from "@food/utils/auth"
 import { flattenMenuItems, getMenuFromResponse } from "@food/utils/menuItems"
@@ -524,6 +525,25 @@ export default function Under250() {
 
     return filtered
   }, [under250Restaurants, selectedSort, under30MinsFilter, activeCategory, categories, searchQuery])
+
+  const allUnder250FoodItems = useMemo(() => {
+    const items = []
+    const seenIds = new Set()
+    sortedAndFilteredRestaurants.forEach(restaurant => {
+      (restaurant.menuItems || []).forEach(item => {
+        const itemId = String(item.id || item._id)
+        if (itemId && !seenIds.has(itemId)) {
+          seenIds.add(itemId)
+          items.push({
+            ...item,
+            restaurantName: restaurant.name,
+            restaurantId: restaurant.id || restaurant._id
+          })
+        }
+      })
+    })
+    return items
+  }, [sortedAndFilteredRestaurants])
 
   // Fetch under-50 banner from public API
   useEffect(() => {
@@ -1499,106 +1519,36 @@ export default function Under250() {
         {/* Restaurant Menu Sections */}
         <div className="px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12 pt-4">
         {loadingRestaurants || isSwitchingCategory ? (
-          <div className="space-y-8 sm:space-y-10 md:space-y-12">
-            {Array.from({ length: 3 }).map((_, rIndex) => (
-              <section key={`skel-rest-${rIndex}`} className="pt-4 sm:pt-6 md:pt-8 lg:pt-10">
-                {/* Skeleton Restaurant Header */}
-                <div className="flex items-start justify-between mb-3 md:mb-4 lg:mb-6">
-                  <div className="flex-1 space-y-3">
-                    <div className="h-6 sm:h-8 w-48 sm:w-64 bg-orange-100 dark:bg-orange-900/30 rounded-md animate-pulse shadow-[0_0_15px_rgba(249,115,22,0.15)]"></div>
-                    <div className="flex items-center gap-3">
-                      <div className="h-4 w-20 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.1)]"></div>
-                      <div className="h-4 w-24 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.1)]"></div>
-                      <div className="h-4 w-16 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.1)]"></div>
-                    </div>
-                  </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+            {Array.from({ length: 12 }).map((_, iIndex) => (
+              <div key={`skel-food-${iIndex}`} className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm h-64 animate-pulse">
+                <div className="w-full h-36 bg-gray-200 dark:bg-gray-800"></div>
+                <div className="p-3 space-y-2">
+                  <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                  <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-800 rounded"></div>
                 </div>
-                {/* Skeleton Menu Items Horizontal Scroll */}
-                <div className="flex md:grid gap-3 sm:gap-4 md:gap-5 lg:gap-6 overflow-hidden md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {Array.from({ length: 4 }).map((_, iIndex) => (
-                    <div key={`skel-item-${rIndex}-${iIndex}`} className="flex-shrink-0 w-[200px] sm:w-[220px] md:w-full bg-white dark:bg-[#1a1a1a] rounded-lg md:rounded-xl border border-orange-100 dark:border-orange-900/20 overflow-hidden relative shadow-[0_4px_20px_rgba(249,115,22,0.08)]">
-                      <div className="w-full h-32 sm:h-36 md:h-40 lg:h-48 xl:h-52 bg-orange-50 dark:bg-orange-900/20 animate-pulse"></div>
-                      <div className="p-3 md:p-4 space-y-3">
-                        <div className="h-5 w-3/4 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse"></div>
-                        <div className="h-5 w-1/4 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse mt-2"></div>
-                        <div className="flex justify-between items-center mt-4">
-                          <div className="h-6 w-1/3 bg-orange-100 dark:bg-orange-900/30 rounded animate-pulse"></div>
-                          <div className="h-8 w-20 bg-orange-200 dark:bg-orange-800/40 rounded-full animate-pulse"></div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              </div>
             ))}
           </div>
-        ) : sortedAndFilteredRestaurants.length === 0 ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="text-gray-500 dark:text-gray-400">
+        ) : allUnder250FoodItems.length === 0 ? (
+          <div className="flex justify-center items-center py-16">
+            <div className="text-gray-500 dark:text-gray-400 font-medium text-base text-center">
               {under250Restaurants.length === 0
-                ? `No restaurants with dishes under ${RUPEE_SYMBOL}${under250PriceLimit} found.`
-                : "No restaurants match the selected filters."}
+                ? `No dishes under ${RUPEE_SYMBOL}${under250PriceLimit} found.`
+                : "No dishes match the selected filters."}
             </div>
           </div>
         ) : (
-          sortedAndFilteredRestaurants.map((restaurant) => {
-            const restaurantSlug = restaurant.slug || restaurant.name.toLowerCase().replace(/\s+/g, "-")
-            const availability = getRestaurantAvailabilityStatus(restaurant)
-            const isClosed = !availability.isOpen
-
-            return (
-              <section key={restaurant.id} className={`p-4 md:p-5 lg:p-6 mb-6 md:mb-8 rounded-2xl bg-slate-50 dark:bg-[#1a1a1a] ${isClosed ? 'opacity-70 grayscale' : ''}`}>
-                {/* Restaurant Header */}
-                <div className="flex items-start justify-between mb-4 md:mb-5">
-                  <div className="flex-1">
-                    <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1.5">
-                      {restaurant.name}
-                    </h3>
-                    <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
-                      <div className="flex items-center gap-1 text-sm md:text-base font-bold text-gray-700 dark:text-gray-300">
-                        <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center">
-                           <Star className="h-3 w-3 fill-white text-white" />
-                        </div>
-                        <span>{restaurant.rating} {restaurant.totalRatings > 0 ? `(${restaurant.totalRatings >= 1000 ? `${(restaurant.totalRatings / 1000).toFixed(1)}K+` : restaurant.totalRatings}+)` : ''}</span>
-                      </div>
-                      <span className="text-gray-500 dark:text-gray-400 text-sm md:text-base">•</span>
-                      {restaurant.distance && (
-                        <>
-                          <div className="flex items-center text-sm md:text-base font-semibold text-gray-700 dark:text-gray-300">
-                            <span>{restaurant.distance}</span>
-                          </div>
-                          <span className="text-gray-500 dark:text-gray-400 text-sm md:text-base">•</span>
-                        </>
-                      )}
-                      <div className="flex items-center text-sm md:text-base font-semibold text-gray-700 dark:text-gray-300">
-                        <span>{restaurant.deliveryTime}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* View Items Link */}
-                  <Link to={`/user/restaurants/${restaurantSlug}?under250=true`} className="flex-shrink-0 mt-1">
-                    <span className="text-primary font-bold text-sm md:text-base flex items-center hover:underline">
-                      View Items <ArrowRight className="h-4 w-4 ml-0.5" />
-                    </span>
-                  </Link>
-                </div>
-
-                {/* Menu Items Horizontal Scroll */}
-                {restaurant.menuItems && restaurant.menuItems.length > 0 && (
-                  <div className="mt-4">
-                    <HorizontalMenuScroller 
-                      restaurant={restaurant}
-                      quantities={quantities}
-                      isClosed={isClosed}
-                      handleItemClick={handleItemClick}
-                      RUPEE_SYMBOL={RUPEE_SYMBOL}
-                    />
-                  </div>
-                )}
-              </section>
-            )
-          }))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+            {allUnder250FoodItems.map((item) => (
+              <FoodCard
+                key={item.id || item._id}
+                item={item}
+                onClick={() => handleItemClick(item, item)}
+              />
+            ))}
+          </div>
+        )}
         </div>
       </div>
 

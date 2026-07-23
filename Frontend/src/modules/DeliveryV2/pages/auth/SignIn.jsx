@@ -6,7 +6,8 @@ import { Button } from "@food/components/ui/button"
 import { toast } from "sonner"
 import { deliveryAPI } from "@food/api"
 import { clearModuleAuth } from "@food/utils/auth"
-import logoNew from "@/assets/logo.png"
+import { loadBusinessSettings, getCachedSettings, resolveMediaUrl } from "@food/utils/businessSettings"
+import { useEffect } from "react"
 
 const DEFAULT_COUNTRY_CODE = "+91"
 
@@ -26,6 +27,22 @@ export default function DeliverySignIn() {
   })
   const [loading, setLoading] = useState(false)
   const submitting = useRef(false)
+  const [logoUrl, setLogoUrl] = useState(() => {
+    const settings = getCachedSettings()
+    return resolveMediaUrl(settings?.logo)
+  })
+
+  useEffect(() => {
+    let active = true
+    loadBusinessSettings().then((settings) => {
+      if (active && settings) {
+        setLogoUrl(resolveMediaUrl(settings.logo))
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [])
 
   const validatePhone = (num) => {
     const digits = num.replace(/\D/g, "")
@@ -95,23 +112,25 @@ export default function DeliverySignIn() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="w-full flex flex-col items-center"
         >
-          <div className="relative mb-6 flex justify-center">
-            <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-[40px] scale-150 pointer-events-none" />
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              className="relative w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden border-4 border-white"
-              style={{ borderRadius: '50%', WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
-            >
-              <img 
-                src={logoNew} 
-                alt="Delivery Logo" 
-                className="w-full h-full object-cover scale-[1.05]"
-                style={{ borderRadius: '50%' }}
-              />
-            </motion.div>
-          </div>
+          {logoUrl && (
+            <div className="relative mb-6 flex justify-center">
+              <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-[40px] scale-150 pointer-events-none" />
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                className="relative w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden border-4 border-white flex items-center justify-center"
+                style={{ borderRadius: '50%', WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
+              >
+                <img 
+                  src={logoUrl} 
+                  alt="Logo" 
+                  className="w-full h-full object-cover scale-[1.05]"
+                  style={{ borderRadius: '50%' }}
+                />
+              </motion.div>
+            </div>
+          )}
 
           {/* Typography Section */}
           <div className="text-center mb-8 px-2">

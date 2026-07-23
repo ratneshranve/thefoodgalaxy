@@ -5,6 +5,7 @@ import { FoodUnder250Banner } from '../models/under250Banner.model.js';
 import { FoodDiningBanner } from '../models/diningBanner.model.js';
 import { FoodExploreIcon } from '../models/exploreIcon.model.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
+import { FoodItem } from '../../admin/models/food.model.js';
 import { sendResponse } from '../../../../utils/response.js';
 import mongoose from 'mongoose';
 
@@ -118,10 +119,20 @@ export const getPublicLandingSettingsController = async (req, res, next) => {
                 .select('restaurantName area city profileImage coverImages menuImages slug rating cuisines pureVegRestaurant')
                 .lean();
         }
+
+        const foodIds = settings?.recommendedFoodIds || [];
+        let recommendedFoods = [];
+        if (Array.isArray(foodIds) && foodIds.length > 0) {
+            recommendedFoods = await FoodItem.find({ _id: { $in: foodIds }, approvalStatus: 'approved' })
+                .populate('restaurantId', 'restaurantName slug zoneId rating')
+                .lean();
+        }
+
         const payload = {
             ...settings,
             recommendedRestaurantIds: undefined,
-            recommendedRestaurants
+            recommendedRestaurants,
+            recommendedFoods
         };
         return sendResponse(res, 200, 'Landing settings fetched', payload);
     } catch (error) {

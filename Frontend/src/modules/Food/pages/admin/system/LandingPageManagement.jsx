@@ -62,6 +62,7 @@ export default function LandingPageManagement() {
   const [settings, setSettings] = useState({ 
     exploreMoreHeading: "Explore More", 
     recommendedRestaurantIds: [], 
+    recommendedFoodIds: [],
     under250PriceLimit: 250, 
     festBannerImages: [],
     stats: { restaurants: '3,00,000+', cities: '800+', orders: '3 billion+' },
@@ -97,6 +98,8 @@ export default function LandingPageManagement() {
 
   const [allRestaurants, setAllRestaurants] = useState([])
   const [restaurantsLoading, setRestaurantsLoading] = useState(false)
+  const [allFoods, setAllFoods] = useState([])
+  const [foodsLoading, setFoodsLoading] = useState(false)
 
   // Gourmet Restaurants
   const [gourmetRestaurants, setGourmetRestaurants] = useState([])
@@ -174,6 +177,7 @@ export default function LandingPageManagement() {
     fetchUnder250Banners()
     fetchDiningBanners()
     fetchAllRestaurants()
+    fetchAllFoods()
     fetchSettings()
     fetchZones()
   }, [])
@@ -422,37 +426,61 @@ export default function LandingPageManagement() {
       restaurant.restaurantId?.toLowerCase().includes(query)
   })
 
-  const filteredRestaurantsForRecommended = useMemo(() => {
+  const filteredFoodsForRecommended = useMemo(() => {
     const query = recommendedSearchQuery.trim().toLowerCase()
-    return allRestaurants
-      .filter((restaurant) => {
-        const rZoneId = restaurant.zoneId?._id || restaurant.zoneId;
-        if (selectedZoneForRecommended && String(rZoneId) !== selectedZoneForRecommended) {
-            return false;
-        }
+    return allFoods
+      .filter((food) => {
         if (!query) return true
-        return restaurant.name?.toLowerCase().includes(query) ||
-          restaurant.restaurantId?.toLowerCase().includes(query)
+        const nameMatch = food.name?.toLowerCase().includes(query)
+        const catMatch = food.category?.toLowerCase().includes(query)
+        return nameMatch || catMatch
       })
-      .slice(0, 80)
-  }, [allRestaurants, recommendedSearchQuery, selectedZoneForRecommended])
+      .slice(0, 100)
+  }, [allFoods, recommendedSearchQuery])
 
-  const recommendedRestaurantsSelected = useMemo(() => {
-    const selectedIds = new Set(settings.recommendedRestaurantIds || [])
-    return allRestaurants.filter((restaurant) => selectedIds.has(restaurant._id))
-  }, [allRestaurants, settings.recommendedRestaurantIds])
+  const recommendedFoodsSelected = useMemo(() => {
+    const selectedIds = new Set((settings.recommendedFoodIds || []).map(id => String(id)))
+    return allFoods.filter((food) => selectedIds.has(String(food._id || food.id)))
+  }, [allFoods, settings.recommendedFoodIds])
 
-  const toggleRecommendedRestaurant = (restaurantId) => {
+  const toggleRecommendedFood = (foodId) => {
+    const fId = String(foodId)
     setSettings((prev) => {
-      const previousIds = Array.isArray(prev.recommendedRestaurantIds) ? prev.recommendedRestaurantIds : []
-      const alreadySelected = previousIds.includes(restaurantId)
+      const previousIds = (Array.isArray(prev.recommendedFoodIds) ? prev.recommendedFoodIds : []).map(id => String(id))
+      const alreadySelected = previousIds.includes(fId)
       return {
         ...prev,
-        recommendedRestaurantIds: alreadySelected
-          ? previousIds.filter((id) => id !== restaurantId)
-          : [...previousIds, restaurantId],
+        recommendedFoodIds: alreadySelected
+          ? previousIds.filter((id) => id !== fId)
+          : [...previousIds, fId],
       }
     })
+  }
+
+  const fetchAllFoods = async () => {
+    try {
+      setFoodsLoading(true)
+      const response = await api.get('/food/admin/foods', getAuthConfig())
+      if (response.data?.success && Array.isArray(response.data.data?.foods)) {
+        setAllFoods(response.data.data.foods)
+      } else {
+        const pubRes = await api.get('/food/restaurant/foods/public')
+        if (pubRes.data?.success && Array.isArray(pubRes.data.data?.foods)) {
+          setAllFoods(pubRes.data.data.foods)
+        }
+      }
+    } catch (err) {
+      try {
+        const pubRes = await api.get('/food/restaurant/foods/public')
+        if (pubRes.data?.success && Array.isArray(pubRes.data.data?.foods)) {
+          setAllFoods(pubRes.data.data.foods)
+        }
+      } catch (e) {
+        debugError("Failed to fetch foods", e)
+      }
+    } finally {
+      setFoodsLoading(false)
+    }
   }
 
   // ==================== CATEGORIES ====================
@@ -1083,6 +1111,7 @@ export default function LandingPageManagement() {
         setSettings({
           exploreMoreHeading: nextSettings.exploreMoreHeading || "Explore More",
           recommendedRestaurantIds: Array.isArray(nextSettings.recommendedRestaurantIds) ? nextSettings.recommendedRestaurantIds : [],
+          recommendedFoodIds: Array.isArray(nextSettings.recommendedFoodIds) ? nextSettings.recommendedFoodIds : [],
           under250PriceLimit: Number(nextSettings.under250PriceLimit) || 250,
           festBannerImages: Array.isArray(nextSettings.festBannerImages) ? nextSettings.festBannerImages : [],
           stats: nextSettings.stats || { restaurants: '3,00,000+', cities: '800+', orders: '3 billion+' },
@@ -1134,6 +1163,7 @@ export default function LandingPageManagement() {
       const response = await api.patch('/food/hero-banners/landing/settings', {
         exploreMoreHeading: settings.exploreMoreHeading,
         recommendedRestaurantIds: Array.isArray(settings.recommendedRestaurantIds) ? settings.recommendedRestaurantIds : [],
+        recommendedFoodIds: Array.isArray(settings.recommendedFoodIds) ? settings.recommendedFoodIds : [],
         under250PriceLimit: Number(settings.under250PriceLimit) || 250,
         festBannerImages: settings.festBannerImages || [],
         stats: settings.stats,
@@ -1151,6 +1181,9 @@ export default function LandingPageManagement() {
           recommendedRestaurantIds: Array.isArray(savedSettings.recommendedRestaurantIds)
             ? savedSettings.recommendedRestaurantIds
             : prev.recommendedRestaurantIds,
+          recommendedFoodIds: Array.isArray(savedSettings.recommendedFoodIds)
+            ? savedSettings.recommendedFoodIds
+            : prev.recommendedFoodIds,
           under250PriceLimit: Number(savedSettings.under250PriceLimit) || prev.under250PriceLimit,
           festBannerImages: Array.isArray(savedSettings.festBannerImages)
             ? savedSettings.festBannerImages
@@ -1913,68 +1946,69 @@ export default function LandingPageManagement() {
                   </div>
 
                   <div>
-                    <Label htmlFor="recommended-search">Recommended For You Restaurants</Label>
+                    <Label htmlFor="recommended-search">Recommended For You Foods / Dishes</Label>
                     <p className="text-xs text-slate-500 mt-1 mb-2">
-                      Choose multiple restaurants to display below filters on the user home page.
+                      Choose food items / dishes to display in the Recommended section on the user app.
                     </p>
 
                     <div className="flex gap-3 mb-3">
-                      <select
-                        className="flex-1 max-w-[200px] h-10 px-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        value={selectedZoneForRecommended}
-                        onChange={(e) => setSelectedZoneForRecommended(e.target.value)}
-                      >
-                        <option value="">All Zones</option>
-                        {zones.map((zone) => (
-                          <option key={zone._id || zone.id} value={zone._id || zone.id}>{zone.name}</option>
-                        ))}
-                      </select>
                       <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <Input
                           id="recommended-search"
                           value={recommendedSearchQuery}
                           onChange={(e) => setRecommendedSearchQuery(e.target.value)}
-                          placeholder="Search restaurants..."
+                          placeholder="Search foods by name or category..."
                           className="pl-9 h-10"
                         />
                       </div>
                     </div>
 
-                    {recommendedRestaurantsSelected.length > 0 && (
+                    {recommendedFoodsSelected.length > 0 && (
                       <div className="mb-3 flex flex-wrap gap-2">
-                        {recommendedRestaurantsSelected.map((restaurant) => (
-                          <button
-                            key={restaurant._id}
-                            type="button"
-                            onClick={() => toggleRecommendedRestaurant(restaurant._id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs hover:bg-blue-100"
-                          >
-                            <span>{restaurant.name}</span>
-                            <span className="text-blue-500">x</span>
-                          </button>
-                        ))}
+                        {recommendedFoodsSelected.map((food) => {
+                          const foodId = food._id || food.id
+                          return (
+                            <button
+                              key={foodId}
+                              type="button"
+                              onClick={() => toggleRecommendedFood(foodId)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium hover:bg-blue-100 border border-blue-200"
+                            >
+                              <span>{food.name} (₹{food.price})</span>
+                              <span className="text-blue-500 font-bold ml-1">×</span>
+                            </button>
+                          )
+                        })}
                       </div>
                     )}
 
                     <div className="max-h-72 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
-                      {filteredRestaurantsForRecommended.length === 0 ? (
-                        <div className="p-4 text-sm text-slate-500 text-center">No restaurants found</div>
+                      {filteredFoodsForRecommended.length === 0 ? (
+                        <div className="p-4 text-sm text-slate-500 text-center">No food items found</div>
                       ) : (
-                        filteredRestaurantsForRecommended.map((restaurant) => {
-                          const isChecked = (settings.recommendedRestaurantIds || []).includes(restaurant._id)
+                        filteredFoodsForRecommended.map((food) => {
+                          const foodId = String(food._id || food.id)
+                          const isChecked = (settings.recommendedFoodIds || []).map(id => String(id)).includes(foodId)
                           return (
                             <label
-                              key={restaurant._id}
+                              key={foodId}
                               className="flex items-center justify-between gap-3 px-3 py-2 cursor-pointer hover:bg-slate-50"
                             >
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-slate-800 truncate">{restaurant.name}</p>
-                                 <p className="text-xs text-slate-500 truncate">{restaurant._id || "No ID"}</p>
+                              <div className="flex items-center gap-3 min-w-0">
+                                {food.image && (
+                                  <img src={food.image} alt={food.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                                )}
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-slate-800 truncate">{food.name}</p>
+                                  <p className="text-xs text-slate-500 truncate">
+                                    ₹{food.price} • {food.category || "General"}
+                                  </p>
+                                </div>
                               </div>
                               <Checkbox
                                 checked={isChecked}
-                                onCheckedChange={() => toggleRecommendedRestaurant(restaurant._id)}
+                                onCheckedChange={() => toggleRecommendedFood(foodId)}
                               />
                             </label>
                           )

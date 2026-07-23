@@ -5,7 +5,7 @@ import { Phone, ArrowRight, ShieldCheck, Loader2, Utensils, Star, Heart, ShieldQ
 import { toast } from "sonner"
 import { authAPI, userAPI } from "@food/api"
 import { setAuthData } from "@food/utils/auth"
-import logoNew from "@/assets/logo.png"
+import { loadBusinessSettings, getCachedSettings, resolveMediaUrl } from "@food/utils/businessSettings"
 import {
   Dialog,
   DialogContent,
@@ -28,8 +28,24 @@ export default function UnifiedOTPFastLogin() {
   const [isUpdatingName, setIsUpdatingName] = useState(false)
   const [tempAuth, setTempAuth] = useState(null)
   const [pendingVerify, setPendingVerify] = useState(null)
+  const [logoUrl, setLogoUrl] = useState(() => {
+    const settings = getCachedSettings()
+    return resolveMediaUrl(settings?.logo)
+  })
   const navigate = useNavigate()
   const submitting = useRef(false)
+
+  useEffect(() => {
+    let active = true
+    loadBusinessSettings().then((settings) => {
+      if (active && settings) {
+        setLogoUrl(resolveMediaUrl(settings.logo))
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [])
 
   const normalizedPhone = () => {
     const digits = String(phoneNumber).replace(/\D/g, "").slice(-15)
@@ -295,14 +311,16 @@ export default function UnifiedOTPFastLogin() {
           className="w-full max-w-md lg:max-w-lg flex flex-col items-center"
         >
           {/* Central Logo */}
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, type: "spring", bounce: 0.4 }}
-            className="w-32 h-32 md:w-40 md:h-40 rounded-full shadow-[0_15px_35px_rgba(229,57,53,0.35)] border-4 border-white dark:border-gray-800 mb-8 overflow-hidden bg-white"
-          >
-            <img src={logoNew} alt="The Food Galaxy Logo" className="w-full h-full object-cover" />
-          </motion.div>
+          {logoUrl && (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, type: "spring", bounce: 0.4 }}
+              className="w-32 h-32 md:w-40 md:h-40 rounded-full shadow-[0_15px_35px_rgba(229,57,53,0.35)] border-4 border-white dark:border-gray-800 mb-8 overflow-hidden bg-white flex items-center justify-center"
+            >
+              <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+            </motion.div>
+          )}
 
           <motion.div
             initial={{ y: 20, opacity: 0 }}

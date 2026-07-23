@@ -11,7 +11,7 @@ import { normalizeImageUrl } from "@food/utils/common";
 const SETTINGS_KEY = 'food_business_settings';
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api(?:\/v\d+)?\/?$/, "");
 
-const resolveMediaUrl = (media) => {
+export const resolveMediaUrl = (media) => {
   if (!media) return "";
   if (typeof media === "string") return normalizeImageUrl(media, BACKEND_ORIGIN) || "";
   const raw = media?.url || media?.secure_url || media?.imageUrl || media?.image || media?.src || "";

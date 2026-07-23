@@ -42,6 +42,7 @@ import outOfZoneBg from "@food/assets/out-of-zone-bg.png";
 import { motion, AnimatePresence } from "framer-motion";
 import Footer from "@food/components/user/Footer";
 import AddToCartButton from "@food/components/user/AddToCartButton";
+import FoodCard from "@food/components/user/FoodCard";
 import StickyCartCard from "@food/components/user/StickyCartCard";
 import OrderTrackingCard from "@food/components/user/OrderTrackingCard";
 import {
@@ -238,6 +239,10 @@ export default function Home() {
     recommendedRestaurantsFromSettings,
     setRecommendedRestaurantsFromSettings,
   ] = useState(() => homePageCache.recommendedRestaurantsFromSettings || []);
+  const [
+    recommendedFoodsFromSettings,
+    setRecommendedFoodsFromSettings,
+  ] = useState(() => homePageCache.recommendedFoodsFromSettings || []);
   const [loadingLandingConfig, setLoadingLandingConfig] = useState(() => !homePageCache.landingExploreFetched);
   const [restaurantsData, setRestaurantsData] = useState(() => homePageCache.restaurantsData || []);
   const [loadingRestaurants, setLoadingRestaurants] = useState(() => !homePageCache.restaurantsData);
@@ -875,6 +880,8 @@ export default function Home() {
 
         const recRest = settingsData.recommendedRestaurants || [];
         setRecommendedRestaurantsFromSettings(recRest);
+        const recFoods = settingsData.recommendedFoods || [];
+        setRecommendedFoodsFromSettings(recFoods);
 
         const images = Array.isArray(settingsData.festBannerImages) ? settingsData.festBannerImages : [];
         setFestBannerImages(images);
@@ -885,6 +892,7 @@ export default function Home() {
         homePageCache.recommendedRestaurantIds = settingsData.recommendedRestaurantIds || [];
         homePageCache.under250PriceLimit = Number(settingsData.under250PriceLimit) || 250;
         homePageCache.recommendedRestaurantsFromSettings = recRest;
+        homePageCache.recommendedFoodsFromSettings = recFoods;
         homePageCache.festBannerImages = images;
         homePageCache.landingExploreFetched = true;
         homePageCache.effectiveZoneId = effectiveZoneId;
@@ -1931,6 +1939,18 @@ export default function Home() {
     matchesVegMode,
   ]);
 
+  const recommendedForYouFoods = useMemo(() => {
+    const fromSettings = Array.isArray(recommendedFoodsFromSettings)
+      ? recommendedFoodsFromSettings
+      : [];
+    return fromSettings.map((item) => ({
+      ...item,
+      id: String(item._id || item.id || ""),
+      price: Number(item.price || 0),
+      image: item.image || item.imageUrl || "",
+    })).filter(matchesVegMode);
+  }, [recommendedFoodsFromSettings, matchesVegMode]);
+
   // Featured foods removed - will be handled by restaurants data from API
   const filteredFeaturedFoods = useMemo(() => {
     // Return empty array - featured foods will come from API if needed
@@ -2350,7 +2370,7 @@ export default function Home() {
 
 
 
-        {recommendedForYouRestaurants.length > 0 && (
+        {(recommendedForYouFoods.length > 0 || recommendedForYouRestaurants.length > 0) && (
           <motion.section
             className="content-auto pt-1 sm:pt-2"
             initial={false}
@@ -2359,50 +2379,56 @@ export default function Home() {
               Recommended For You
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-4">
-              {recommendedForYouRestaurants.map((restaurant, index) => {
-                const restaurantSlug =
-                  restaurant.slug ||
-                  restaurant.name.toLowerCase().replace(/\s+/g, "-");
-                return (
-                  <div
-                    key={`recommended-${restaurant.mongoId || restaurant.id || restaurantSlug}`}
-                    className="transform transition-all duration-300 hover:-translate-y-1"
-                    style={
-                      index < 6
-                        ? {
-                            animation: `fade-in-up 0.35s ease-out ${index * 0.05}s backwards`,
-                          }
-                        : undefined
-                    }
-                  >
-                    <Link
-                      to={`/user/restaurants/${restaurantSlug}`}
-                      className="block rounded-[20px] overflow-hidden border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] shadow-sm hover:shadow-md transition-shadow">
-                      <div className="relative h-24 sm:h-28 md:h-32 bg-gray-50">
-                        <RestaurantImageCarousel
-                          restaurant={restaurant}
-                          backendOrigin={BACKEND_ORIGIN}
-                          className="h-24 sm:h-28 md:h-32"
-                          roundedClass="rounded-t-[20px]"
-                        />
-                        <div className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-lg ${Number(restaurant.rating) > 0 ? "bg-black/80 backdrop-blur-md text-white font-medium" : "bg-gray-200/90 text-gray-600 font-medium"} text-[10px] shadow-lg border border-white/10`}>
-                          {Number(restaurant.rating) > 0 ? Number(restaurant.rating).toFixed(1) : "NEW"}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 px-4">
+              {recommendedForYouFoods.length > 0 ? (
+                recommendedForYouFoods.map((item) => (
+                  <FoodCard key={`rec-food-${item.id || item._id}`} item={item} />
+                ))
+              ) : (
+                recommendedForYouRestaurants.map((restaurant, index) => {
+                  const restaurantSlug =
+                    restaurant.slug ||
+                    restaurant.name.toLowerCase().replace(/\s+/g, "-");
+                  return (
+                    <div
+                      key={`recommended-${restaurant.mongoId || restaurant.id || restaurantSlug}`}
+                      className="transform transition-all duration-300 hover:-translate-y-1"
+                      style={
+                        index < 6
+                          ? {
+                              animation: `fade-in-up 0.35s ease-out ${index * 0.05}s backwards`,
+                            }
+                          : undefined
+                      }
+                    >
+                      <Link
+                        to={`/user/restaurants/${restaurantSlug}`}
+                        className="block rounded-[20px] overflow-hidden border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] shadow-sm hover:shadow-md transition-shadow">
+                        <div className="relative h-24 sm:h-28 md:h-32 bg-gray-50">
+                          <RestaurantImageCarousel
+                            restaurant={restaurant}
+                            backendOrigin={BACKEND_ORIGIN}
+                            className="h-24 sm:h-28 md:h-32"
+                            roundedClass="rounded-t-[20px]"
+                          />
+                          <div className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-lg ${Number(restaurant.rating) > 0 ? "bg-black/80 backdrop-blur-md text-white font-medium" : "bg-gray-200/90 text-gray-600 font-medium"} text-[10px] shadow-lg border border-white/10`}>
+                            {Number(restaurant.rating) > 0 ? Number(restaurant.rating).toFixed(1) : "NEW"}
+                          </div>
                         </div>
-                      </div>
-                      <div className="p-2.5">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate tracking-tight">
-                          {restaurant.name}
-                        </p>
-                        <p className="text-[10px] text-primary font-bold mt-1 flex items-center gap-1 uppercase tracking-wider">
-                          <Flame className="w-3.5 h-3.5 fill-primary" />
-                          Near & Fast
-                        </p>
-                      </div>
-                    </Link>
-                  </div>
-                );
-              })}
+                        <div className="p-2.5">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate tracking-tight">
+                            {restaurant.name}
+                          </p>
+                          <p className="text-[10px] text-primary font-bold mt-1 flex items-center gap-1 uppercase tracking-wider">
+                            <Flame className="w-3.5 h-3.5 fill-primary" />
+                            Near & Fast
+                          </p>
+                        </div>
+                      </Link>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </motion.section>
         )}
@@ -2428,7 +2454,7 @@ export default function Home() {
             <div className="px-4 mb-3 lg:mb-4">
               <div className="flex flex-col gap-0.5 lg:gap-1">
                 <h2 className="text-xs sm:text-sm lg:text-base font-semibold text-gray-400 tracking-widest uppercase">
-                  {filteredRestaurants.length} Restaurants Delivering to You
+                  Popular Dishes & Menu
                 </h2>
                 <span className="text-base sm:text-lg lg:text-2xl text-gray-500 font-normal">
                   Featured

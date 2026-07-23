@@ -5,7 +5,7 @@ import { ShieldCheck, Utensils, Star, Heart, ArrowRight, Loader2, Store, ShieldQ
 import { Button } from "@food/components/ui/button"
 import { toast } from "sonner"
 import { restaurantAPI } from "@food/api"
-import logoNew from "@/assets/logo.png"
+import { loadBusinessSettings, getCachedSettings, resolveMediaUrl } from "@food/utils/businessSettings"
 
 const DEFAULT_COUNTRY_CODE = "+91"
 
@@ -15,6 +15,22 @@ export default function RestaurantLogin() {
   const [phone, setPhone] = useState(() => sessionStorage.getItem("restaurantLoginPhone") || "")
   const [loading, setLoading] = useState(false)
   const submitting = useRef(false)
+  const [logoUrl, setLogoUrl] = useState(() => {
+    const settings = getCachedSettings()
+    return resolveMediaUrl(settings?.logo)
+  })
+
+  useEffect(() => {
+    let active = true
+    loadBusinessSettings().then((settings) => {
+      if (active && settings) {
+        setLogoUrl(resolveMediaUrl(settings.logo))
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [])
 
   const validatePhone = (num) => {
     const digits = num.replace(/\D/g, "")
@@ -83,20 +99,22 @@ export default function RestaurantLogin() {
         >
           {/* Logo & Header */}
           <div className="text-center mb-8">
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              className="relative w-32 h-32 md:w-36 md:h-36 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden border-4 border-white mx-auto mb-4 bg-white"
-              style={{ borderRadius: '50%', WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
-            >
-              <img 
-                src={logoNew} 
-                alt="The Food Galaxy Logo" 
-                className="w-full h-full object-cover scale-[1.15]"
-                style={{ borderRadius: '50%' }}
-              />
-            </motion.div>
+            {logoUrl && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                className="relative w-32 h-32 md:w-36 md:h-36 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden border-4 border-white mx-auto mb-4 bg-white flex items-center justify-center"
+                style={{ borderRadius: '50%', WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
+              >
+                <img 
+                  src={logoUrl} 
+                  alt="Logo" 
+                  className="w-full h-full object-cover scale-[1.15]"
+                  style={{ borderRadius: '50%' }}
+                />
+              </motion.div>
+            )}
 
             <motion.p
               initial={{ opacity: 0 }}

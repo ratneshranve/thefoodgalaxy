@@ -10,6 +10,7 @@ import { Label } from "@food/components/ui/label"
 import { Checkbox } from "@food/components/ui/checkbox"
 import loginBg from "@food/assets/loginbanner.png"
 import { useCompanyName } from "@food/hooks/useCompanyName"
+import { loadBusinessSettings, getCachedSettings, resolveMediaUrl } from "@food/utils/businessSettings"
 
 export default function RestaurantSignIn() {
   const navigate = useNavigate()
@@ -20,6 +21,22 @@ export default function RestaurantSignIn() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const companyName = useCompanyName()
+  const [logoUrl, setLogoUrl] = useState(() => {
+    const settings = getCachedSettings()
+    return resolveMediaUrl(settings?.logo)
+  })
+
+  useEffect(() => {
+    let active = true
+    loadBusinessSettings().then((settings) => {
+      if (active && settings) {
+        setLogoUrl(resolveMediaUrl(settings.logo))
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [])
 
   // Redirect to restaurant home if already authenticated
   useEffect(() => {
@@ -106,9 +123,11 @@ export default function RestaurantSignIn() {
             className="flex items-center gap-3"
             style={{ animation: "fadeInDown 0.7s ease-out both" }}
           >
-            <div className="h-11 w-11 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg">
-              <UtensilsCrossed className="h-6 w-6" />
-            </div>
+            {logoUrl && (
+              <div className="h-11 w-11 rounded-xl overflow-hidden shadow-lg flex items-center justify-center bg-white border border-gray-100 shrink-0">
+                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              </div>
+            )}
             <div className="flex flex-col items-start">
               <span className="text-2xl font-bold tracking-wide text-primary">
                 {companyName}
