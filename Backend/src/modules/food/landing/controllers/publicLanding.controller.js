@@ -108,10 +108,13 @@ export const getPublicLandingSettingsController = async (req, res, next) => {
     try {
         const { zoneId } = req.query;
         const settings = await getLandingSettings();
-        const ids = settings?.recommendedRestaurantIds || [];
+        const restaurantIds = settings?.recommendedRestaurantIds || [];
+        const foodIds = settings?.recommendedFoodIds || [];
         let recommendedRestaurants = [];
-        if (Array.isArray(ids) && ids.length > 0) {
-            const query = { _id: { $in: ids }, status: 'approved' };
+        let recommendedFoods = [];
+
+        if (Array.isArray(restaurantIds) && restaurantIds.length > 0) {
+            const query = { _id: { $in: restaurantIds }, status: 'approved' };
             if (zoneId && mongoose.Types.ObjectId.isValid(zoneId)) {
                 query.zoneId = new mongoose.Types.ObjectId(zoneId);
             }
@@ -120,17 +123,62 @@ export const getPublicLandingSettingsController = async (req, res, next) => {
                 .lean();
         }
 
-        const foodIds = settings?.recommendedFoodIds || [];
-        let recommendedFoods = [];
         if (Array.isArray(foodIds) && foodIds.length > 0) {
-            recommendedFoods = await FoodItem.find({ _id: { $in: foodIds }, approvalStatus: 'approved' })
-                .populate('restaurantId', 'restaurantName slug zoneId rating')
+            const foodQuery = {
+                _id: { $in: foodIds },
+                approvalStatus: 'approved',
+                isAvailable: { $ne: false }
+            };
+            const restaurantQuery = { status: 'approved' };
+            if (zoneId && mongoose.Types.ObjectId.isValid(zoneId)) {
+                restaurantQuery.zoneId = new mongoose.Types.ObjectId(zoneId);
+            }
+            const activeRestaurantIds = await FoodRestaurant.find(restaurantQuery).distinct('_id');
+            foodQuery.restaurantId = { $in: activeRestaurantIds };
+
+            const foods = await FoodItem.find(foodQuery)
+                .select('restaurantId categoryId categoryName name description price priceOnOtherPlatforms variants image foodType isAvailable approvalStatus')
                 .lean();
+            const restaurantMap = new Map(
+                (await FoodRestaurant.find({ _id: { $in: foods.map((food) => food.restaurantId).filter(Boolean) } })
+                    .select('restaurantName profileImage coverImages menuImages rating estimatedDeliveryTime estimatedDeliveryTimeMinutes')
+                    .lean())
+                    .map((restaurant) => [String(restaurant._id), restaurant])
+            );
+            const foodMap = new Map(foods.map((food) => [String(food._id), food]));
+            recommendedFoods = foodIds
+                .map((id) => foodMap.get(String(id)))
+                .filter(Boolean)
+                .map((food) => {
+                    const restaurant = restaurantMap.get(String(food.restaurantId)) || {};
+                    const image = food.image || restaurant.profileImage || restaurant.coverImages?.[0] || restaurant.menuImages?.[0] || '';
+                    const variantPrices = Array.isArray(food.variants) ? food.variants.map((variant) => Number(variant.price)).filter(Number.isFinite) : [];
+                    const price = variantPrices.length ? Math.min(...variantPrices) : Number(food.price || 0);
+                    return {
+                        id: food._id,
+                        _id: food._id,
+                        restaurantId: food.restaurantId,
+                        restaurantName: restaurant.restaurantName || '',
+                        categoryId: food.categoryId || null,
+                        categoryName: food.categoryName || '',
+                        name: food.name,
+                        description: food.description || '',
+                        price,
+                        priceOnOtherPlatforms: food.priceOnOtherPlatforms ?? null,
+                        image,
+                        foodType: food.foodType || 'Non-Veg',
+                        isAvailable: food.isAvailable !== false,
+                        rating: Number(restaurant.rating) || 0,
+                        estimatedDeliveryTime: restaurant.estimatedDeliveryTime || '',
+                        estimatedDeliveryTimeMinutes: restaurant.estimatedDeliveryTimeMinutes || null
+                    };
+                });
         }
 
         const payload = {
             ...settings,
             recommendedRestaurantIds: undefined,
+            recommendedFoodIds: undefined,
             recommendedRestaurants,
             recommendedFoods
         };

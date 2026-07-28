@@ -136,7 +136,7 @@ export default function SubscriptionsPage() {
           }
         },
         theme: {
-          color: "#f59e0b"
+          color: "#047857"
         }
       };
 
@@ -185,29 +185,29 @@ export default function SubscriptionsPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex items-center space-x-2">
-          <Crown className="w-5 h-5 text-amber-500" />
+          <Crown className="w-5 h-5 text-amber-400" />
           <h1 className="font-bold text-lg">Subscriptions & Membership</h1>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto p-4 space-y-6">
         {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-gray-950 via-gray-900 to-amber-950 text-white p-6 sm:p-8 shadow-xl border border-amber-500/30">
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-green-950 to-emerald-900 text-white p-6 sm:p-8 shadow-xl border border-emerald-500/30">
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="space-y-2">
-              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                <Sparkles className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-400/10 text-amber-300 border border-amber-400/30">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>TheFoodGalaxy VIP Club</span>
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Unlock Free Delivery & Food Discounts
               </h2>
-              <p className="text-sm text-gray-300 max-w-md">
+              <p className="text-sm text-emerald-100/80 max-w-md">
                 Subscribe to your favorite plan and start saving big on every food order!
               </p>
             </div>
-            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl backdrop-blur-xs flex items-center space-x-3">
+            <div className="p-4 bg-emerald-900/40 border border-amber-400/30 rounded-2xl backdrop-blur-xs flex items-center space-x-3">
               <Crown className="w-10 h-10 text-amber-400" />
               <div>
                 <p className="text-xs text-amber-300 font-medium">Exclusive Membership</p>
@@ -220,17 +220,17 @@ export default function SubscriptionsPage() {
         {/* Loading Indicator */}
         {loading ? (
           <div className="py-16 text-center space-y-3">
-            <RefreshCw className="w-8 h-8 text-amber-500 animate-spin mx-auto" />
+            <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin mx-auto" />
             <p className="text-sm text-gray-500">Loading available plans...</p>
           </div>
         ) : (
           <>
             {/* Active Subscription Banner / Card */}
             {activeSub && (
-              <div className="relative overflow-hidden bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 rounded-3xl p-6 border-2 border-amber-500/50 shadow-lg">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-amber-500/20 pb-4">
+              <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950/30 via-green-900/20 to-emerald-900/30 dark:from-emerald-950/50 dark:via-green-950/40 dark:to-emerald-900/50 rounded-3xl p-6 border-2 border-emerald-500/50 shadow-lg shadow-emerald-950/20">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-emerald-500/20 pb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-md">
+                    <div className="p-3 bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-950 rounded-2xl shadow-md">
                       <Crown className="w-6 h-6" />
                     </div>
                     <div>
@@ -238,7 +238,7 @@ export default function SubscriptionsPage() {
                         <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                           {activeSub.planSnapshot?.name || "VIP Subscription"}
                         </h3>
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500 text-white">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-gray-950">
                           Active
                         </span>
                       </div>
@@ -248,9 +248,9 @@ export default function SubscriptionsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl border border-amber-500/30">
+                  <div className="text-right bg-white dark:bg-emerald-950/60 px-4 py-2 rounded-2xl border border-amber-400/30">
                     <p className="text-xs text-gray-500 font-medium">Total Savings Accrued</p>
-                    <p className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
+                    <p className="text-lg font-extrabold text-amber-500 dark:text-amber-400">
                       ₹{activeSub.totalSavingsAccrued || 0}
                     </p>
                   </div>
@@ -258,7 +258,7 @@ export default function SubscriptionsPage() {
 
                 {/* Benefits Active */}
                 <div className="mt-4 pt-2">
-                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-2">
+                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2">
                     Your Active Member Benefits:
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -272,8 +272,8 @@ export default function SubscriptionsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 p-3 bg-amber-500/10 rounded-xl flex items-center space-x-2 text-xs text-amber-700 dark:text-amber-300 font-medium">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center space-x-2 text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
                   <span>
                     You can only have one active subscription at a time. New plan purchases are paused until expiration.
                   </span>
@@ -288,7 +288,7 @@ export default function SubscriptionsPage() {
                   Available Subscription Plans
                 </h3>
                 {activeSub && (
-                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                  <span className="text-xs text-amber-400 font-medium">
                     (Single Active Plan Enforced)
                   </span>
                 )}
@@ -312,13 +312,13 @@ export default function SubscriptionsPage() {
                         className={`bg-white dark:bg-gray-900 rounded-3xl p-6 border transition-all duration-300 shadow-sm hover:shadow-xl relative flex flex-col justify-between ${
                           activeSub
                             ? "border-gray-200 dark:border-gray-800 opacity-80"
-                            : "border-amber-500/30 hover:border-amber-500"
+                            : "border-emerald-500/30 hover:border-amber-400/60 hover:shadow-emerald-900/20"
                         }`}
                       >
                         <div>
                           <div className="flex items-center justify-between mb-3">
-                            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                              <Crown className="w-3.5 h-3.5" />
+                            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-400/10 text-amber-400 border border-amber-400/30">
+                              <Crown className="w-3.5 h-3.5 text-amber-400" />
                               <span>{plan.name}</span>
                             </span>
                             <span className="text-xs font-semibold text-gray-500">
@@ -366,16 +366,16 @@ export default function SubscriptionsPage() {
                             <button
                               onClick={() => handleBuyNow(plan)}
                               disabled={isPurchasing}
-                              className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold rounded-2xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white text-sm font-bold rounded-2xl shadow-lg shadow-emerald-900/20 transition-all transform active:scale-95 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
                             >
                               {isPurchasing ? (
                                 <>
-                                  <RefreshCw className="w-4 h-4 animate-spin" />
+                                  <RefreshCw className="w-4 h-4 animate-spin text-amber-300" />
                                   <span>Redirecting to Payment...</span>
                                 </>
                               ) : (
                                 <>
-                                  <Sparkles className="w-4 h-4" />
+                                  <Sparkles className="w-4 h-4 text-amber-300" />
                                   <span>Buy Now (₹{totalFormatted})</span>
                                 </>
                               )}

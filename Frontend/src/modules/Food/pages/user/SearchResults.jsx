@@ -9,7 +9,7 @@ import StickyCartCard from "@food/components/user/StickyCartCard"
 import { useProfile } from "@food/context/ProfileContext"
 import { useAppLocation } from "@food/hooks/useAppLocation"
 import FoodCard from "@food/components/user/FoodCard"
-import { restaurantAPI, adminAPI } from "@food/api"
+import { restaurantAPI, getPublicFoods } from "@food/api"
 import { useDelayedLoading } from "@food/hooks/useDelayedLoading"
 import { normalizeImageUrl } from "@food/utils/common"
 
@@ -60,7 +60,7 @@ export default function SearchResults() {
     })
   }
 
-  // Fetch categories from admin API
+  // Derive categories from public foods instead of the restaurant categories API.
   useEffect(() => {
     if (zoneStatus === 'loading') return;
     let isSubscribed = true;
@@ -68,43 +68,38 @@ export default function SearchResults() {
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true)
-        const response = await adminAPI.getPublicCategories(zoneId ? { zoneId } : {})
+        const params = { limit: 1000 }
+        if (zoneId) params.zoneId = zoneId
+        const data = await getPublicFoods(params)
+        const foods = Array.isArray(data?.foods) ? data.foods : []
+        const categoryMap = new Map()
+
+        foods.forEach((food) => {
+          const name = food?.categoryName || food?.category || food?.sectionName || ""
+          const id = slugify(name)
+          if (!name || !id || categoryMap.has(id)) return
+          categoryMap.set(id, {
+            id,
+            name,
+            image: food?.image || food?.imageUrl || food?.thumbnail || "",
+            type: "food",
+          })
+        })
 
         if (!isSubscribed) return;
 
-        if (response.data && response.data.success && response.data.data && response.data.data.categories) {
-          const categoriesArray = response.data.data.categories
+        const foodCategories = Array.from(categoryMap.values())
+        setCategories([{ id: 'all', name: "All", image: "" }, ...foodCategories])
 
-          // Transform API categories to match expected format
-          const transformedCategories = [
-            { id: 'all', name: "All", image: "" },
-            ...categoriesArray.map((cat) => ({
-              id: cat.slug || cat.id,
-              name: cat.name,
-              image: cat.image || cat.imageUrl || "",
-              type: cat.type,
-            }))
-          ]
-
-          setCategories(transformedCategories)
-
-          // Generate category keywords dynamically from category names
-          const keywordsMap = {}
-          categoriesArray.forEach((cat) => {
-            const categoryId = cat.slug || cat.id
-            const categoryName = cat.name.toLowerCase()
-
-            // Generate keywords from category name
-            // Split by common separators and use individual words
-            const words = categoryName.split(/[\s-]+/).filter(w => w.length > 0)
-            keywordsMap[categoryId] = [categoryName, ...words]
-          })
-
-          setCategoryKeywords(keywordsMap)
-        }
+        const keywordsMap = {}
+        foodCategories.forEach((cat) => {
+          const categoryName = String(cat.name || "").toLowerCase()
+          const words = categoryName.split(/[\s-]+/).filter(w => w.length > 0)
+          keywordsMap[cat.id] = [categoryName, ...words]
+        })
+        setCategoryKeywords(keywordsMap)
       } catch (error) {
-        debugError('Error fetching categories:', error)
-        // Keep default "All" category on error
+        debugError('Error deriving categories from foods:', error)
       } finally {
         if (isSubscribed) {
           setLoadingCategories(false)

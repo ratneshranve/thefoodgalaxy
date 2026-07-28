@@ -14,7 +14,7 @@ import {
 
 // Import shared food images - prevents duplication
 import { foodImages } from "@food/constants/images"
-import api, { restaurantAPI, getPublicCategories, getPublicFoods } from "@food/api"
+import api, { restaurantAPI, getPublicFoods } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
 import { useProfile } from "@food/context/ProfileContext"
 import { useAppLocation } from "@food/hooks/useAppLocation"
@@ -551,66 +551,38 @@ export default function CategoryPage() {
     return uniqueByRestaurant(nextRows)
   }
 
-  // Fetch categories from public API (cached)
+  // Derive categories from public foods to avoid restaurant category API calls.
   useEffect(() => {
-    let isCancelled = false;
+    setLoadingCategories(true)
 
-    const fetchCategories = async () => {
-      try {
-        setLoadingCategories(true)
-        const data = await getPublicCategories(zoneId || null)
+    const categoryMap = new Map()
+    const stopWords = ['of', 'the', 'and', 'in', 'with', 'a', 'an', 'to', 'for']
 
-        if (isCancelled) return;
+    approvedFoodsData.forEach((food, idx) => {
+      const name = food?.categoryName || food?.category || food?.sectionName || ""
+      const slug = slugify(name)
+      if (!name || !slug || categoryMap.has(slug)) return
+      categoryMap.set(slug, {
+        id: slug,
+        name,
+        image: food?.image || food?.imageUrl || food?.thumbnail || foodImages[idx % foodImages.length],
+        slug,
+        type: "food",
+      })
+    })
 
-        const categoriesArray = data?.categories || []
+    const foodCategories = Array.from(categoryMap.values())
+    setCategories([{ id: 'all', name: "All", image: null, slug: 'all' }, ...foodCategories])
 
-        if (Array.isArray(categoriesArray) && categoriesArray.length > 0) {
-          const transformedCategories = [
-            { id: 'all', name: "All", image: null, slug: 'all' },
-            ...categoriesArray.map((cat) => ({
-              id: cat.slug || cat.id,
-              name: cat.name,
-              image: cat.image || foodImages[0],
-              slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
-              type: cat.type,
-            }))
-          ]
-
-          setCategories(transformedCategories)
-
-          // Generate category keywords dynamically from category names
-          const keywordsMap = {}
-          const stopWords = ['of', 'the', 'and', 'in', 'with', 'a', 'an', 'to', 'for']
-          categoriesArray.forEach((cat) => {
-            const categoryId = cat.slug || cat.id
-            const categoryName = cat.name.toLowerCase()
-
-            // Generate keywords from category name, filtering out stop words and short words
-            const words = categoryName.split(/[\s-]+/).filter(w => w.length > 2 && !stopWords.includes(w))
-            keywordsMap[categoryId] = [categoryName, ...words]
-          })
-
-          setCategoryKeywords(keywordsMap)
-        } else {
-          // Keep default "All" category on error
-          setCategories([{ id: 'all', name: "All", image: null, slug: 'all' }])
-        }
-      } catch (error) {
-        if (isCancelled) return;
-        debugError('Error fetching categories:', error)
-        // Keep default "All" category on error
-        setCategories([{ id: 'all', name: "All", image: null, slug: 'all' }])
-      } finally {
-        if (!isCancelled) setLoadingCategories(false)
-      }
-    }
-
-    fetchCategories()
-
-    return () => {
-      isCancelled = true;
-    }
-  }, [zoneId])
+    const keywordsMap = {}
+    foodCategories.forEach((cat) => {
+      const categoryName = String(cat.name || "").toLowerCase()
+      const words = categoryName.split(/[\s-]+/).filter(w => w.length > 2 && !stopWords.includes(w))
+      keywordsMap[cat.slug] = [categoryName, ...words]
+    })
+    setCategoryKeywords(keywordsMap)
+    setLoadingCategories(false)
+  }, [approvedFoodsData])
 
   // Helper function to check if menu has dishes matching category keywords
   const getCategoryKeywords = (categoryId) => {

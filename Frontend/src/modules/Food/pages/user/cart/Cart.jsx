@@ -1107,6 +1107,18 @@ export default function Cart() {
   const totalBeforeDiscount = subtotal + deliveryFee + platformFee + packagingFee + gstCharges;
   const total = pricing?.total || Math.max(0, totalBeforeDiscount - discount);
   const savings = pricing?.savings ?? Math.max(0, totalBeforeDiscount - total)
+  const subscriptionPlanName = pricing?.subscriptionPlanName || null
+  const subscriptionFoodDiscount = Number(pricing?.foodDiscount || 0)
+  const subscriptionDeliveryDiscount = Number(pricing?.deliveryDiscount || 0)
+  const totalSubscriptionSavings = Number(pricing?.totalSubscriptionSavings || 0)
+  const originalDeliveryFee = Number(pricing?.originalDeliveryFee ?? fallbackDeliveryFee ?? 0)
+  const hasSubscriptionSavings = Boolean(subscriptionPlanName) && totalSubscriptionSavings > 0
+  const subscriptionSavingsText = hasSubscriptionSavings
+    ? [
+        subscriptionDeliveryDiscount > 0 ? "Free delivery" : null,
+        subscriptionFoodDiscount > 0 ? `${RUPEE_SYMBOL}${subscriptionFoodDiscount.toFixed(0)} food discount` : null,
+      ].filter(Boolean).join(" + ")
+    : ""
 
   // Determine if COD should be hidden
   const isCodHidden = onlinePaymentOnly || (maxCodAmount > 0 && total > maxCodAmount)
@@ -2830,7 +2842,12 @@ export default function Cart() {
                           {RUPEE_SYMBOL}{total.toFixed(2)}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Incl. taxes and charges</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Incl. taxes and charges</p>
+                      {hasSubscriptionSavings && (
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+                          {subscriptionPlanName}: {subscriptionSavingsText} saved {RUPEE_SYMBOL}{totalSubscriptionSavings.toFixed(0)}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <ChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${showBillDetails ? 'rotate-90' : ''}`} />
@@ -2846,15 +2863,31 @@ export default function Cart() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Delivery Fee</span>
                        <span className={deliveryFee === 0 ? "text-primary font-medium" : "text-gray-800 dark:text-gray-200 font-medium"}>
-                         {deliveryFee === 0 ? "FREE" : `${RUPEE_SYMBOL}${deliveryFee.toFixed(2)}`}
+                         {deliveryFee === 0 ? (
+                           <span className="inline-flex items-center gap-1.5">
+                             {subscriptionDeliveryDiscount > 0 && originalDeliveryFee > 0 && (
+                               <span className="text-gray-400 dark:text-gray-500 line-through">{RUPEE_SYMBOL}{originalDeliveryFee.toFixed(2)}</span>
+                             )}
+                             <span>FREE</span>
+                           </span>
+                         ) : `${RUPEE_SYMBOL}${deliveryFee.toFixed(2)}`}
                        </span>
                     </div>
+                    {hasSubscriptionSavings && (
+                      <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
+                        <Sparkles className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold">{subscriptionPlanName} applied</p>
+                          <p className="mt-0.5">{subscriptionSavingsText}. You saved {RUPEE_SYMBOL}{totalSubscriptionSavings.toFixed(0)}.</p>
+                        </div>
+                      </div>
+                    )}
                     {deliveryFeeBreakdownText && (
                       <div className="text-[11px] text-gray-500 dark:text-gray-400 -mt-1.5 ml-1 border-l-2 border-gray-100 pl-2">
                         {deliveryFeeBreakdownText}
                       </div>
                     )}
-                    {Number((pricing?.freeDeliveryUpTo ?? feeSettings.freeDeliveryUpTo) || 0) > 0 && (
+                    {subscriptionDeliveryDiscount <= 0 && Number((pricing?.freeDeliveryUpTo ?? feeSettings.freeDeliveryUpTo) || 0) > 0 && (
                       <div className="-mt-1.5">
                         <div className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary/10 via-primary/20 to-primary/10 text-primary border border-primary/25 px-2.5 py-1 text-[11px] font-semibold shadow-sm animate-pulse">
                           <Sparkles className="h-3 w-3" />
@@ -2882,6 +2915,12 @@ export default function Cart() {
                       </span>
                       <span className="text-gray-800 dark:text-gray-200 font-medium">{RUPEE_SYMBOL}{gstCharges.toFixed(2)}</span>
                     </div>
+                    {subscriptionFoodDiscount > 0 && (
+                       <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                         <span>Subscription Discount</span>
+                         <span>-{RUPEE_SYMBOL}{subscriptionFoodDiscount.toFixed(2)}</span>
+                       </div>
+                    )}
                     {couponDiscount > 0 && (
                        <div className="flex justify-between text-sm text-primary font-medium">
                          <span>Coupon Discount</span>

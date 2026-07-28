@@ -69,7 +69,7 @@ export default function AddToCartButton({ item, className = "" }) {
     <Button
       size="sm"
       onClick={handleAddToCart}
-      className="bg-primary hover:bg-secondary text-white font-bold shadow-md transition-all active:scale-95"
+      className={`bg-primary hover:bg-secondary text-white font-bold shadow-md transition-all active:scale-95 ${className}`}
     >
       Add to Cart
     </Button>

@@ -49,7 +49,7 @@ function App() {
 
   return (
     <>
-      {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+      {/* {showSplash && <SplashScreen onFinish={handleSplashFinish} />} */}
       <PageLoader />
       <AppRoutes />
     </>

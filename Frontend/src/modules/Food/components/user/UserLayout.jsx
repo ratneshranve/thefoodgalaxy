@@ -1,4 +1,4 @@
-﻿import { Outlet, useLocation, useNavigate } from "react-router-dom"
+import { Outlet, useLocation, useNavigate } from "react-router-dom"
 import { useEffect, useState, createContext, useContext } from "react"
 import { ProfileProvider } from "@food/context/ProfileContext"
 import { CartProvider } from "@food/context/CartContext"
@@ -139,9 +139,9 @@ export default function UserLayout() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
-      {!introFinished && (
+      {/* {!introFinished && (
         <AppIntroSplash onComplete={() => setIntroFinished(true)} />
-      )}
+      )} */}
 
       <CartProvider>
         <ProfileProvider>

@@ -14,8 +14,8 @@ import PageNavbar from "@food/components/user/PageNavbar"
 import offerImage from "@food/assets/offerimage.png"
 import AddToCartAnimation from "@food/components/user/AddToCartAnimation"
 import OptimizedImage from "@food/components/OptimizedImage"
-import FoodCard from "@food/components/user/FoodCard"
-import api, { restaurantAPI, adminAPI, getPublicLandingSettings } from "@food/api"
+import FoodDiscoveryCard from "@food/components/user/FoodDiscoveryCard"
+import api, { restaurantAPI, getPublicLandingSettings } from "@food/api"
 import { isModuleAuthenticated } from "@food/utils/auth"
 import { flattenMenuItems, getMenuFromResponse } from "@food/utils/menuItems"
 import { calculateDistance, formatDistance } from "@food/utils/common"
@@ -915,60 +915,26 @@ export default function Under250() {
     }
   }, [hasMore, loadingMore, loadingRestaurants, isSwitchingCategory])
 
-  // Fetch categories from backend (no static fallback list)
   useEffect(() => {
-    if (pageCache.zoneId === zoneId && pageCache.categories?.length > 0) {
-      setCategories(pageCache.categories);
-      setLoadingCategories(false);
-      return;
-    }
-    let cancelled = false
-
-    const fetchCategories = async () => {
-      try {
-        setLoadingCategories(true)
-        const response = await adminAPI.getPublicCategories(zoneId ? { zoneId } : {})
-        const categoriesRaw = Array.isArray(response?.data?.data?.categories)
-          ? response.data.data.categories
-          : []
-
-        const mappedCategories = categoriesRaw
-          .map((cat, index) => {
-            const name = String(cat?.name || "").trim()
-            if (!name) return null
-
-            return {
-              id: String(cat?.id || cat?._id || cat?.slug || `cat-${index}`),
-              name,
-              slug: String(cat?.slug || name.toLowerCase().replace(/\s+/g, "-")),
-              image:
-                cat?.imageUrl ||
-                cat?.image ||
-                cat?.icon ||
-                "",
-            }
-          })
-          .filter(Boolean)
-
-        if (!cancelled) {
-          setCategories(mappedCategories)
-          pageCache.categories = mappedCategories
-          pageCache.zoneId = zoneId
-        }
-      } catch (error) {
-        debugError("Error fetching under-250 categories:", error)
-        if (!cancelled) setCategories([])
-      } finally {
-        if (!cancelled) setLoadingCategories(false)
-      }
-    }
-
-    fetchCategories()
-
-    return () => {
-      cancelled = true
-    }
-  }, [zoneId])
+    const categoryMap = new Map()
+    allUnder250FoodItems.forEach((item) => {
+      const name = String(item?.category || item?.categoryName || item?.sectionName || "").trim()
+      if (!name) return
+      const key = name.toLowerCase()
+      if (categoryMap.has(key)) return
+      categoryMap.set(key, {
+        id: String(item?.categoryId || key),
+        name,
+        slug: name.toLowerCase().replace(/\s+/g, "-"),
+        image: item?.image || "",
+      })
+    })
+    const mappedCategories = Array.from(categoryMap.values()).slice(0, 16)
+    setCategories(mappedCategories)
+    pageCache.categories = mappedCategories
+    pageCache.zoneId = zoneId
+    setLoadingCategories(false)
+  }, [allUnder250FoodItems, zoneId])
 
   // Sync quantities from cart on mount
   useEffect(() => {
@@ -1541,11 +1507,7 @@ export default function Under250() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
             {allUnder250FoodItems.map((item) => (
-              <FoodCard
-                key={item.id || item._id}
-                item={item}
-                onClick={() => handleItemClick(item, item)}
-              />
+              <FoodDiscoveryCard key={item.id || item._id} item={item} />
             ))}
           </div>
         )}

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { adminAPI, restaurantAPI } from "@food/api";
+import { getPublicFoods, restaurantAPI } from "@food/api";
 import { foodImages } from "@food/constants/images";
 import { normalizeImageUrl } from "@food/utils/common";
 
@@ -13,31 +13,36 @@ export const useCategoryData = (zoneId) => {
   const fetchCategories = useCallback(async () => {
     try {
       setLoadingCategories(true);
-      const response = await adminAPI.getPublicCategories(zoneId ? { zoneId } : {});
-      if (response.data?.success) {
-        const cats = response.data.data.categories || [];
-        const transformed = [
-          { id: 'all', name: "All", image: null, slug: 'all' },
-          ...cats.map((cat) => ({
-            id: cat.slug || cat._id,
-            name: cat.name,
-            image: cat.image || foodImages[0],
-            slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
-          }))
-        ];
-        setCategories(transformed);
+      const params = { limit: 1000 };
+      if (zoneId) params.zoneId = zoneId;
+      const data = await getPublicFoods(params);
+      const foods = Array.isArray(data?.foods) ? data.foods : [];
+      const categoryMap = new Map();
 
-        const keywordsMap = {};
-        cats.forEach((cat) => {
-          const id = cat.slug || cat._id;
-          const name = cat.name.toLowerCase();
-          const words = name.split(/[\s-]+/).filter(w => w.length > 0);
-          keywordsMap[id] = [name, ...words];
+      foods.forEach((food, idx) => {
+        const name = food?.categoryName || food?.category || food?.sectionName || "";
+        const slug = String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+        if (!name || !slug || categoryMap.has(slug)) return;
+        categoryMap.set(slug, {
+          id: slug,
+          name,
+          image: food?.image || food?.imageUrl || food?.thumbnail || foodImages[idx % foodImages.length],
+          slug,
         });
-        setCategoryKeywords(keywordsMap);
-      }
+      });
+
+      const transformed = [{ id: 'all', name: "All", image: null, slug: 'all' }, ...categoryMap.values()];
+      setCategories(transformed);
+
+      const keywordsMap = {};
+      transformed.slice(1).forEach((cat) => {
+        const name = String(cat.name || "").toLowerCase();
+        const words = name.split(/[\s-]+/).filter(w => w.length > 0);
+        keywordsMap[cat.slug] = [name, ...words];
+      });
+      setCategoryKeywords(keywordsMap);
     } catch (err) {
-      console.error("Failed to fetch categories", err);
+      console.error("Failed to derive categories from foods", err);
     } finally {
       setLoadingCategories(false);
     }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Search, Grid2x2, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
-import { adminAPI } from "@food/api";
+import { getPublicFoods } from "@food/api";
 import { foodImages } from "@food/constants/images";
 import OptimizedImage from "@food/components/OptimizedImage";
 import { useAppLocation } from "@food/hooks/useAppLocation"
@@ -38,32 +38,44 @@ export default function Categories() {
   };
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    let isCancelled = false;
+
+    const fetchCategoriesFromFoods = async () => {
       try {
         setLoading(true);
-        const response = await adminAPI.getPublicCategories(zoneId ? { zoneId } : {});
-        const list =
-          response?.data?.data?.categories ||
-          response?.data?.categories ||
-          [];
+        const params = { limit: 1000 };
+        if (zoneId) params.zoneId = zoneId;
+        const data = await getPublicFoods(params);
+        const list = Array.isArray(data?.foods) ? data.foods : [];
+        const categoryMap = new Map();
 
-        if (Array.isArray(list)) {
-          const transformed = list.map((cat, idx) => ({
-            id: String(cat?.id || cat?._id || cat?.slug || idx),
-            name: cat?.name || "",
-            slug: cat?.slug || String(cat?.name || "").toLowerCase().replace(/\s+/g, "-"),
-            image: normalizeImageUrl(cat?.image || cat?.imageUrl) || foodImages[idx % foodImages.length],
-            type: cat?.type || "",
-          }));
-          setCategories(transformed);
-        }
+        list.forEach((food, idx) => {
+          const name = food?.categoryName || food?.category || food?.sectionName || "";
+          const slug = String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+          if (!name || !slug || categoryMap.has(slug)) return;
+          categoryMap.set(slug, {
+            id: slug,
+            name,
+            slug,
+            image: normalizeImageUrl(food?.image || food?.imageUrl || food?.thumbnail) || foodImages[idx % foodImages.length],
+            type: "food",
+          });
+        });
+
+        if (!isCancelled) setCategories(Array.from(categoryMap.values()));
       } catch (error) {
-        console.error("Error fetching categories:", error);
+        console.error("Error deriving categories from foods:", error);
+        if (!isCancelled) setCategories([]);
       } finally {
-        setLoading(false);
+        if (!isCancelled) setLoading(false);
       }
     };
-    fetchCategories();
+
+    fetchCategoriesFromFoods();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [zoneId, BACKEND_ORIGIN]);
 
   const filteredCategories = categories.filter((cat) =>

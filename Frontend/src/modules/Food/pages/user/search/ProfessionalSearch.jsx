@@ -9,7 +9,7 @@ import { Card, CardContent } from "@food/components/ui/card"
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
 import { useAppLocation } from "@food/hooks/useAppLocation"
-import { searchAPI, adminAPI } from "@/services/api"
+import { searchAPI, getPublicFoods } from "@/services/api"
 import { motion, AnimatePresence } from "framer-motion"
 import { createPortal } from "react-dom"
 import OptimizedImage from "@food/components/OptimizedImage"
@@ -94,13 +94,28 @@ export default function ProfessionalSearch() {
       return;
     }
     try {
-      const res = await adminAPI.getPublicCategories({ zoneId })
-      if (res.data?.success) {
-        sessionCategoriesCache.set(cacheKey, res.data.data.categories);
-        setCategories(res.data.data.categories)
-      }
+      const params = { limit: 1000 }
+      if (zoneId) params.zoneId = zoneId
+      const data = await getPublicFoods(params)
+      const foods = Array.isArray(data?.foods) ? data.foods : []
+      const categoryMap = new Map()
+
+      foods.forEach((food) => {
+        const name = food?.categoryName || food?.category || food?.sectionName || ""
+        const id = food?.categoryId || String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+        if (!name || !id || categoryMap.has(String(id))) return
+        categoryMap.set(String(id), {
+          _id: String(id),
+          name,
+          image: food?.image || food?.imageUrl || food?.thumbnail || "",
+        })
+      })
+
+      const nextCategories = Array.from(categoryMap.values())
+      sessionCategoriesCache.set(cacheKey, nextCategories);
+      setCategories(nextCategories)
     } catch (err) {
-      console.error("Failed to fetch categories", err)
+      console.error("Failed to derive categories from foods", err)
     }
   }
 

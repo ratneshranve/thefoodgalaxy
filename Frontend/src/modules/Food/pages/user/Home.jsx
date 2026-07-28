@@ -42,6 +42,7 @@ import outOfZoneBg from "@food/assets/out-of-zone-bg.png";
 import { motion, AnimatePresence } from "framer-motion";
 import Footer from "@food/components/user/Footer";
 import AddToCartButton from "@food/components/user/AddToCartButton";
+import FoodDiscoveryCard from "@food/components/user/FoodDiscoveryCard";
 import FoodCard from "@food/components/user/FoodCard";
 import StickyCartCard from "@food/components/user/StickyCartCard";
 import OrderTrackingCard from "@food/components/user/OrderTrackingCard";
@@ -88,7 +89,7 @@ import {
 import { useAppLocation } from "@food/hooks/useAppLocation";
 
 import offerImage from "@food/assets/offerimage.png";
-import api, { publicGetOnce, restaurantAPI, getPublicLandingSettings, getPublicExploreIcons, getPublicCategories, getPublicFoods } from "@food/api";
+import api, { publicGetOnce, restaurantAPI, getPublicLandingSettings, getPublicExploreIcons, getPublicFoods } from "@food/api";
 import { API_BASE_URL } from "@food/api/config";
 import OptimizedImage, { ShopPlaceholder } from "@food/components/OptimizedImage";
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability";
@@ -133,6 +134,7 @@ const homePageCache = {
   recommendedRestaurantIds: null,
   under250PriceLimit: null,
   recommendedRestaurantsFromSettings: null,
+  recommendedFoodsFromSettings: null,
   festBannerImages: null,
   heroBannerImages: null,
   heroBannersData: null,
@@ -256,8 +258,6 @@ export default function Home() {
   const [loadingMoreFoods, setLoadingMoreFoods] = useState(false);
   const foodsRequestSeqRef = useRef(0);
   const loadMoreObserverRef = useRef(null);
-  const [realCategories, setRealCategories] = useState([]);
-  const [loadingRealCategories, setLoadingRealCategories] = useState(true);
   const [menuCategories, setMenuCategories] = useState([]);
   const [loadingMenuCategories, setLoadingMenuCategories] = useState(false);
   const [showAllCategoriesModal, setShowAllCategoriesModal] = useState(false);
@@ -526,11 +526,29 @@ export default function Home() {
     }));
   }, [landingCategories, normalizeImageUrl, slugifyCategory]);
 
+  const foodDerivedCategories = useMemo(() => {
+    const categoryMap = new Map();
+    (zoneFoodsData || []).forEach((item, index) => {
+      const name = String(item?.categoryName || item?.category || "").trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (categoryMap.has(key)) return;
+      categoryMap.set(key, {
+        id: String(item?.categoryId || key),
+        name,
+        slug: slugifyCategory(name),
+        image: normalizeImageUrl(item?.image || item?.imageUrl) || foodImages[index % foodImages.length] || foodImages[0],
+        label: name,
+      });
+    });
+    return Array.from(categoryMap.values()).slice(0, 16);
+  }, [zoneFoodsData, normalizeImageUrl, slugifyCategory]);
+
   const displayCategories = useMemo(() => {
-    if (realCategories.length > 0) return realCategories;
+    if (foodDerivedCategories.length > 0) return foodDerivedCategories;
     if (menuCategories.length > 0) return menuCategories;
     return normalizedLandingCategories;
-  }, [menuCategories, realCategories, normalizedLandingCategories]);
+  }, [foodDerivedCategories, menuCategories, normalizedLandingCategories]);
 
   // Swipe functionality for hero banner carousel
   // Sync prevVegMode when vegMode changes from context
@@ -636,7 +654,7 @@ export default function Home() {
   const gsapAnimationsRef = useRef([]);
   // Show skeletons immediately while loading â€” delayed toggles caused visible layout swap (CLS).
   const showBannerSkeleton = loadingBanners;
-  const showCategorySkeleton = loadingRealCategories || loadingMenuCategories;
+  const showCategorySkeleton = loadingFoods || loadingMenuCategories;
   const showExploreSkeleton = loadingLandingConfig;
   const showRestaurantSkeleton = isLoadingFilterResults || loadingRestaurants;
   // Safely get profile context - handle case when ProfileProvider is not available
@@ -807,48 +825,6 @@ export default function Home() {
     location,
   ]);
 
-  // Fetch categories (zone-aware) for the homepage category rail.
-  useEffect(() => {
-    if (effectiveZoneLoading) return;
-
-    let cancelled = false;
-    const run = async () => {
-      try {
-        setLoadingRealCategories(true);
-        const data = await getPublicCategories(effectiveZoneId || null);
-        if (cancelled) return;
-
-        const list = data?.categories || (Array.isArray(data) ? data : []);
-        const categories = Array.isArray(list)
-          ? list.map((cat, idx) => ({
-              id: String(cat?.id || cat?._id || cat?.slug || idx),
-              name: cat?.name || "",
-              slug:
-                cat?.slug ||
-                String(cat?.name || "")
-                  .toLowerCase()
-                  .replace(/\s+/g, "-"),
-              image:
-                normalizeImageUrl(cat?.image || cat?.imageUrl) ||
-                foodImages[idx % foodImages.length] ||
-                foodImages[0],
-              type: cat?.type || "",
-            }))
-          : [];
-
-        setRealCategories(categories);
-      } catch (err) {
-        debugWarn("Failed to fetch categories:", err);
-        if (!cancelled) setRealCategories([]);
-      } finally {
-        if (!cancelled) setLoadingRealCategories(false);
-      }
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [effectiveZoneId, effectiveZoneLoading, normalizeImageUrl]);
 
   // Fetch explore icons and landing settings from public APIs
   useEffect(() => {
@@ -1841,7 +1817,7 @@ export default function Home() {
     const restaurantIds = menuUnionRestaurantIdsKey
       ? menuUnionRestaurantIdsKey.split(",").filter(Boolean)
       : [];
-    const shouldFetchMenuMeta = realCategories.length === 0;
+    const shouldFetchMenuMeta = foodDerivedCategories.length === 0;
 
     const fetchMenuCategories = async () => {
       const requestSeq = ++menuUnionRequestSeqRef.current;
@@ -1947,7 +1923,7 @@ export default function Home() {
   }, [
     menuUnionRestaurantIdsKey,
     normalizeImageUrl,
-    realCategories.length,
+    foodDerivedCategories.length,
     slugifyCategory,
   ]);
 
@@ -2052,13 +2028,24 @@ export default function Home() {
     const fromSettings = Array.isArray(recommendedFoodsFromSettings)
       ? recommendedFoodsFromSettings
       : [];
-    return fromSettings.map((item) => ({
-      ...item,
-      id: String(item._id || item.id || ""),
-      price: Number(item.price || 0),
-      image: item.image || item.imageUrl || "",
-    })).filter(matchesVegMode);
-  }, [recommendedFoodsFromSettings, matchesVegMode]);
+    const source = fromSettings.length > 0 ? fromSettings : (zoneFoodsData || []);
+
+    return source
+      .map((item) => ({
+        ...item,
+        id: String(item._id || item.id || ""),
+        price: Number(item.price || 0),
+        image: item.image || item.imageUrl || "",
+        foodType: item.foodType || (item.isVeg ? "Veg" : "Non-Veg"),
+      }))
+      .filter((item) => item.id && item.isAvailable !== false)
+      .filter((item) => {
+        if (!vegMode) return true;
+        const foodType = String(item.foodType || "").toLowerCase();
+        return item.isVeg === true || (foodType.includes("veg") && !foodType.includes("non"));
+      })
+      .slice(0, 12);
+  }, [recommendedFoodsFromSettings, zoneFoodsData, vegMode]);
 
   // Featured food cards for Popular Dishes & Menu section (zone-scoped paginated food items)
   const featuredFoodItems = useMemo(() => {
@@ -2562,7 +2549,7 @@ export default function Home() {
 
 
 
-        {(recommendedForYouFoods.length > 0 || recommendedForYouRestaurants.length > 0) && (
+        {recommendedForYouFoods.length > 0 && (
           <motion.section
             className="content-auto pt-1 sm:pt-2"
             initial={false}
@@ -2572,55 +2559,9 @@ export default function Home() {
             </h2>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 px-4">
-              {recommendedForYouFoods.length > 0 ? (
-                recommendedForYouFoods.map((item) => (
-                  <FoodCard key={`rec-food-${item.id || item._id}`} item={item} />
-                ))
-              ) : (
-                recommendedForYouRestaurants.map((restaurant, index) => {
-                  const restaurantSlug =
-                    restaurant.slug ||
-                    restaurant.name.toLowerCase().replace(/\s+/g, "-");
-                  return (
-                    <div
-                      key={`recommended-${restaurant.mongoId || restaurant.id || restaurantSlug}`}
-                      className="transform transition-all duration-300 hover:-translate-y-1"
-                      style={
-                        index < 6
-                          ? {
-                              animation: `fade-in-up 0.35s ease-out ${index * 0.05}s backwards`,
-                            }
-                          : undefined
-                      }
-                    >
-                      <Link
-                        to={`/user/restaurants/${restaurantSlug}`}
-                        className="block rounded-[20px] overflow-hidden border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] shadow-sm hover:shadow-md transition-shadow">
-                        <div className="relative h-24 sm:h-28 md:h-32 bg-gray-50">
-                          <RestaurantImageCarousel
-                            restaurant={restaurant}
-                            backendOrigin={BACKEND_ORIGIN}
-                            className="h-24 sm:h-28 md:h-32"
-                            roundedClass="rounded-t-[20px]"
-                          />
-                          <div className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-lg ${Number(restaurant.rating) > 0 ? "bg-black/80 backdrop-blur-md text-white font-medium" : "bg-gray-200/90 text-gray-600 font-medium"} text-[10px] shadow-lg border border-white/10`}>
-                            {Number(restaurant.rating) > 0 ? Number(restaurant.rating).toFixed(1) : "NEW"}
-                          </div>
-                        </div>
-                        <div className="p-2.5">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate tracking-tight">
-                            {restaurant.name}
-                          </p>
-                          <p className="text-[10px] text-primary font-bold mt-1 flex items-center gap-1 uppercase tracking-wider">
-                            <Flame className="w-3.5 h-3.5 fill-primary" />
-                            Near & Fast
-                          </p>
-                        </div>
-                      </Link>
-                    </div>
-                  );
-                })
-              )}
+              {recommendedForYouFoods.map((item) => (
+                <FoodDiscoveryCard key={`rec-food-${item.id || item._id}`} item={item} />
+              ))}
             </div>
           </motion.section>
         )}
