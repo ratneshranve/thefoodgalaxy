@@ -66,6 +66,7 @@ export default function SignIn() {
     if (!phone.trim()) return "Phone number is required"
     const cleanPhone = phone.replace(/\D/g, "")
     if (!/^\d{10}$/.test(cleanPhone)) return "Please enter a valid 10-digit number"
+    if (!/^[6-9]/.test(cleanPhone)) return "Please enter a valid Indian mobile number starting with 6, 7, 8, or 9"
     return ""
   }
 

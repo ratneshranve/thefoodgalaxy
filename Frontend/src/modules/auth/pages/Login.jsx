@@ -59,6 +59,10 @@ export default function UnifiedOTPFastLogin() {
       toast.error("Please enter a valid 10-digit phone number")
       return
     }
+    if (!/^[6-9]/.test(phone)) {
+      toast.error("Please enter a valid Indian mobile number starting with 6, 7, 8, or 9")
+      return
+    }
     if (submitting.current) return
     submitting.current = true
     setLoading(true)
@@ -85,6 +89,10 @@ export default function UnifiedOTPFastLogin() {
     const phone = normalizedPhone()
     if (phone.length < 10) {
       toast.error("Please enter a valid phone number")
+      return
+    }
+    if (!/^[6-9]/.test(phone)) {
+      toast.error("Please enter a valid Indian mobile number starting with 6, 7, 8, or 9")
       return
     }
     if (resendTimer > 0 || submitting.current) return
@@ -204,6 +212,10 @@ export default function UnifiedOTPFastLogin() {
       toast.error("Please enter your name")
       return
     }
+    if (/[^a-zA-Z\s]/.test(newName)) {
+      toast.error("Name can only contain alphabets and spaces")
+      return
+    }
 
     try {
       setIsUpdatingName(true)
@@ -303,7 +315,7 @@ export default function UnifiedOTPFastLogin() {
         </Link>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10">
+      <div className={`flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10 ${showNameModal ? 'hidden' : ''}`}>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -474,28 +486,30 @@ export default function UnifiedOTPFastLogin() {
           </AnimatePresence>
 
           {/* Footer Info */}
-          <div className="mt-8 text-center">
-            <p className="text-[13px] text-[#A1887F] dark:text-gray-500 font-medium">
-              By continuing, you agree to our <Link to="/profile/terms" className="text-[#6D4C41] dark:text-gray-400 underline decoration-gray-300 underline-offset-2 hover:text-[#3E2723] dark:hover:text-white transition-colors">Terms</Link> & <Link to="/profile/privacy" className="text-[#6D4C41] dark:text-gray-400 underline decoration-gray-300 underline-offset-2 hover:text-[#3E2723] dark:hover:text-white transition-colors">Privacy Policy</Link>
-            </p>
-          </div>
+          {step === 1 && (
+            <div className="mt-8 text-center">
+              <p className="text-[13px] text-[#A1887F] dark:text-gray-500 font-medium">
+                By continuing, you agree to our <Link to="/profile/terms" className="text-[#6D4C41] dark:text-gray-400 underline decoration-gray-300 underline-offset-2 hover:text-[#3E2723] dark:hover:text-white transition-colors">Terms</Link> & <Link to="/profile/privacy" className="text-[#6D4C41] dark:text-gray-400 underline decoration-gray-300 underline-offset-2 hover:text-[#3E2723] dark:hover:text-white transition-colors">Privacy Policy</Link>
+              </p>
+            </div>
+          )}
         </motion.div>
       </div>
 
       {/* Name Collection Modal */}
       <Dialog open={showNameModal} onOpenChange={setShowNameModal}>
         <DialogContent
-          className="sm:max-w-[425px] rounded-3xl border-none p-0 overflow-hidden bg-white dark:bg-[#1a1a1a]"
+          className="w-[90vw] max-w-[400px] rounded-3xl border-none p-0 overflow-hidden bg-white dark:bg-[#1a1a1a]"
           showCloseButton={false}
         >
-          <div className="bg-primary p-5 sm:p-6 text-center relative">
+          <div className="bg-primary p-4 sm:p-5 text-center relative">
             <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-white/10 rounded-full blur-2xl" />
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="w-14 h-14 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-3 border border-white/30"
+              className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-2 border border-white/30"
             >
-              <User className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+              <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </motion.div>
             <DialogTitle className="text-xl sm:text-2xl font-bold text-white mb-1.5">Almost there!</DialogTitle>
             <DialogDescription className="text-white/90 text-sm">
@@ -503,7 +517,7 @@ export default function UnifiedOTPFastLogin() {
             </DialogDescription>
           </div>
 
-          <form onSubmit={handleNameSubmit} className="p-5 sm:p-6 pt-4 space-y-4 sm:space-y-5">
+          <form onSubmit={handleNameSubmit} className="p-4 sm:p-5 pt-3 space-y-3 sm:space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">
                 Full Name
@@ -512,9 +526,12 @@ export default function UnifiedOTPFastLogin() {
                 <Input
                   id="name"
                   value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                    setNewName(val);
+                  }}
                   placeholder="Enter your name"
-                  className="pl-4 h-12 sm:h-14 bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary transition-all group-hover:border-primary/30"
+                  className="pl-4 h-11 sm:h-12 bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary transition-all group-hover:border-primary/30"
                   autoFocus
                 />
               </div>
@@ -524,7 +541,7 @@ export default function UnifiedOTPFastLogin() {
               <Button
                 type="submit"
                 disabled={isUpdatingName}
-                className="w-full h-12 sm:h-14 bg-primary hover:bg-[#6b2f57] text-white rounded-xl font-bold text-[15px] sm:text-lg shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full h-11 sm:h-12 bg-primary hover:bg-[#6b2f57] text-white rounded-xl font-bold text-[15px] sm:text-lg shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 {isUpdatingName ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
