@@ -361,7 +361,6 @@ export default function UnifiedOTPFastLogin() {
 
                   {/* Phone Input */}
                   <div className="flex-1 flex items-center pl-3">
-                    <Smartphone className="w-5 h-5 text-gray-400 mr-2 shrink-0" />
                     <input
                       type="tel"
                       required
@@ -375,7 +374,7 @@ export default function UnifiedOTPFastLogin() {
                       maxLength={10}
                       className="w-full bg-transparent border-0 outline-none focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 text-gray-800 dark:text-white font-semibold text-base placeholder:text-gray-400 placeholder:font-medium"
                       style={{ boxShadow: "none", border: "none", outline: "none" }}
-                      placeholder="Enter your 10-digit number"
+                      placeholder="Enter Number"
                     />
                   </div>
                 </div>

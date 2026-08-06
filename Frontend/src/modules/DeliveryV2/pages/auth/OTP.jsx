@@ -577,8 +577,8 @@ export default function DeliveryOTP() {
 
           {/* OTP Input Fields */}
           {!showNameInput && !pendingMessage && (
-            <div className="space-y-8">
-              <div className="flex justify-center gap-3 sm:gap-4">
+            <div className="space-y-6 sm:space-y-8">
+              <div className="flex justify-center gap-1.5 xs:gap-2 sm:gap-4">
                 {otp.map((digit, index) => (
                   <Input
                     key={index}
@@ -593,7 +593,7 @@ export default function DeliveryOTP() {
                     disabled={isLoading}
                     autoComplete="off"
                     autoFocus={false}
-                    className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-black p-0 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus-visible:ring-0 focus-visible:border-[#4CB8C4] bg-white/80 dark:bg-gray-900/50 shadow-sm transition-all text-gray-900 dark:text-white"
+                    className="w-8 h-10 xs:w-10 xs:h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-black p-0 border-2 border-gray-200 dark:border-gray-700 rounded-xl sm:rounded-2xl focus-visible:ring-0 focus-visible:border-[#4CB8C4] bg-white/80 dark:bg-gray-900/50 shadow-sm transition-all text-gray-900 dark:text-white"
                   />
                 ))}
               </div>

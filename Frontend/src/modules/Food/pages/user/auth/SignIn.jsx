@@ -205,7 +205,6 @@ export default function SignIn() {
               
               {/* Phone Input */}
               <div className="flex-1 flex items-center pl-3">
-                <Smartphone className="w-5 h-5 text-gray-400 mr-2 shrink-0" />
                 <input
                   id="phone"
                   name="phone"
@@ -213,7 +212,7 @@ export default function SignIn() {
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={10}
-                  placeholder="Enter your 10-digit number"
+                  placeholder="Enter Number"
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full bg-transparent border-0 outline-none focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 text-gray-800 dark:text-white font-semibold text-base placeholder:text-gray-400 placeholder:font-medium"
