@@ -13,7 +13,7 @@ export default function BottomNavbar({ onMenuClick }) {
   }
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-[100] pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around py-2 px-4">
         <button
           onClick={() => navigate("/food/restaurant")}

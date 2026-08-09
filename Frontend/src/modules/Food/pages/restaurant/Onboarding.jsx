@@ -35,9 +35,9 @@ const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 const ONBOARDING_STORAGE_KEY = "restaurant_onboarding_data"
 const PAN_NUMBER_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
 const GST_NUMBER_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
-const FSSAI_NUMBER_REGEX = /^\d{14}$/
-const BANK_ACCOUNT_NUMBER_REGEX = /^\d{9,18}$/
-const IFSC_CODE_REGEX = /^[A-Z0-9]{11}$/
+const FSSAI_NUMBER_REGEX = /^(?!0+$)\d{14}$/
+const BANK_ACCOUNT_NUMBER_REGEX = /^(?!0+$)\d{9,18}$/
+const IFSC_CODE_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/
 const OWNER_NAME_REGEX = /^[A-Za-z ]+$/
 const ACCOUNT_HOLDER_NAME_REGEX = /^[A-Za-z ]+$/
 const GST_LEGAL_NAME_REGEX = /^[A-Za-z ]+$/
@@ -1506,7 +1506,7 @@ export default function RestaurantOnboarding() {
     if (!step3.ifscCode?.trim()) {
       errors.push("IFSC code is required")
     } else if (!IFSC_CODE_REGEX.test(step3.ifscCode.trim().toUpperCase())) {
-      errors.push("IFSC code must contain exactly 11 alphanumeric characters")
+      errors.push("IFSC code must be in valid format (e.g. CNRB0005833)")
     }
     if (!step3.accountHolderName?.trim()) {
       errors.push("Account holder name is required")
@@ -2755,7 +2755,7 @@ export default function RestaurantOnboarding() {
             value={step3.ifscCode || ""}
             onChange={(e) => setStep3({ ...step3, ifscCode: normalizeIFSC(e.target.value) })}
             className="bg-white text-sm"
-            placeholder="IFSC code"
+            placeholder="IFSC code (e.g. CNRB0005833)"
           />
           <Select
             value={step3.accountType || ""}

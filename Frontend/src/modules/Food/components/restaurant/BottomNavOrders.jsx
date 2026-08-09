@@ -28,28 +28,33 @@ export default function BottomNavOrders() {
   const { pathname } = useLocation()
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false)
 
-  // Hide bottom nav when keyboard is open (standard mobile UX)
+  // Hide bottom nav only when keyboard is actively open over a focused text input
   useEffect(() => {
     const handleResize = () => {
-      if (window.visualViewport) {
-        // If the visual viewport is significantly smaller than innerHeight, keyboard is open
-        const isKeyboardOpen = window.visualViewport.height < window.innerHeight * 0.85
+      const activeEl = document.activeElement
+      const isInputFocused = activeEl && (
+        activeEl.tagName === 'INPUT' || 
+        activeEl.tagName === 'TEXTAREA' || 
+        activeEl.isContentEditable
+      )
+
+      if (isInputFocused && window.visualViewport) {
+        const isKeyboardOpen = window.visualViewport.height < window.innerHeight * 0.75
         setIsKeyboardVisible(isKeyboardOpen)
+      } else {
+        setIsKeyboardVisible(false)
       }
     }
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize)
-      // Initial check
-      handleResize()
-      return () => window.visualViewport.removeEventListener('resize', handleResize)
-    } else {
-      // Fallback for older browsers
-      const handleWindowResize = () => {
-        setIsKeyboardVisible(window.innerHeight < 550)
+      window.addEventListener('focusin', handleResize)
+      window.addEventListener('focusout', handleResize)
+      return () => {
+        window.visualViewport.removeEventListener('resize', handleResize)
+        window.removeEventListener('focusin', handleResize)
+        window.removeEventListener('focusout', handleResize)
       }
-      window.addEventListener('resize', handleWindowResize)
-      return () => window.removeEventListener('resize', handleWindowResize)
     }
   }, [])
 
@@ -82,7 +87,7 @@ export default function BottomNavOrders() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-60 px-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] lg:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-[100] px-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] lg:hidden pointer-events-auto">
       <div className="mx-auto flex w-full max-w-md items-end gap-2">
         <div className="flex-1 min-w-0">
           <div className="relative overflow-visible rounded-[30px] bg-primary py-2 pl-3 pr-2 shadow-2xl shadow-primary/35">

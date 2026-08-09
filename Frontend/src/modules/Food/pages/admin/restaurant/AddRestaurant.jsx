@@ -27,8 +27,8 @@ const cuisinesOptions = [
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 const PHONE_REGEX = /^\d{10}$/
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
-const FSSAI_REGEX = /^\d{14}$/
-const ACCOUNT_NUMBER_REGEX = /^\d{9,18}$/
+const FSSAI_REGEX = /^(?!0+$)\d{14}$/
+const ACCOUNT_NUMBER_REGEX = /^(?!0+$)\d{9,18}$/
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
 const NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]*$/
@@ -485,7 +485,7 @@ export default function AddRestaurant() {
     }
     if (step3.accountNumber !== step3.confirmAccountNumber) errors.push("Account number and confirmation do not match")
     if (!step3.ifscCode?.trim()) errors.push("IFSC code is required")
-    if (step3.ifscCode?.trim() && !IFSC_REGEX.test(step3.ifscCode.trim())) errors.push("IFSC code must be in valid format")
+    if (step3.ifscCode?.trim() && !IFSC_REGEX.test(step3.ifscCode.trim())) errors.push("IFSC code must be in valid format (e.g. CNRB0005833)")
     if (!step3.accountHolderName?.trim()) errors.push("Account holder name is required")
     if (step3.accountHolderName?.trim() && (!NAME_REGEX.test(step3.accountHolderName.trim()) || !hasLetters(step3.accountHolderName))) {
       errors.push("Account holder name must contain characters only")
@@ -1412,7 +1412,7 @@ export default function AddRestaurant() {
           <Input value={step3.confirmAccountNumber || ""} onChange={(e) => setStep3({ ...step3, confirmAccountNumber: sanitizeDigits(e.target.value).slice(0, 18) })} className="bg-white text-sm" placeholder="Re-enter account number*" inputMode="numeric" maxLength={18} />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input value={step3.ifscCode || ""} onChange={(e) => setStep3({ ...step3, ifscCode: sanitizeIfsc(e.target.value) })} className="bg-white text-sm" placeholder="IFSC code*" maxLength={11} />
+          <Input value={step3.ifscCode || ""} onChange={(e) => setStep3({ ...step3, ifscCode: sanitizeIfsc(e.target.value) })} className="bg-white text-sm" placeholder="IFSC code (e.g. CNRB0005833)*" maxLength={11} />
           <select value={step3.accountType || ""} onChange={(e) => setStep3({ ...step3, accountType: e.target.value })} className="bg-white text-sm border border-input rounded-md h-10 px-3">
             <option value="">Select account type</option>
             <option value="Saving">Saving</option>

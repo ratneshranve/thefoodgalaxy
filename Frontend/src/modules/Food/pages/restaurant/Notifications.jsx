@@ -64,6 +64,17 @@ export default function Notifications() {
   }, [])
 
   useEffect(() => {
+    if (broadcastNotifications && broadcastNotifications.length > 0) {
+      const unreadBroadcasts = broadcastNotifications.filter((item) => !item.read)
+      if (unreadBroadcasts.length > 0) {
+        unreadBroadcasts.forEach((item) => {
+          markBroadcastAsRead(item.id)
+        })
+      }
+    }
+  }, [broadcastNotifications, markBroadcastAsRead])
+
+  useEffect(() => {
     localStorage.setItem(DISMISSED_KEY, JSON.stringify(dismissedIds))
   }, [dismissedIds])
 

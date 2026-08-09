@@ -79,6 +79,8 @@ export default function useNotificationInbox(module, options = {}) {
         await notificationAPI.markAsRead(id, { contextModule: module });
       } catch {
         fetchInbox();
+      } finally {
+        dispatchNotificationInboxRefresh();
       }
     },
     [fetchInbox, module]
@@ -96,6 +98,8 @@ export default function useNotificationInbox(module, options = {}) {
         await notificationAPI.dismiss(id, { contextModule: module });
       } catch {
         fetchInbox();
+      } finally {
+        dispatchNotificationInboxRefresh();
       }
     },
     [fetchInbox, items, module]
@@ -109,6 +113,8 @@ export default function useNotificationInbox(module, options = {}) {
       await notificationAPI.dismissAll({ contextModule: module });
     } catch {
       fetchInbox();
+    } finally {
+      dispatchNotificationInboxRefresh();
     }
   }, [fetchInbox, module]);
 

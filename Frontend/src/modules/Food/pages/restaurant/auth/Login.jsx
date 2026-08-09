@@ -144,12 +144,15 @@ export default function RestaurantLogin() {
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1">Mobile Number</label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-                    <span className="text-sm font-bold text-primary border-r border-gray-200 dark:border-gray-800 pr-3">+91</span>
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none gap-2 border-r border-gray-200 dark:border-gray-800 pr-3">
+                    <img src="https://flagcdn.com/w20/in.png" alt="India" className="w-4.5 h-auto rounded-xs shrink-0" />
+                    <span className="text-sm font-bold text-primary">+91</span>
                   </div>
                   <input
                     ref={phoneInputRef}
                     type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     required
                     autoFocus
                     value={phone}
@@ -159,8 +162,8 @@ export default function RestaurantLogin() {
                       sessionStorage.setItem("restaurantLoginPhone", val);
                     }}
                     maxLength={10}
-                    className="block w-full pl-16 pr-6 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border-2 border-transparent focus:border-primary/50 rounded-2xl outline-none transition-all placeholder:text-gray-300 font-bold text-lg shadow-sm"
-                    placeholder="00000 00000"
+                    className="block w-full pl-22 pr-6 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border-2 border-transparent focus:border-primary/50 rounded-2xl outline-none transition-all placeholder:text-gray-400 font-medium text-lg shadow-sm"
+                    placeholder="Enter Number"
                   />
                 </div>
               </div>
@@ -168,13 +171,13 @@ export default function RestaurantLogin() {
               <button
                 type="submit"
                 disabled={loading || phone.length < 10}
-                className="w-full py-4.5 bg-primary hover:bg-[#6a2f56] disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group overflow-hidden relative"
+                className="w-full py-4 bg-primary hover:bg-[#6a2f56] disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group overflow-hidden relative"
               >
                 {loading ? (
                   <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    <span>Get Start</span>
+                    <span>Get Started</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}

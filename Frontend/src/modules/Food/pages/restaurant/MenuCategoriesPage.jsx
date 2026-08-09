@@ -56,6 +56,7 @@ export default function MenuCategoriesPage() {
   const [imagePreview, setImagePreview] = useState(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false)
+  const [restaurantProfile, setRestaurantProfile] = useState(null)
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -63,15 +64,57 @@ export default function MenuCategoriesPage() {
   }, [])
 
   useEffect(() => {
+    let isMounted = true
+    const fetchRestaurantProfile = async () => {
+      try {
+        const response = await restaurantAPI.getCurrentRestaurant()
+        const profile =
+          response?.data?.data?.restaurant ||
+          response?.data?.restaurant ||
+          response?.data?.data ||
+          null
+        if (isMounted && profile) {
+          setRestaurantProfile(profile)
+        }
+      } catch {
+        try {
+          const userStr = localStorage.getItem("restaurant_user")
+          if (userStr) {
+            const user = JSON.parse(userStr)
+            if (isMounted && user) {
+              setRestaurantProfile(user)
+            }
+          }
+        } catch {}
+      }
+    }
+    fetchRestaurantProfile()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const isPureVeg = Boolean(
+    restaurantProfile?.pureVegRestaurant === true ||
+    restaurantProfile?.restaurant?.pureVegRestaurant === true ||
+    restaurantProfile?.isVeg === true
+  )
+
+  useEffect(() => {
     const draftCategoryName = String(location.state?.draftCategoryName || "").trim()
     if (!draftCategoryName) return
     setEditingCategory(null)
-    setFormData((prev) => ({ ...prev, ...defaultFormData, name: draftCategoryName }))
+    setFormData((prev) => ({
+      ...prev,
+      ...defaultFormData,
+      name: draftCategoryName,
+      foodTypeScope: isPureVeg ? "Veg" : "Veg",
+    }))
     setSelectedImageFile(null)
     setImagePreview(null)
     setShowModal(true)
     navigate(location.pathname, { replace: true, state: null })
-  }, [location.pathname, location.state, navigate])
+  }, [location.pathname, location.state, navigate, isPureVeg])
 
   const ownCategories = useMemo(
     () => categories.filter((category) => category.ownedByRestaurant),
@@ -104,7 +147,10 @@ export default function MenuCategoriesPage() {
 
   const openCreateModal = () => {
     setEditingCategory(null)
-    setFormData(defaultFormData)
+    setFormData({
+      ...defaultFormData,
+      foodTypeScope: "Veg",
+    })
     setSelectedImageFile(null)
     setImagePreview(null)
     setShowModal(true)
@@ -122,7 +168,7 @@ export default function MenuCategoriesPage() {
       image: category?.image || "",
       isActive: category?.isActive !== false,
       sortOrder: Number.isFinite(Number(category?.sortOrder)) ? Number(category.sortOrder) : 0,
-      foodTypeScope: category?.foodTypeScope || "Veg",
+      foodTypeScope: isPureVeg ? "Veg" : (category?.foodTypeScope || "Veg"),
     })
     setSelectedImageFile(null)
     setImagePreview(category?.image || null)
@@ -157,6 +203,8 @@ export default function MenuCategoriesPage() {
       return
     }
 
+    const scope = isPureVeg ? "Veg" : formData.foodTypeScope
+
     try {
       setUploadingImage(true)
       let imageUrl = String(formData.image || "").trim()
@@ -173,7 +221,7 @@ export default function MenuCategoriesPage() {
         image: imageUrl,
         isActive: formData.isActive !== false,
         sortOrder: Number.isFinite(Number(formData.sortOrder)) ? Number(formData.sortOrder) : 0,
-        foodTypeScope: formData.foodTypeScope,
+        foodTypeScope: scope,
       }
 
       if (editingCategory) {
@@ -401,16 +449,33 @@ export default function MenuCategoriesPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Diet Scope</label>
-                  <select
-                    value={formData.foodTypeScope}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, foodTypeScope: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  >
-                    <option value="Veg">Veg</option>
-                    <option value="Non-Veg">Non-Veg</option>
-                    <option value="Both">Both</option>
-                  </select>
+                  <label className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
+                    <span>Diet Scope</span>
+                    {isPureVeg && (
+                      <span className="rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                        Pure Veg Restaurant
+                      </span>
+                    )}
+                  </label>
+                  {isPureVeg ? (
+                    <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm font-semibold text-emerald-900 shadow-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
+                        <span>Veg Only</span>
+                      </div>
+                      <span className="text-xs font-medium text-emerald-700">Non-Veg options disabled for Pure Veg restaurants</span>
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.foodTypeScope}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, foodTypeScope: e.target.value }))}
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    >
+                      <option value="Veg">Veg</option>
+                      <option value="Non-Veg">Non-Veg</option>
+                      <option value="Both">Both</option>
+                    </select>
+                  )}
                 </div>
 
                 <div>
