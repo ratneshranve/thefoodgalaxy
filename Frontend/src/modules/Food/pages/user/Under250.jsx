@@ -321,8 +321,6 @@ export default function Under250() {
     startY: 0,
     dragging: false,
   })
-  const [categories, setCategories] = useState(() => isCacheValid ? (pageCache.categories || []) : [])
-  const [loadingCategories, setLoadingCategories] = useState(() => !(isCacheValid && pageCache.categories))
   const [bannerImages, setBannerImages] = useState(() => isCacheValid ? (pageCache.bannerImages || []) : [])
   const [loadingBanner, setLoadingBanner] = useState(() => !(isCacheValid && pageCache.bannerImages))
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
@@ -333,6 +331,33 @@ export default function Under250() {
   const [visibleRestaurantCount, setVisibleRestaurantCount] = useState(() => isCacheValid ? (pageCache.visibleRestaurantCount || 0) : 0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(() => isCacheValid ? (pageCache.hasMore !== undefined ? pageCache.hasMore : true) : true)
+
+  // Derive categories from under250Restaurants without state/effect infinite loop
+  const categories = useMemo(() => {
+    const categoryMap = new Map()
+    under250Restaurants.forEach((restaurant) => {
+      (restaurant.menuItems || []).forEach((item) => {
+        const name = String(item?.category || item?.categoryName || item?.sectionName || "").trim()
+        if (!name) return
+        const key = name.toLowerCase()
+        if (categoryMap.has(key)) return
+        categoryMap.set(key, {
+          id: String(item?.categoryId || key),
+          name,
+          slug: name.toLowerCase().replace(/\s+/g, "-"),
+          image: item?.image || "",
+        })
+      })
+    })
+    const mapped = Array.from(categoryMap.values()).slice(0, 16)
+    if (mapped.length > 0) {
+      pageCache.categories = mapped
+      pageCache.zoneId = zoneId
+    }
+    return mapped.length > 0 ? mapped : (pageCache.zoneId === zoneId ? (pageCache.categories || []) : [])
+  }, [under250Restaurants, zoneId])
+
+  const loadingCategories = loadingRestaurants && categories.length === 0
   const observerTarget = useRef(null)
   const fetchedIdsRef = useRef(isCacheValid && pageCache.fetchedIds ? new Set(pageCache.fetchedIds) : new Set())
   const bannerShellRef = useRef(null)
@@ -915,26 +940,7 @@ export default function Under250() {
     }
   }, [hasMore, loadingMore, loadingRestaurants, isSwitchingCategory])
 
-  useEffect(() => {
-    const categoryMap = new Map()
-    allUnder250FoodItems.forEach((item) => {
-      const name = String(item?.category || item?.categoryName || item?.sectionName || "").trim()
-      if (!name) return
-      const key = name.toLowerCase()
-      if (categoryMap.has(key)) return
-      categoryMap.set(key, {
-        id: String(item?.categoryId || key),
-        name,
-        slug: name.toLowerCase().replace(/\s+/g, "-"),
-        image: item?.image || "",
-      })
-    })
-    const mappedCategories = Array.from(categoryMap.values()).slice(0, 16)
-    setCategories(mappedCategories)
-    pageCache.categories = mappedCategories
-    pageCache.zoneId = zoneId
-    setLoadingCategories(false)
-  }, [allUnder250FoodItems, zoneId])
+
 
   // Sync quantities from cart on mount
   useEffect(() => {
