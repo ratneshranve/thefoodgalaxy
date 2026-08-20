@@ -1,10 +1,35 @@
 import AppIntroAd from '../models/appIntroAd.model.js';
 import { uploadImageBuffer, uploadVideoBuffer } from '../../../../services/cloudinary.service.js';
 
+const serializeAd = (ad) => {
+    const adObj = ad.toObject ? ad.toObject() : ad;
+    return {
+        ...adObj,
+        mediaUrl: adObj.mediaUrl ? `${process.env.APP_URL || ''}/uploads/${adObj.mediaUrl.split('/uploads/').pop()}` : null
+    };
+};
+
+const normalizeToUploadsPath = (url) => {
+    if (!url) return null;
+    return url.includes('/uploads/') ? url.split('/uploads/').pop() : url;
+};
+
+const resolveUploadedMedia = async (req) => {
+    let file = req.files?.media?.[0] || req.file;
+    if (!file) return null;
+
+    const folder = 'app_intro_ads';
+    const mediaUrl = file.mimetype.startsWith('video/')
+        ? await uploadVideoBuffer(file.buffer, folder)
+        : await uploadImageBuffer(file.buffer, folder);
+    
+    return { mediaUrl, mediaType: file.mimetype.startsWith('video/') ? 'video' : 'image' };
+};
+
 export const getAppIntroAds = async (req, res) => {
     try {
-        const ads = await AppIntroAd.find().sort({ order: 1, createdAt: -1 });
-        res.status(200).json({ success: true, data: ads });
+        const ads = await AppIntroAd.find().populate('restaurantId', 'restaurantName slug onboarding').sort({ order: 1, createdAt: -1 });
+        res.status(200).json({ success: true, data: ads.map(serializeAd) });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -12,47 +37,37 @@ export const getAppIntroAds = async (req, res) => {
 
 export const createAppIntroAd = async (req, res) => {
     try {
-        const { title, mediaType, duration, isActive, order, type, startDate, endDate } = req.body;
-        
-        let mediaUrl = req.body.mediaUrl;
-        
-        // Handle file upload if present
-        if (req.files && req.files.media) {
-            const file = req.files.media[0];
-            if (file.mimetype.startsWith('video/')) {
-                mediaUrl = await uploadVideoBuffer(file.buffer, 'app_intro_ads');
-            } else {
-                mediaUrl = await uploadImageBuffer(file.buffer, 'app_intro_ads');
-            }
-        } else if (req.file) {
-            const file = req.file;
-            if (file.mimetype.startsWith('video/')) {
-                mediaUrl = await uploadVideoBuffer(file.buffer, 'app_intro_ads');
-            } else {
-                mediaUrl = await uploadImageBuffer(file.buffer, 'app_intro_ads');
-            }
-        }
+        const { title, mediaType, duration, isActive, order, type, startDate, endDate, restaurantId } = req.body;
+
+        const uploadedMedia = await resolveUploadedMedia(req);
+        const normalizedBodyMediaUrl = normalizeToUploadsPath(req.body.mediaUrl);
+        const resolvedMediaType = uploadedMedia?.mediaType || (mediaType === 'video' ? 'video' : 'image');
+        const mediaUrl = uploadedMedia?.mediaUrl || normalizedBodyMediaUrl;
 
         if (!mediaUrl) {
-            return res.status(400).json({ success: false, message: 'Media file or URL is required' });
+            return res.status(400).json({ success: false, message: 'Media must be uploaded into /uploads before saving this screen' });
         }
 
         const newAd = new AppIntroAd({
             title,
             mediaUrl,
-            mediaType,
+            mediaType: resolvedMediaType,
             duration: Number(duration) || 3,
             isActive: isActive === 'true' || isActive === true,
             order: Number(order) || 0,
             type: type || 'ad',
             startDate: startDate || null,
-            endDate: endDate || null
+            endDate: endDate || null,
+            restaurantId: (restaurantId && restaurantId !== "null" && restaurantId !== "undefined") ? restaurantId : null,
         });
 
         await newAd.save();
-        res.status(201).json({ success: true, data: newAd, message: 'Ad created successfully' });
+        await newAd.populate('restaurantId', 'restaurantName slug onboarding');
+        res.status(201).json({ success: true, data: serializeAd(newAd), message: 'Ad created successfully' });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+        console.error('Error creating app intro ad:', error);
+        const errorMsg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+        res.status(500).json({ success: false, message: 'Server Error', error: errorMsg });
     }
 };
 
@@ -60,37 +75,35 @@ export const updateAppIntroAd = async (req, res) => {
     try {
         const { id } = req.params;
         const updates = { ...req.body };
+        const uploadedMedia = await resolveUploadedMedia(req);
 
-        if (req.files && req.files.media) {
-            const file = req.files.media[0];
-            if (file.mimetype.startsWith('video/')) {
-                updates.mediaUrl = await uploadVideoBuffer(file.buffer, 'app_intro_ads');
-            } else {
-                updates.mediaUrl = await uploadImageBuffer(file.buffer, 'app_intro_ads');
+        if (uploadedMedia) {
+            updates.mediaUrl = uploadedMedia.mediaUrl;
+            updates.mediaType = uploadedMedia.mediaType;
+        } else if (updates.mediaUrl !== undefined) {
+            const normalizedMediaUrl = normalizeToUploadsPath(updates.mediaUrl);
+            if (!normalizedMediaUrl) {
+                return res.status(400).json({ success: false, message: 'Media URL must point to a file inside /uploads' });
             }
-        } else if (req.file) {
-            const file = req.file;
-            if (file.mimetype.startsWith('video/')) {
-                updates.mediaUrl = await uploadVideoBuffer(file.buffer, 'app_intro_ads');
-            } else {
-                updates.mediaUrl = await uploadImageBuffer(file.buffer, 'app_intro_ads');
-            }
+            updates.mediaUrl = normalizedMediaUrl;
         }
 
-        // convert types where necessary
-        if (updates.duration) updates.duration = Number(updates.duration);
-        if (updates.order) updates.order = Number(updates.order);
+        if (updates.duration !== undefined) updates.duration = Number(updates.duration) || 1;
+        if (updates.order !== undefined) updates.order = Number(updates.order) || 0;
         if (updates.isActive !== undefined) {
             updates.isActive = updates.isActive === 'true' || updates.isActive === true;
         }
+        if (updates.restaurantId !== undefined) {
+            updates.restaurantId = (updates.restaurantId && updates.restaurantId !== "null" && updates.restaurantId !== "undefined") ? updates.restaurantId : null;
+        }
 
-        const ad = await AppIntroAd.findByIdAndUpdate(id, updates, { new: true });
-        
+        const ad = await AppIntroAd.findByIdAndUpdate(id, updates, { new: true }).populate('restaurantId', 'restaurantName slug onboarding');
+
         if (!ad) {
             return res.status(404).json({ success: false, message: 'Ad not found' });
         }
 
-        res.status(200).json({ success: true, data: ad, message: 'Ad updated successfully' });
+        res.status(200).json({ success: true, data: serializeAd(ad), message: 'Ad updated successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }

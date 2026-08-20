@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, Video, Loader2, Play } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, Image as ImageIcon, Video, Loader2, Play, Store } from "lucide-react";
 import api from "@food/api";
 import { getModuleToken } from "@food/utils/auth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog";
 import { Input } from "@food/components/ui/input";
 import { Label } from "@food/components/ui/label";
 import { Button } from "@food/components/ui/button";
+import { getMediaUrl } from "@/shared/utils/media";
 
 const getAuthConfig = (additionalConfig = {}) => {
   const adminToken = getModuleToken('admin');
@@ -20,6 +21,7 @@ const getAuthConfig = (additionalConfig = {}) => {
 
 export default function AppIntroAds() {
   const [ads, setAds] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("intro"); // 'intro' or 'ad'
 
@@ -32,18 +34,31 @@ export default function AppIntroAds() {
     duration: 3,
     type: "intro",
     isActive: true,
+    restaurantId: "",
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchAds();
+    fetchRestaurants();
   }, []);
+
+  const fetchRestaurants = async () => {
+    try {
+      const res = await api.get('/food/admin/restaurants?limit=500', getAuthConfig());
+      if (res.data?.success) {
+        setRestaurants(res.data.data?.restaurants || res.data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch restaurants", err);
+    }
+  };
 
   const fetchAds = async () => {
     try {
@@ -69,8 +84,9 @@ export default function AppIntroAds() {
         duration: ad.duration || 3,
         type: ad.type || "intro",
         isActive: ad.isActive,
+        restaurantId: ad.restaurantId?._id || ad.restaurantId || "",
       });
-      setPreviewUrl(ad.mediaUrl || "");
+      setPreviewUrl(getMediaUrl(ad.mediaUrl || ""));
       setSelectedFile(null);
     } else {
       setIsEditing(false);
@@ -80,6 +96,7 @@ export default function AppIntroAds() {
         duration: 3,
         type: tab,
         isActive: true,
+        restaurantId: "",
       });
       setPreviewUrl("");
       setSelectedFile(null);
@@ -96,13 +113,13 @@ export default function AppIntroAds() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     // Check file type
     if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
       setError("Please select a valid image or video file.");
       return;
     }
-    
+
     // Size check (max 15MB)
     if (file.size > 15 * 1024 * 1024) {
       setError("File size exceeds 15MB limit.");
@@ -129,7 +146,8 @@ export default function AppIntroAds() {
       submitData.append("duration", formData.duration);
       submitData.append("type", formData.type);
       submitData.append("isActive", formData.isActive);
-      
+      submitData.append("restaurantId", formData.restaurantId || "");
+
       if (selectedFile) {
         submitData.append("media", selectedFile);
         submitData.append("mediaType", selectedFile.type.startsWith("video/") ? "video" : "image");
@@ -188,7 +206,7 @@ export default function AppIntroAds() {
 
     const newAds = [...filteredAds];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    
+
     // Swap order values
     const tempOrder = newAds[index].order;
     newAds[index].order = newAds[targetIndex].order;
@@ -215,7 +233,7 @@ export default function AppIntroAds() {
             <h1 className="text-2xl font-bold text-slate-900">App Intro & Ads</h1>
             <p className="text-sm text-slate-500 mt-1">Manage welcome screens and promotional ads that appear when users open the app.</p>
           </div>
-          <button 
+          <button
             onClick={() => handleOpenModal(null, activeTab)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shrink-0"
           >
@@ -235,21 +253,19 @@ export default function AppIntroAds() {
       <div className="flex gap-4 mb-6 border-b border-slate-200">
         <button
           onClick={() => setActiveTab("intro")}
-          className={`pb-3 px-2 text-sm font-semibold transition-colors border-b-2 ${
-            activeTab === "intro" 
-              ? "border-blue-600 text-blue-600" 
+          className={`pb-3 px-2 text-sm font-semibold transition-colors border-b-2 ${activeTab === "intro"
+              ? "border-blue-600 text-blue-600"
               : "border-transparent text-slate-500 hover:text-slate-700"
-          }`}
+            }`}
         >
           Intro / Welcome Screens
         </button>
         <button
           onClick={() => setActiveTab("ad")}
-          className={`pb-3 px-2 text-sm font-semibold transition-colors border-b-2 ${
-            activeTab === "ad" 
-              ? "border-blue-600 text-blue-600" 
+          className={`pb-3 px-2 text-sm font-semibold transition-colors border-b-2 ${activeTab === "ad"
+              ? "border-blue-600 text-blue-600"
               : "border-transparent text-slate-500 hover:text-slate-700"
-          }`}
+            }`}
         >
           Promotional Ads
         </button>
@@ -277,6 +293,7 @@ export default function AppIntroAds() {
                   <th className="px-6 py-4 font-semibold text-slate-700">Order</th>
                   <th className="px-6 py-4 font-semibold text-slate-700">Media</th>
                   <th className="px-6 py-4 font-semibold text-slate-700">Title</th>
+                  <th className="px-6 py-4 font-semibold text-slate-700">Target Restaurant</th>
                   <th className="px-6 py-4 font-semibold text-slate-700">Duration</th>
                   <th className="px-6 py-4 font-semibold text-slate-700">Status</th>
                   <th className="px-6 py-4 font-semibold text-slate-700 text-right">Actions</th>
@@ -287,7 +304,7 @@ export default function AppIntroAds() {
                   <tr key={ad._id} className="hover:bg-slate-50/50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">
-                        <button 
+                        <button
                           onClick={() => moveOrder(index, 'up')}
                           disabled={index === 0}
                           className="p-1 hover:bg-slate-200 rounded disabled:opacity-30"
@@ -295,7 +312,7 @@ export default function AppIntroAds() {
                           ↑
                         </button>
                         <span className="font-mono text-slate-600 font-medium w-4 text-center">{index + 1}</span>
-                        <button 
+                        <button
                           onClick={() => moveOrder(index, 'down')}
                           disabled={index === filteredAds.length - 1}
                           className="p-1 hover:bg-slate-200 rounded disabled:opacity-30"
@@ -308,7 +325,7 @@ export default function AppIntroAds() {
                       <div className="w-24 h-16 bg-slate-100 rounded-md overflow-hidden relative flex items-center justify-center border border-slate-200">
                         {ad.mediaType === 'video' ? (
                           <>
-                            <video src={ad.mediaUrl} className="w-full h-full object-cover opacity-80" />
+                            <video src={getMediaUrl(ad.mediaUrl)} className="w-full h-full object-cover opacity-80" />
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center">
                                 <Play className="w-4 h-4 text-white ml-1" />
@@ -316,7 +333,7 @@ export default function AppIntroAds() {
                             </div>
                           </>
                         ) : (
-                          <img src={ad.mediaUrl} alt={ad.title} className="w-full h-full object-cover" />
+                          <img src={getMediaUrl(ad.mediaUrl)} alt={ad.title} className="w-full h-full object-cover" />
                         )}
                       </div>
                     </td>
@@ -324,11 +341,25 @@ export default function AppIntroAds() {
                       <p className="font-medium text-slate-900">{ad.title || "Untitled"}</p>
                       <p className="text-xs text-slate-500 uppercase">{ad.type}</p>
                     </td>
+                    <td className="px-6 py-4 text-slate-700">
+                      {ad.restaurantId ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg text-xs font-medium">
+                          <Store className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                          <span className="truncate max-w-[140px]">
+                            {typeof ad.restaurantId === 'object'
+                              ? (ad.restaurantId.restaurantName || ad.restaurantId.onboarding?.step1?.restaurantName || 'Linked')
+                              : 'Linked'}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">None</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-slate-600">
                       {ad.duration} sec
                     </td>
                     <td className="px-6 py-4">
-                      <button 
+                      <button
                         onClick={() => handleToggleStatus(ad._id)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${ad.isActive ? 'bg-blue-600' : 'bg-slate-300'}`}
                       >
@@ -337,14 +368,14 @@ export default function AppIntroAds() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button 
+                        <button
                           onClick={() => handleOpenModal(ad)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Edit"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDelete(ad._id)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete"
@@ -367,7 +398,7 @@ export default function AppIntroAds() {
           <DialogHeader className="mb-2 pr-6">
             <DialogTitle className="text-xl font-bold text-slate-900">{isEditing ? "Edit Screen" : "Add New Screen"}</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 pt-2">
             {error && (
               <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
@@ -377,9 +408,9 @@ export default function AppIntroAds() {
 
             <div>
               <Label>Screen Type</Label>
-              <select 
+              <select
                 value={formData.type}
-                onChange={(e) => setFormData({...formData, type: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="w-full mt-1 border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
                 disabled={isEditing}
               >
@@ -390,40 +421,59 @@ export default function AppIntroAds() {
 
             <div>
               <Label>Title (Optional)</Label>
-              <Input 
+              <Input
                 value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                placeholder="e.g. Welcome to TheFoodGalaxys" 
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="e.g. Welcome to Tuggo Food Foods"
                 className="mt-1"
               />
             </div>
 
             <div>
+              <Label>Target Restaurant (Optional Redirect on Click)</Label>
+              <select
+                value={formData.restaurantId}
+                onChange={(e) => setFormData({ ...formData, restaurantId: e.target.value })}
+                className="w-full mt-1 border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
+              >
+                <option value="">None (No redirect)</option>
+                {restaurants.map((rest) => {
+                  const restName = rest.restaurantName || rest.onboarding?.step1?.restaurantName || "Restaurant";
+                  return (
+                    <option key={rest._id} value={rest._id}>
+                      {restName} {rest.area ? `(${rest.area})` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div>
               <Label>Duration (Seconds)</Label>
-              <Input 
+              <Input
                 type="number"
                 min="1"
                 max="60"
                 value={formData.duration}
-                onChange={(e) => setFormData({...formData, duration: parseInt(e.target.value) || 1})}
+                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })}
                 className="mt-1"
               />
             </div>
 
             <div>
               <Label>Media (Image or Video)</Label>
-              <div 
+              <div
                 className="mt-1 border-2 border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors relative"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  accept="image/*,video/*" 
-                  className="hidden" 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*,video/*"
+                  className="hidden"
                 />
-                
+
                 {previewUrl ? (
                   <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center">
                     {(selectedFile?.type.startsWith('video/') || (isEditing && formData.mediaType === 'video')) ? (
@@ -449,11 +499,11 @@ export default function AppIntroAds() {
             </div>
 
             <div className="flex items-center gap-2 pt-2">
-              <input 
-                type="checkbox" 
-                id="isActive" 
+              <input
+                type="checkbox"
+                id="isActive"
                 checked={formData.isActive}
-                onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                 className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
               />
               <Label htmlFor="isActive" className="cursor-pointer text-sm font-medium text-slate-700">Active</Label>
