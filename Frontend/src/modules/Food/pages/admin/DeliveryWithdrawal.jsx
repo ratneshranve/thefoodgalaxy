@@ -67,13 +67,23 @@ export default function DeliveryWithdrawal() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
+  const getDeliveryId = (req) => {
+    if (req?.deliveryIdString && req.deliveryIdString !== "N/A") return req.deliveryIdString
+    if (req?.deliveryId && req.deliveryId !== "N/A") return req.deliveryId
+    const rawId = req?.deliveryPartnerId?._id || req?.deliveryPartnerId
+    if (rawId && typeof rawId === "string" && rawId.length >= 8) {
+      return `DP-${rawId.slice(-8).toUpperCase()}`
+    }
+    return "N/A"
+  }
+
   const filteredRequests = useMemo(() => {
     if (!searchQuery.trim()) return requests
     const q = searchQuery.toLowerCase().trim()
     return requests.filter(
       (r) =>
         r.deliveryName?.toLowerCase().includes(q) ||
-        r.deliveryIdString?.toLowerCase().includes(q) ||
+        getDeliveryId(r).toLowerCase().includes(q) ||
         r.deliveryPhone?.toLowerCase().includes(q) ||
         r.amount?.toString().includes(q)
     )
@@ -247,7 +257,7 @@ export default function DeliveryWithdrawal() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{index + 1}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{formatCurrency(req.amount)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{req.deliveryName || "N/A"}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{req.deliveryIdString || "N/A"}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{getDeliveryId(req)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{formatDate(req.requestedAt || req.createdAt)}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(req.status)}`}>
@@ -319,7 +329,7 @@ export default function DeliveryWithdrawal() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-500 uppercase">Delivery ID</label>
-                  <p className="text-sm font-medium text-slate-900 mt-1">{selectedRequest.deliveryIdString || "N/A"}</p>
+                  <p className="text-sm font-medium text-slate-900 mt-1">{getDeliveryId(selectedRequest)}</p>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-500 uppercase">Phone</label>

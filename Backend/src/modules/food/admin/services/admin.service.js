@@ -5056,10 +5056,30 @@ export async function getDeliveryWithdrawals(query = {}) {
         filter.status = query.status.toLowerCase();
     }
 
-    if (query.search) {
-        // Search by amount or placeholder for name (name requires join usually)
-        if (!isNaN(query.search)) {
-            filter.amount = Number(query.search);
+    if (query.search && query.search.trim()) {
+        const searchTrimmed = query.search.trim();
+        const searchRegex = new RegExp(searchTrimmed, 'i');
+        const matchingPartners = await FoodDeliveryPartner.find({
+            $or: [
+                { name: searchRegex },
+                { phone: searchRegex }
+            ]
+        }).select('_id').lean();
+
+        const partnerIds = matchingPartners.map((p) => p._id);
+        const searchConditions = [];
+
+        if (!isNaN(searchTrimmed)) {
+            searchConditions.push({ amount: Number(searchTrimmed) });
+        }
+        if (partnerIds.length > 0) {
+            searchConditions.push({ deliveryPartnerId: { $in: partnerIds } });
+        }
+
+        if (searchConditions.length > 0) {
+            filter.$or = searchConditions;
+        } else if (isNaN(searchTrimmed)) {
+            return { requests: [], total: 0, page, limit };
         }
     }
 
@@ -5068,19 +5088,27 @@ export async function getDeliveryWithdrawals(query = {}) {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .populate('deliveryPartnerId', 'name phone profilePartnerId upiId upiQrCode')
+            .populate('deliveryPartnerId', 'name phone upiId upiQrCode')
             .lean(),
         FoodDeliveryWithdrawal.countDocuments(filter)
     ]);
 
-    const requests = withdrawals.map((w) => ({
-        ...w,
-        id: w._id,
-        deliveryName: w.deliveryPartnerId?.name || 'N/A',
-        deliveryPhone: w.deliveryPartnerId?.phone || 'N/A',
-        deliveryIdString: w.deliveryPartnerId?.profilePartnerId || 'N/A',
-        status: w.status.charAt(0).toUpperCase() + w.status.slice(1)
-    }));
+    const requests = withdrawals.map((w) => {
+        const partner = w.deliveryPartnerId;
+        const partnerId = partner?._id ? String(partner._id) : '';
+        const deliveryIdString = partnerId ? `DP-${partnerId.slice(-8).toUpperCase()}` : 'N/A';
+
+        return {
+            ...w,
+            id: w._id,
+            deliveryPartnerId: partnerId || w.deliveryPartnerId,
+            deliveryName: partner?.name || 'N/A',
+            deliveryPhone: partner?.phone || 'N/A',
+            deliveryIdString,
+            deliveryId: deliveryIdString,
+            status: w.status ? (w.status.charAt(0).toUpperCase() + w.status.slice(1)) : 'Pending'
+        };
+    });
 
     return { requests, total, page, limit };
 }
@@ -5100,7 +5128,7 @@ export async function updateDeliveryWithdrawalStatus(id, { status, adminNote, re
         id,
         { $set: update },
         { new: true }
-    ).populate('deliveryPartnerId', 'name phone profilePartnerId').lean();
+    ).populate('deliveryPartnerId', 'name phone upiId upiQrCode').lean();
 
     if (!updated) throw new ValidationError('Withdrawal request not found');
 
