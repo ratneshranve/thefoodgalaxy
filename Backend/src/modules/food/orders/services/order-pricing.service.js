@@ -26,17 +26,10 @@ export async function calculateOrderPricing(userId, dto) {
   if (!restaurant) throw new ValidationError("Restaurant not found");
 
   const businessSettings = await FoodBusinessSettings.findOne().select('maintenanceMode').lean();
+  // Bug #102: maintenance mode blocks ordering everywhere (it used to exempt the
+  // Indore zone, which is the only live zone, so the toggle never had any effect).
   if (businessSettings?.maintenanceMode) {
-    let isIndore = false;
-    if (restaurant.zoneId) {
-      const zone = await FoodZone.findById(restaurant.zoneId).select('name').lean();
-      if (zone && zone.name && zone.name.toLowerCase() === 'indore') {
-        isIndore = true;
-      }
-    }
-    if (!isIndore) {
-      throw new ValidationError('Ordering is temporarily unavailable due to maintenance. Please try again later.');
-    }
+    throw new ValidationError('Ordering is temporarily unavailable due to maintenance. Please try again later.');
   }
 
   if (restaurant.status !== "approved")

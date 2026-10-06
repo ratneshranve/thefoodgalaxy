@@ -445,8 +445,11 @@ export default function FeedNavbar({ className = "" }) {
   return (
     <>
     <div 
-      className={`px-4 py-3 flex items-center justify-between sticky top-0 z-50 border-b border-gray-200 ${className}`}
-      style={{ backgroundColor: 'var(--dv-primary)' }}
+      className={`px-4 py-3 flex items-center justify-between sticky top-0 z-50 border-b border-black/10 shadow-sm ${className}`}
+      style={{
+        background: 'linear-gradient(135deg, #d9383a 0%, #b91c1c 100%)',
+        boxShadow: '0 4px 20px rgba(185, 28, 28, 0.18)'
+      }}
     >
         {/* Logo and Online/Offline Toggle */}
       <div className="flex items-center gap-3">
@@ -489,10 +492,10 @@ export default function FeedNavbar({ className = "" }) {
         {/* Emergency */}
         <button
             onClick={() => setShowEmergencyPopup(true)}
-          className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-red-600 transition-colors relative"
+          className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center hover:bg-white/30 transition-all relative active:scale-95"
             title="Emergency"
         >
-          <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <svg className="w-5 h-5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </button>
@@ -500,14 +503,14 @@ export default function FeedNavbar({ className = "" }) {
         {/* Help */}
         <button
             onClick={() => setShowHelpPopup(true)}
-          className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
+          className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center hover:bg-white/30 transition-all active:scale-95"
             title="Help"
         >
-          <HelpCircle className="w-5 h-5 text-gray-700" />
+          <HelpCircle className="w-5 h-5 text-white" />
         </button>
 
         {/* Profile */}
-        <button onClick={handleProfileClick} className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-gray-300 flex items-center justify-center bg-gray-200" title="Profile">
+        <button onClick={handleProfileClick} className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/60 flex items-center justify-center bg-white/20 active:scale-95" title="Profile">
           {profileImage && !imageError ? (
             <img
               src={profileImage}
@@ -518,7 +521,7 @@ export default function FeedNavbar({ className = "" }) {
               }}
             />
           ) : (
-            <User className="w-5 h-5 text-gray-500" />
+            <User className="w-5 h-5 text-white" />
           )}
         </button>
       </div>

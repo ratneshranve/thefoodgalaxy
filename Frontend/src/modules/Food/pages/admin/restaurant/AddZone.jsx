@@ -154,6 +154,15 @@ export default function AddZone() {
       }
 
       if (window.google && window.google.maps) {
+        // Bug #87: Maps may already be loaded by another page without the "places"
+        // library, in which case the location search box never worked.
+        if (!window.google.maps.places && typeof window.google.maps.importLibrary === "function") {
+          try {
+            await window.google.maps.importLibrary("places")
+          } catch {
+            /* search stays disabled, the map still works */
+          }
+        }
         initializeMap(window.google)
         return
       }

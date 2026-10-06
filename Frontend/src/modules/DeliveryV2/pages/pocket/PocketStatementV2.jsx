@@ -123,7 +123,7 @@ export const PocketStatementV2 = () => {
   return (
     <div className="min-h-screen bg-[#f6e9dc] font-poppins pb-32">
        {/* Header (Old Style) */}
-       <div className="bg-white border-b border-gray-200 px-4 py-4 safe-top flex items-center gap-4">
+       <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-4 safe-top flex items-center gap-4">
           <button 
             onClick={goBack}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"

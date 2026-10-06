@@ -69,7 +69,8 @@ export default function ItemDetailsPage() {
   const [itemSizeQuantity, setItemSizeQuantity] = useState("")
   const [itemSizeUnit, setItemSizeUnit] = useState("piece")
   const [itemDescription, setItemDescription] = useState("")
-  const [foodType, setFoodType] = useState("Non-Veg")
+  // Veg-only app: every dish is Veg (food type selector is hidden).
+  const [foodType, setFoodType] = useState("Veg")
   const [basePrice, setBasePrice] = useState("")
   const [variants, setVariants] = useState([])
   const [preparationTime, setPreparationTime] = useState("")
@@ -124,7 +125,8 @@ export default function ItemDetailsPage() {
     setItemSizeQuantity(item.itemSizeQuantity || "")
     setItemSizeUnit(item.itemSizeUnit || "piece")
     setItemDescription(item.description || "")
-    setFoodType(item.foodType === "Veg" ? "Veg" : "Non-Veg")
+    // setFoodType(item.foodType === "Veg" ? "Veg" : "Non-Veg")
+    setFoodType("Veg")
     const itemVariants = getFoodVariants(item)
     setVariants(itemVariants.map(createVariantDraft))
     setBasePrice(itemVariants.length === 0 ? item.price?.toString() || "" : "")
@@ -624,15 +626,16 @@ export default function ItemDetailsPage() {
         return
       }
 
-      if (
-        matchedCategory?.foodTypeScope &&
-        matchedCategory.foodTypeScope !== "Both" &&
-        matchedCategory.foodTypeScope !== foodType
-      ) {
-        toast.error(`This ${matchedCategory.foodTypeScope} category cannot accept ${foodType} food`)
-        setUploadingImages(false)
-        return
-      }
+      // Veg-only app: category diet scope is no longer selectable, so skip the scope check.
+      // if (
+      //   matchedCategory?.foodTypeScope &&
+      //   matchedCategory.foodTypeScope !== "Both" &&
+      //   matchedCategory.foodTypeScope !== foodType
+      // ) {
+      //   toast.error(`This ${matchedCategory.foodTypeScope} category cannot accept ${foodType} food`)
+      //   setUploadingImages(false)
+      //   return
+      // }
 
       const normalizedVariants = variants
         .map((variant) => ({
@@ -1000,7 +1003,7 @@ export default function ItemDetailsPage() {
                 {descriptionLength} / {maxDescriptionLength}
               </span>
             </div>
-            {/* Dietary Options */}
+            {/* Veg-only app: Dietary Options (Veg / Non-Veg) hidden.
             <div className="flex gap-2 mt-3">
               <button
                 onClick={() => setFoodType("Veg")}
@@ -1025,6 +1028,7 @@ export default function ItemDetailsPage() {
                 </button>
               )}
             </div>
+            */}
           </div>
 
           {/* Item Price */}
@@ -1270,6 +1274,7 @@ export default function ItemDetailsPage() {
                       >
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-sm font-medium">{cat.name}</span>
+                          {/* Veg-only app: diet scope pill hidden.
                           <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${cat.foodTypeScope === "Veg"
                             ? "border-green-200 bg-green-50 text-green-700"
                             : cat.foodTypeScope === "Non-Veg"
@@ -1278,6 +1283,7 @@ export default function ItemDetailsPage() {
                             }`}>
                             {cat.foodTypeScope || "Both"}
                           </span>
+                          */}
                         </div>
                       </button>
                     ))}

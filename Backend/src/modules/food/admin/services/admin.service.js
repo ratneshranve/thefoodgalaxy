@@ -235,7 +235,7 @@ export async function globalSearch(query = '') {
         id: i._id,
         type: 'Product',
         title: i.name,
-        description: `Price: â‚¹${i.price}`,
+        description: `Price: ₹${i.price}`,
         path: `/admin/food/foods?productId=${i._id}`
     }));
 
@@ -251,7 +251,7 @@ export async function globalSearch(query = '') {
         id: a._id,
         type: 'Addon',
         title: a.name,
-        description: `Price: â‚¹${a.price}`,
+        description: `Price: ₹${a.price}`,
         path: `/admin/food/addons`
     }));
 
@@ -3118,7 +3118,7 @@ export async function approveRestaurantAddon(addonId) {
             await notifyOwnersSafely(
                 [{ ownerType: 'RESTAURANT', ownerId: updated.restaurantId }],
                 {
-                    title: 'Addon Approved! Ã¢Å“â€¦',
+                    title: 'Addon Approved! ✅',
                     body: `Your addon "${updated.published?.name || 'New Addon'}" has been approved and is now live.`,
                     image: 'https://i.ibb.co/3m2Yh7r/TheFoodGalaxy-Brand-Image.png',
                     data: {
@@ -3161,7 +3161,7 @@ export async function rejectRestaurantAddon(addonId, reason) {
             await notifyOwnersSafely(
                 [{ ownerType: 'RESTAURANT', ownerId: updated.restaurantId }],
                 {
-                    title: 'Addon Rejected Ã¢ÂÅ’',
+                    title: 'Addon Rejected ❌',
                     body: `Your addon request for "${updated.draft?.name || 'New Addon'}" was rejected. Reason: ${rejectionReason}`,
                     image: 'https://i.ibb.co/3m2Yh7r/TheFoodGalaxy-Brand-Image.png',
                     data: {
@@ -4582,6 +4582,11 @@ export async function checkEarningAddonCompletions(deliveryPartnerId, _force = f
 
             if (existing) continue;
 
+            // Bug #119: respect the offer's redemption cap (it was never enforced).
+            if (Number(offer.maxRedemptions) > 0 && Number(offer.currentRedemptions || 0) >= Number(offer.maxRedemptions)) {
+                continue;
+            }
+
             // Count orders delivered by this partner during the offer period.
             const orderCount = await FoodOrder.countDocuments({
                 'dispatch.deliveryPartnerId': pId,
@@ -4604,6 +4609,7 @@ export async function checkEarningAddonCompletions(deliveryPartnerId, _force = f
                 
                 // Update current redemptions in addon
                 await FoodEarningAddon.findByIdAndUpdate(offer._id, { $inc: { currentRedemptions: 1 } });
+                offer.currentRedemptions = Number(offer.currentRedemptions || 0) + 1;
                 
                 if (autoCredit) {
                     await creditEarningAddonHistory(historyDoc._id, "Auto-credited upon completion");
@@ -4764,6 +4770,27 @@ export async function approveDeliveryPartner(id) {
         );
     } catch (e) {
         console.error('Failed to send delivery partner approval notification:', e);
+    }
+
+    // Bug #26: also keep an in-app notification so the rider sees the approval
+    // in the app even if the push was missed.
+    try {
+        const { createInboxNotifications } = await import('../../../../core/notifications/notification.service.js');
+        await createInboxNotifications({
+            notifications: [
+                {
+                    ownerType: 'DELIVERY_PARTNER',
+                    ownerId: partner._id,
+                    title: 'Registration approved',
+                    message: 'Your delivery partner application has been approved. You can now go online and start earning!',
+                    link: '/food/delivery',
+                    category: 'onboarding',
+                    metadata: { notificationType: 'onboarding_approved' }
+                }
+            ]
+        });
+    } catch (e) {
+        console.error('Failed to create delivery partner approval inbox notification:', e);
     }
 
     // Referral crediting: on approval, credit the referrer partner's pocket balance via DeliveryBonusTransaction.

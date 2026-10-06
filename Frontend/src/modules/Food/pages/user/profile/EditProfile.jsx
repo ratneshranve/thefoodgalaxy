@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, X, Pencil, Loader2, Camera, Upload } from "lucide-react"
 import { Button } from "@food/components/ui/button"
@@ -30,6 +30,7 @@ import { EMAIL_REGEX } from "@/shared/utils/emailValidation"
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
 import dayjs from 'dayjs'
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -115,8 +116,47 @@ const clearEditProfileDraft = () => {
   }
 }
 
+// Bug #129: MUI X v8 pickers render a "PickersOutlinedInput" (not MuiOutlinedInput)
+// and take text colours from the MUI theme, so in dark mode the date text was
+// black on a dark background. Style the v8 classes and follow the app's dark mode.
+const datePickerFieldSx = {
+  '& .MuiPickersOutlinedInput-root, & .MuiOutlinedInput-root': {
+    height: '48px',
+    borderRadius: '8px',
+    color: 'inherit',
+  },
+  '& .MuiPickersOutlinedInput-notchedOutline, & .MuiOutlinedInput-notchedOutline': {
+    borderColor: '#d1d5db',
+  },
+  '& .MuiPickersOutlinedInput-root:hover .MuiPickersOutlinedInput-notchedOutline': {
+    borderColor: '#9ca3af',
+  },
+  '& .MuiPickersOutlinedInput-root.Mui-focused .MuiPickersOutlinedInput-notchedOutline': {
+    borderColor: '#7e3866',
+    borderWidth: '1px',
+  },
+  '& .MuiPickersSectionList-root, & .MuiInputBase-input': {
+    padding: '12px 0',
+    fontSize: '16px',
+    color: 'inherit',
+  },
+  '& .MuiSvgIcon-root': {
+    color: 'inherit',
+  },
+}
+
+const getDatePickerTheme = (isDark) =>
+  createTheme({
+    palette: {
+      mode: isDark ? 'dark' : 'light',
+      primary: { main: isDark ? '#a14d86' : '#7e3866' },
+    },
+  })
+
 export default function EditProfile() {
   const navigate = useNavigate()
+  const isDarkMode = typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+  const datePickerTheme = useMemo(() => getDatePickerTheme(isDarkMode), [isDarkMode])
   const goBack = useAppBackNavigation()
   const { userProfile, updateUserProfile } = useProfile()
 
@@ -521,6 +561,7 @@ export default function EditProfile() {
               <Label htmlFor="dateOfBirth" className="text-sm font-medium text-gray-700 dark:text-white">
                 Date of birth
               </Label>
+              <ThemeProvider theme={datePickerTheme}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                   value={formData.dateOfBirth}
@@ -529,39 +570,12 @@ export default function EditProfile() {
                   slotProps={{
                     textField: {
                       className: "w-full",
-                      sx: {
-                        '& .MuiOutlinedInput-root': {
-                          height: '48px',
-                          borderRadius: '8px',
-                          color: 'inherit',
-                          '& fieldset': {
-                            borderColor: '#d1d5db',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: '#9ca3af',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#7e3866',
-                            borderWidth: '1px',
-                          },
-                          '& .MuiSvgIcon-root': {
-                            color: 'inherit',
-                          },
-                        },
-                        '& .MuiInputBase-input': {
-                          padding: '12px 14px',
-                          fontSize: '16px',
-                          color: 'inherit',
-                          '&::placeholder': {
-                            color: 'inherit',
-                            opacity: 0.5,
-                          }
-                        },
-                      },
+                      sx: datePickerFieldSx,
                     },
                   }}
                 />
               </LocalizationProvider>
+              </ThemeProvider>
               {fieldErrors.dateOfBirth && (
                 <p className="text-xs text-red-600">{fieldErrors.dateOfBirth}</p>
               )}
@@ -572,6 +586,7 @@ export default function EditProfile() {
               <Label htmlFor="anniversary" className="text-sm font-medium text-gray-700 dark:text-white">
                 Anniversary <span className="text-gray-400 dark:text-gray-500 font-normal">(Optional)</span>
               </Label>
+              <ThemeProvider theme={datePickerTheme}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                   value={formData.anniversary}
@@ -579,39 +594,12 @@ export default function EditProfile() {
                   slotProps={{
                     textField: {
                       className: "w-full",
-                      sx: {
-                        '& .MuiOutlinedInput-root': {
-                          height: '48px',
-                          borderRadius: '8px',
-                          color: 'inherit',
-                          '& fieldset': {
-                            borderColor: '#d1d5db',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: '#9ca3af',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#7e3866',
-                            borderWidth: '1px',
-                          },
-                          '& .MuiSvgIcon-root': {
-                            color: 'inherit',
-                          },
-                        },
-                        '& .MuiInputBase-input': {
-                          padding: '12px 14px',
-                          fontSize: '16px',
-                          color: 'inherit',
-                          '&::placeholder': {
-                            color: 'inherit',
-                            opacity: 0.5,
-                          }
-                        },
-                      },
+                      sx: datePickerFieldSx,
                     },
                   }}
                 />
               </LocalizationProvider>
+              </ThemeProvider>
             </div>
 
             {/* Gender Field */}

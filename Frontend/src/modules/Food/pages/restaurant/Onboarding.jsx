@@ -353,6 +353,28 @@ const loadOnboardingFromLocalStorage = () => {
   return null
 }
 
+// Steps 1-2 are only saved on this device (the backend gets everything on the
+// final submit), so the locally saved step is more accurate than a "?step=" coming
+// from a redirect based on the server's onboarding status (bugs #11/#29).
+const getStoredOnboardingStep = () => {
+  try {
+    const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY)
+    if (!stored) return null
+    const parsed = JSON.parse(stored)
+    const value = Number(parsed?.currentStep)
+    return Number.isFinite(value) && value >= 1 ? Math.min(3, Math.floor(value)) : null
+  } catch {
+    return null
+  }
+}
+
+const resolveOnboardingStep = (urlStep) => {
+  const fromUrl = Number(urlStep)
+  const validUrlStep = Number.isFinite(fromUrl) && fromUrl >= 1 && fromUrl <= 3 ? Math.floor(fromUrl) : null
+  const stored = getStoredOnboardingStep()
+  return Math.max(validUrlStep || 1, stored || 1)
+}
+
 const clearOnboardingFromLocalStorage = () => {
   try {
     localStorage.removeItem(ONBOARDING_STORAGE_KEY)
@@ -573,20 +595,10 @@ export default function RestaurantOnboarding() {
   const [searchParams] = useSearchParams()
   const [step, setStep] = useState(() => {
     try {
-      const stepParam = searchParams.get("step")
-      if (stepParam) {
-        const s = parseInt(stepParam, 10)
-        if (s >= 1 && s <= 3) return s
-      }
-      const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (parsed.currentStep) {
-          return Math.min(3, Math.max(1, Number(parsed.currentStep)))
-        }
-      }
-    } catch (e) {}
-    return 1
+      return resolveOnboardingStep(parseInt(searchParams.get("step") || "", 10))
+    } catch (e) {
+      return 1
+    }
   })
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -672,7 +684,7 @@ export default function RestaurantOnboarding() {
 
   const [step1, setStep1] = useState({
     restaurantName: "",
-    pureVegRestaurant: null,
+    pureVegRestaurant: true, // veg-only app: every restaurant is pure veg
     ownerName: "",
     ownerEmail: "",
     ownerPhone: "",
@@ -1003,7 +1015,8 @@ export default function RestaurantOnboarding() {
     if (stepParam) {
       const stepNum = parseInt(stepParam, 10)
       if (stepNum >= 1 && stepNum <= 3) {
-        setStep(stepNum)
+        // Never send the user back behind the step saved on this device.
+        setStep(resolveOnboardingStep(stepNum))
       }
     }
   }, [searchParams])
@@ -1060,7 +1073,9 @@ export default function RestaurantOnboarding() {
           setStep1(prev => ({
             ...prev,
             restaurantName: s1.restaurantName || apiData.name || "",
-            pureVegRestaurant: typeof s1.pureVegRestaurant === 'boolean' ? s1.pureVegRestaurant : (apiData.pureVegRestaurant ?? null),
+            // Veg-only app: every restaurant is pure veg.
+            // pureVegRestaurant: typeof s1.pureVegRestaurant === 'boolean' ? s1.pureVegRestaurant : (apiData.pureVegRestaurant ?? null),
+            pureVegRestaurant: true,
             ownerName: s1.ownerName || apiData.ownerName || "",
             ownerEmail: s1.ownerEmail || apiData.email || "",
             ownerPhone: s1.ownerPhone || apiData.phone || "",
@@ -1142,14 +1157,17 @@ export default function RestaurantOnboarding() {
               setStep3(prev => ({ ...prev, ...localData.step3 }));
             }
 
-            // Restore Step
-            if (localData.currentStep && !stepParam) {
-              setStep(Math.min(3, Math.max(1, Number(localData.currentStep))))
+            // Restore Step (the saved step wins over a redirect's lower "?step=")
+            if (localData.currentStep) {
+              setStep(resolveOnboardingStep(stepParam ? parseInt(stepParam, 10) : null))
             }
           } else {
              debugLog("? Phone mismatch, data belongs to different user. Clearing local cache.")
              clearOnboardingFromLocalStorage()
              await clearAllFilesFromDB()
+             // The initial step came from the other user's draft; fall back to the URL / step 1.
+             const urlStep = stepParam ? parseInt(stepParam, 10) : 1
+             setStep(urlStep >= 1 && urlStep <= 3 ? urlStep : 1)
           }
         }
 
@@ -1177,10 +1195,10 @@ export default function RestaurantOnboarding() {
           setStep2(p => ({ ...p, menuImages: [...p.menuImages.filter(im => !isUploadableFile(im)), ...restoredMenuImages] }));
         }
 
-        // If step is explicitly in URL, use it
+        // If step is explicitly in URL, use it (unless this device saved a later step)
         if (stepParam) {
           const s = parseInt(stepParam, 10);
-          if (s >= 1 && s <= 3) setStep(s);
+          if (s >= 1 && s <= 3) setStep(resolveOnboardingStep(s));
         }
 
       } catch (err) {
@@ -1325,7 +1343,8 @@ export default function RestaurantOnboarding() {
     if (!step1.restaurantName?.trim()) {
       errors.push("Restaurant name is required")
     }
-    if (typeof step1.pureVegRestaurant !== "boolean") {
+    // Veg-only app: the pure veg question is hidden (always true), so no validation.
+    if (false && typeof step1.pureVegRestaurant !== "boolean") {
       errors.push("Please select whether your restaurant is pure veg")
     }
     if (!step1.ownerName?.trim()) {
@@ -1575,7 +1594,7 @@ export default function RestaurantOnboarding() {
 
           const updatePayload = {
             restaurantName: step1.restaurantName || "",
-            pureVegRestaurant: step1.pureVegRestaurant === true,
+            pureVegRestaurant: true, // veg-only app
             ownerName: step1.ownerName || "",
             ownerEmail: (step1.ownerEmail || "").trim(),
             ownerPhone: normalizePhoneDigits(step1.ownerPhone),
@@ -1634,7 +1653,7 @@ export default function RestaurantOnboarding() {
         formData.append("restaurantName", step1.restaurantName || "")
         formData.append(
           "pureVegRestaurant",
-          step1.pureVegRestaurant === true ? "true" : "false",
+          "true", // veg-only app
         )
         formData.append("ownerName", step1.ownerName || "")
         formData.append("ownerEmail", (step1.ownerEmail || "").trim())
@@ -1752,6 +1771,7 @@ export default function RestaurantOnboarding() {
               disabled={!isEditing}
             />
           </div>
+          {/* Veg-only app: "Pure veg restaurant?" question hidden; every restaurant is pure veg.
           <div>
             <Label className="text-xs text-gray-700">Pure veg restaurant?*</Label>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -1782,6 +1802,7 @@ export default function RestaurantOnboarding() {
               This helps users filter restaurants by dietary preference.
             </p>
           </div>
+          */}
         </div>
       </section>
 
@@ -2463,6 +2484,7 @@ export default function RestaurantOnboarding() {
                 })
               }
               className="mt-1 bg-white text-sm"
+              placeholder="Name as printed on PAN card"
             />
           </div>
         </div>

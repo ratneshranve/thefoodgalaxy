@@ -6,6 +6,7 @@ import { FoodDiningBanner } from '../models/diningBanner.model.js';
 import { FoodExploreIcon } from '../models/exploreIcon.model.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
+import { serializeFoodVariants } from '../../admin/services/foodVariant.service.js';
 import { sendResponse } from '../../../../utils/response.js';
 import mongoose from 'mongoose';
 
@@ -141,7 +142,7 @@ export const getPublicLandingSettingsController = async (req, res, next) => {
                 .lean();
             const restaurantMap = new Map(
                 (await FoodRestaurant.find({ _id: { $in: foods.map((food) => food.restaurantId).filter(Boolean) } })
-                    .select('restaurantName profileImage coverImages menuImages rating estimatedDeliveryTime estimatedDeliveryTimeMinutes')
+                    .select('restaurantName slug profileImage coverImages menuImages rating estimatedDeliveryTime estimatedDeliveryTimeMinutes')
                     .lean())
                     .map((restaurant) => [String(restaurant._id), restaurant])
             );
@@ -159,14 +160,17 @@ export const getPublicLandingSettingsController = async (req, res, next) => {
                         _id: food._id,
                         restaurantId: food.restaurantId,
                         restaurantName: restaurant.restaurantName || '',
+                        restaurantSlug: restaurant.slug || (food.restaurantId ? String(food.restaurantId) : ''),
                         categoryId: food.categoryId || null,
                         categoryName: food.categoryName || '',
                         name: food.name,
                         description: food.description || '',
                         price,
                         priceOnOtherPlatforms: food.priceOnOtherPlatforms ?? null,
+                        // Bug #42: the home "Add" button needs to know about variants.
+                        variants: serializeFoodVariants(food.variants),
                         image,
-                        foodType: food.foodType || 'Non-Veg',
+                        foodType: food.foodType || 'Veg',
                         isAvailable: food.isAvailable !== false,
                         rating: Number(restaurant.rating) || 0,
                         estimatedDeliveryTime: restaurant.estimatedDeliveryTime || '',

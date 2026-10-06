@@ -30,12 +30,13 @@ export const validateEarningAddonUpsertDto = (body) => {
     }
 
     const startDate = new Date(`${result.data.startDate}T00:00:00.000Z`);
-    const endDate = new Date(`${result.data.endDate}T00:00:00.000Z`);
+    // Bug #117: the end date is inclusive - valid until the end of that day.
+    const endDate = new Date(`${result.data.endDate}T23:59:59.999Z`);
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
         throw new ValidationError('Invalid startDate or endDate');
     }
-    if (endDate <= startDate) {
-        throw new ValidationError('End date must be after start date');
+    if (endDate < startDate) {
+        throw new ValidationError('End date cannot be before start date');
     }
 
     return {

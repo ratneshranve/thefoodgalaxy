@@ -139,6 +139,7 @@ function OrderTrackingCardInner({ hasBottomNav = true }) {
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [apiOrders, setApiOrders] = useState([]);
   const [hasFetchedApi, setHasFetchedApi] = useState(false);
+  const [apiFetchOk, setApiFetchOk] = useState(false);
   const [activeOrderOverride, setActiveOrderOverride] = useState(null);
   const lastRefreshRef = useRef(0);
   const lastApiFingerprintRef = useRef("");
@@ -164,12 +165,14 @@ function OrderTrackingCardInner({ hasBottomNav = true }) {
       }
 
       const list = Array.isArray(nextOrders) ? nextOrders : [];
+      setApiFetchOk(true);
       const fp = ordersFingerprint(list);
       if (fp !== lastApiFingerprintRef.current) {
         lastApiFingerprintRef.current = fp;
         setApiOrders(list);
       }
     } catch (error) {
+      setApiFetchOk(false);
       if (error?.response?.status === 401) {
         localStorage.removeItem("user_accessToken");
         localStorage.removeItem("accessToken");
@@ -185,6 +188,16 @@ function OrderTrackingCardInner({ hasBottomNav = true }) {
 
   useEffect(() => {
     fetchOrders(); // Fetch once on mount to check if any order is active
+  }, [fetchOrders]);
+
+  // Re-check when the app returns to the foreground (status may have changed,
+  // e.g. the restaurant cancelled the order while the app was in background).
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden) fetchOrders();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, [fetchOrders]);
 
   // Smart Polling fallback: Only poll if there is an active order, and only fetch that specific order's details
@@ -222,7 +235,13 @@ function OrderTrackingCardInner({ hasBottomNav = true }) {
     );
     const seen = new Set();
 
-    return [...apiOrders, ...contextOrders].filter((order) => {
+    // Bug #101: once the server list has loaded it is the source of truth. Locally
+    // cached orders use other id formats (FOD-.../ORD-...), so a stale cached copy
+    // still marked "confirmed" used to keep "arriving in 30 min" visible after the
+    // restaurant cancelled the order.
+    const sourceOrders = hasFetchedApi && apiFetchOk ? apiOrders : [...apiOrders, ...contextOrders];
+
+    return sourceOrders.filter((order) => {
       const key = getOrderKey(order);
       if (!key || seen.has(key)) {
         return false;
@@ -242,7 +261,7 @@ function OrderTrackingCardInner({ hasBottomNav = true }) {
       seen.add(key);
       return true;
     });
-  }, [contextOrders, apiOrders, invalidOrderIds, hasFetchedApi]);
+  }, [contextOrders, apiOrders, invalidOrderIds, hasFetchedApi, apiFetchOk]);
 
   const activeOrder = useMemo(() => {
     const candidate = uniqueOrders.find((order) => isActiveOrder(order)) || null;
@@ -392,7 +411,7 @@ function OrderTrackingCardInner({ hasBottomNav = true }) {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className={`fixed ${hasBottomNav ? "bottom-20" : "bottom-6"} left-4 right-4 z-[9999]`}
+        className={`fixed ${hasBottomNav ? "bottom-[calc(5rem+env(safe-area-inset-bottom))]" : "bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"} left-4 right-4 z-[9999]`}
       >
         <div 
           onClick={() =>

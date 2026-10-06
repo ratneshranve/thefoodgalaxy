@@ -291,7 +291,8 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order, onAssignD
                           {item.quantity || 1}x
                         </span>
                         <p className="text-sm font-medium text-slate-900">{item.name || "Unknown Item"}</p>
-                        {item.isVeg !== undefined && (
+                        {/* Veg-only app: Veg/Non-Veg tag hidden */}
+                        {false && item.isVeg !== undefined && (
                           <span className={`text-xs px-1.5 py-0.5 rounded ${item.isVeg ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             {item.isVeg ? 'Veg' : 'Non-Veg'}
                           </span>

@@ -1397,9 +1397,10 @@ export default function CategoryPage() {
                       >
                         {/* Image Container */}
                         <div className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-xl md:rounded-2xl overflow-hidden flex-shrink-0 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-                          {/* Veg/Non-veg icon */}
+                          {/* Veg icon (veg-only app: always green) */}
                           <div className="absolute top-1.5 left-1.5 z-10 bg-white/90 backdrop-blur-sm rounded-sm p-0.5 border border-gray-200">
-                            <div className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full ${restaurant.categoryDishFoodType === 'Veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                            {/* <div className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full ${restaurant.categoryDishFoodType === 'Veg' ? 'bg-green-500' : 'bg-red-500'}`} /> */}
+                            <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500" />
                           </div>
 
                           {restaurant.categoryDishImage ? (

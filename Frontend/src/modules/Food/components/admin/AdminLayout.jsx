@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
-import { Outlet } from "react-router-dom"
+import { Outlet, useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 import AdminSidebar from "./AdminSidebar"
 import AdminNavbar from "./AdminNavbar"
 import { API_BASE_URL } from "@food/api/config"
@@ -12,6 +13,39 @@ const debugError = (...args) => {}
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const navigate = useNavigate();
+
+  // Bug #39: tell the admin when new food / add-on approval requests arrive.
+  useEffect(() => {
+    let cancelled = false;
+    let lastPending = null;
+    const checkPending = async () => {
+      if (document.hidden) return;
+      try {
+        const res = await adminAPI.getPendingFoodApprovals();
+        const requests = res?.data?.data?.requests || res?.data?.requests || [];
+        const pending = requests.filter((r) => (r?.approvalStatus || "pending") === "pending").length;
+        if (cancelled) return;
+        if (lastPending !== null && pending > lastPending) {
+          const added = pending - lastPending;
+          toast.info(`${added} new approval request${added > 1 ? "s" : ""}`, {
+            description: "A restaurant submitted a food item / add-on for approval.",
+            action: { label: "Review", onClick: () => navigate("/admin/food/food-approval") },
+            duration: 8000,
+          });
+        }
+        lastPending = pending;
+      } catch {
+        /* sub-admins without access just don't get this alert */
+      }
+    };
+    checkPending();
+    const timer = setInterval(checkPending, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [navigate]);
 
   // Get initial collapsed state from localStorage to set initial margin
   useEffect(() => {

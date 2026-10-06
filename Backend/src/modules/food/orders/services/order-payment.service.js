@@ -68,9 +68,10 @@ export async function createCollectQr(
   deliveryPartnerId,
   customerInfo = {},
 ) {
-  const query = mongoose.Types.ObjectId.isValid(orderId)
-    ? { _id: orderId }
-    : { orderId };
+  // Bug #67: the delivery app sends the display id ("FOD-..."), stored as `order_id`.
+  // Looking it up as `{ orderId }` never matched, so QR creation always failed.
+  const query = buildOrderIdentityFilter(orderId);
+  if (!query) throw new ValidationError('Order id required');
 
   const order = await FoodOrder.findOne(query)
     .populate('userId', 'name email phone')

@@ -39,6 +39,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import ResendNotificationButton from "@food/components/restaurant/ResendNotificationButton";
 import { loadBusinessSettings } from "@food/utils/businessSettings";
+import { downloadFile } from "@/shared/utils/downloadUtils";
 import { normalizeImageUrl } from "@food/utils/common";
 const debugLog = (...args) => {};
 const debugWarn = (...args) => {};
@@ -150,10 +151,8 @@ const transformOrderForList = (order) => ({
   paymentMethod: order.paymentMethod || order.payment?.method || null,
   deliveryPartnerId: order.deliveryPartnerId || null,
   dispatchStatus: order.dispatch?.status || null,
-  preparingTimestamp: order.tracking?.preparing?.timestamp
-    ? new Date(order.tracking.preparing.timestamp)
-    : new Date(order.createdAt || Date.now()),
-  initialETA: order.estimatedDeliveryTime || 30,
+  preparingTimestamp: getPreparingStartedAt(order),
+  initialETA: getPreparationMinutes(order),
   sortTimestamp: new Date(getAllOrdersTimestamp(order)).getTime(),
   scheduledAt: order.scheduledAt || null,
   restaurantNote: order.restaurantNote || null,
@@ -1246,6 +1245,8 @@ export default function OrdersMain() {
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(true);
   const [showRejectPopup, setShowRejectPopup] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [isRejectingOrder, setIsRejectingOrder] = useState(false);
+  const rejectInFlightRef = useRef(false);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [orderToCancel, setOrderToCancel] = useState(null);
@@ -1957,6 +1958,10 @@ export default function OrdersMain() {
   }, [showNewOrderPopup, isMuted]);
 
   useEffect(() => {
+    // Bug #99: pause the auto-reject countdown while the restaurant is choosing a
+    // reject reason (or a reject is in flight). Otherwise the auto-reject fired
+    // first and the manual reject then failed with "Failed to reject order".
+    if (showRejectPopup || isRejectingOrder) return undefined;
     if (showNewOrderPopup && countdown > 0) {
       const timer = setInterval(() => {
         setCountdown((prev) => prev - 1);
@@ -1986,7 +1991,7 @@ export default function OrdersMain() {
         setShowNewOrderPopup(false);
       }
     }
-  }, [showNewOrderPopup, countdown, popupOrder, newOrder, isAcceptingOrder]);
+  }, [showNewOrderPopup, countdown, popupOrder, newOrder, isAcceptingOrder, showRejectPopup, isRejectingOrder]);
 
   useEffect(() => {
     if (!showNewOrderPopup) {
@@ -2172,21 +2177,36 @@ export default function OrdersMain() {
 
   const handleRejectConfirm = async () => {
     if (!rejectReason) return;
+    // Bug #99: ignore double taps while the reject request is running.
+    if (rejectInFlightRef.current) return;
 
     // Use popupOrder (from Socket.IO or API fallback) or newOrder (from hook)
     const orderToReject = popupOrder || newOrder;
 
     // Reject order via API if we have a real order
     if (orderToReject?.orderMongoId || orderToReject?.orderId) {
+      rejectInFlightRef.current = true;
+      setIsRejectingOrder(true);
       try {
         const orderId = orderToReject.orderMongoId || orderToReject.orderId;
         await restaurantAPI.rejectOrder(orderId, rejectReason);
         debugLog("? Order rejected:", orderId);
         requestOrdersRefresh();
       } catch (error) {
-        debugError("? Error rejecting order:", error);
-        alert("Failed to reject order. Please try again.");
-        return;
+        const message = String(error?.response?.data?.message || error?.message || "");
+        // Already cancelled/rejected (e.g. by the auto-reject timer): treat as done.
+        const alreadyClosed = /cancel|cannot be moved|further ahead/i.test(message);
+        if (!alreadyClosed) {
+          debugError("? Error rejecting order:", error);
+          toast.error(message || "Failed to reject order. Please try again.");
+          rejectInFlightRef.current = false;
+          setIsRejectingOrder(false);
+          return;
+        }
+        requestOrdersRefresh();
+      } finally {
+        rejectInFlightRef.current = false;
+        setIsRejectingOrder(false);
       }
     }
 
@@ -2410,28 +2430,112 @@ export default function OrdersMain() {
         </html>
       `;
 
-      // Create a hidden iframe
+      // Bug #48: the Android app WebView has no print dialog, so hand an 80mm PDF
+      // receipt to the native download bridge instead.
+      const isAppWebView =
+        typeof window !== "undefined" &&
+        window.flutter_inappwebview &&
+        typeof window.flutter_inappwebview.callHandler === "function";
+
+      if (isAppWebView) {
+        const lines = [];
+        const pushLine = (text, opts = {}) => lines.push({ text: String(text ?? ""), ...opts });
+        pushLine(restaurant.restaurantName || orderToPrint.restaurantName || "Restaurant", { bold: true, center: true, size: 11 });
+        pushLine(`FSSAI: ${restaurant.fssaiNumber || restaurant.fssai || "N/A"}`, { center: true });
+        pushLine("-", { divider: true });
+        pushLine(`Order ID: #${orderToPrint.orderId || orderToPrint._id}`, { bold: true });
+        pushLine(`Date: ${orderDate}`);
+        pushLine(`Payment: ${isCod ? "Cash on Delivery" : "Paid Online"}`);
+        pushLine("-", { divider: true });
+        pushLine(`Customer: ${orderToPrint.customerName || "Customer"}`);
+        pushLine("-", { divider: true });
+        (orderToPrint.items || []).forEach((item) => {
+          const name = item.variantName ? `${item.name} (${item.variantName})` : item.name;
+          pushLine(`${item.quantity}x ${name}`, { right: `Rs.${((item.price || 0) * (item.quantity || 1)).toFixed(2)}` });
+        });
+        pushLine("-", { divider: true });
+        pushLine("Item Total:", { right: `Rs.${subtotal.toFixed(2)}` });
+        pushLine("Taxes:", { right: `Rs.${tax.toFixed(2)}` });
+        if (deliveryFee > 0) pushLine("Delivery Fee:", { right: `Rs.${deliveryFee.toFixed(2)}` });
+        if (platformFee > 0) pushLine("Platform Fee:", { right: `Rs.${platformFee.toFixed(2)}` });
+        pushLine("GRAND TOTAL:", { right: `Rs.${total.toFixed(2)}`, bold: true, size: 10 });
+        if (orderToPrint.note || orderToPrint.restaurantNote) {
+          pushLine("-", { divider: true });
+          if (orderToPrint.note) pushLine(`User note: ${orderToPrint.note}`);
+          if (orderToPrint.restaurantNote) pushLine(`Restaurant note: ${orderToPrint.restaurantNote}`);
+        }
+        pushLine("-", { divider: true });
+        pushLine("Thank you for ordering!", { bold: true, center: true });
+
+        const width = 80;
+        const margin = 4;
+        const measureDoc = new jsPDF({ unit: "mm", format: [width, 200] });
+        let height = 10;
+        lines.forEach((line) => {
+          measureDoc.setFontSize(line.size || 8);
+          const wrapped = line.divider ? [""] : measureDoc.splitTextToSize(line.text, line.right ? width - margin * 2 - 22 : width - margin * 2);
+          height += wrapped.length * 4 + (line.divider ? 1 : 0.5);
+        });
+        const doc = new jsPDF({ unit: "mm", format: [width, Math.max(80, height + 8)] });
+        let y = 8;
+        lines.forEach((line) => {
+          doc.setFont("helvetica", line.bold ? "bold" : "normal");
+          doc.setFontSize(line.size || 8);
+          if (line.divider) {
+            doc.setLineDashPattern([1, 1], 0);
+            doc.line(margin, y - 1.5, width - margin, y - 1.5);
+            y += 2;
+            return;
+          }
+          const maxWidth = line.right ? width - margin * 2 - 22 : width - margin * 2;
+          const wrapped = doc.splitTextToSize(line.text, maxWidth);
+          doc.text(wrapped, line.center ? width / 2 : margin, y, line.center ? { align: "center" } : undefined);
+          if (line.right) doc.text(line.right, width - margin, y, { align: "right" });
+          y += wrapped.length * 4 + 0.5;
+        });
+
+        await downloadFile({
+          data: doc.output("blob"),
+          filename: `Receipt_${orderToPrint.orderId || orderToPrint._id || Date.now()}.pdf`,
+          type: "application/pdf",
+          successMessage: "Receipt downloaded",
+          preferNativeShare: false,
+        });
+        return;
+      }
+
+      // Browser: print through a hidden iframe. The previous code attached
+      // iframe.onload after document.write(), so the load event never reached
+      // it and nothing was printed.
       const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
       document.body.appendChild(iframe);
-      
-      iframe.contentWindow.document.open();
-      iframe.contentWindow.document.write(receiptHtml);
-      iframe.contentWindow.document.close();
-      
-      // Wait for content to load and then print
-      iframe.onload = () => {
-        setTimeout(() => {
+
+      const printDoc = iframe.contentWindow.document;
+      printDoc.open();
+      printDoc.write(receiptHtml);
+      printDoc.close();
+
+      setTimeout(() => {
+        try {
           iframe.contentWindow.focus();
           iframe.contentWindow.print();
-          // Remove the iframe after printing dialog closes (or short delay)
-          setTimeout(() => {
-            if (document.body.contains(iframe)) {
-              document.body.removeChild(iframe);
-            }
-          }, 2000);
-        }, 200);
-      };
+        } catch (printError) {
+          debugError("? Print failed:", printError);
+          toast.error("Printing is not supported on this device.");
+        }
+        // Remove the iframe after the print dialog closes (or a short delay)
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 60000);
+      }, 300);
       
     } catch (error) {
       debugError("? Error preparing thermal print:", error);
@@ -3128,7 +3232,7 @@ export default function OrdersMain() {
                                   key={index}
                                   className="flex items-start gap-3">
                                   <div
-                                    className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${item.isVeg ? "bg-green-500" : "bg-red-500"}`}></div>
+                                    className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-green-500"></div>
                                   <div className="flex-1">
                                     <div className="flex items-start justify-between">
                                       <p className="text-sm font-medium text-gray-900">
@@ -3430,7 +3534,7 @@ export default function OrdersMain() {
                   </button>
                   <button
                     onClick={handleRejectConfirm}
-                    disabled={!rejectReason}
+                    disabled={!rejectReason || isRejectingOrder}
                     className={`flex-1 py-3 rounded-lg font-semibold text-sm transition-colors ${
                       rejectReason
                         ? "!bg-primary !text-white hover:!bg-primary/90"
@@ -3713,6 +3817,24 @@ export default function OrdersMain() {
 }
 
 
+// Bug #50: the ETA counted down "estimated delivery time (or 30 min)" from order
+// creation. Use the prep time chosen on accept, starting when preparation began.
+const getPreparingStartedAt = (order) => {
+  const fromHistory = Array.isArray(order?.statusHistory)
+    ? order.statusHistory.find((entry) => entry?.to === "preparing")?.at
+    : null
+  const value = order?.preparingAt || fromHistory || order?.tracking?.preparing?.timestamp || order?.createdAt
+  const date = value ? new Date(value) : new Date()
+  return Number.isNaN(date.getTime()) ? new Date() : date
+}
+
+const getPreparationMinutes = (order) =>
+  Number(order?.preparationTimeMinutes) > 0
+    ? Number(order.preparationTimeMinutes)
+    : Number(order?.estimatedDeliveryTime) > 0
+      ? Number(order.estimatedDeliveryTime)
+      : 30
+
 // Order Card Component
 function OrderCard({
   orderId,
@@ -3762,7 +3884,9 @@ function OrderCard({
 
       <div
         onClick={() => onSelect?.({ orderId, mongoId, status, customerName, type, tableOrToken, timePlaced, eta, itemsSummary, paymentMethod, scheduledAt, restaurantNote, pickupOtp, deliveryPartnerId, dispatchStatus, cancellationReason, rejectionReason })}
-        className="flex gap-3 items-start cursor-pointer pl-1 lg:grid lg:grid-cols-[88px_minmax(0,1.6fr)_minmax(220px,0.95fr)_auto] lg:items-center lg:gap-5 lg:pl-2"
+        // Bug #49: on phones the full-width action rows used to squeeze the order
+        // details into a sliver (only "HG" visible). Let them wrap below instead.
+        className="flex flex-wrap gap-3 items-start cursor-pointer pl-1 lg:grid lg:grid-cols-[88px_minmax(0,1.6fr)_minmax(220px,0.95fr)_auto] lg:items-center lg:gap-5 lg:pl-2"
       >
         <div className="h-14 w-14 rounded-lg overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-100 mt-0.5 lg:h-[88px] lg:w-[88px] lg:rounded-2xl lg:mt-0">
           {photoUrl ? (
@@ -3776,7 +3900,7 @@ function OrderCard({
           )}
         </div>
 
-        <div className="flex-1 min-w-0 flex flex-col lg:min-h-[88px] lg:justify-center">
+        <div className="flex-1 min-w-0 basis-[calc(100%-4.25rem)] flex flex-col lg:basis-auto lg:min-h-[88px] lg:justify-center">
           <div className="flex items-center justify-between gap-2 mb-1 lg:mb-1.5">
             <div className="min-w-0">
               <h3 className="text-[13px] font-black text-slate-900 truncate lg:text-[17px]">
@@ -3851,8 +3975,8 @@ function OrderCard({
               <span className="text-[13px] font-black text-emerald-800 tracking-[0.2em]">{pickupOtp}</span>
             </div>
           ) : (isReady || isPreparing || normalizedStatus === "confirmed") && type === "Home Delivery" ? (
-            <div className="px-2 py-1 bg-gray-50 border border-gray-100 rounded flex justify-center items-center lg:justify-start">
-              <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wider text-center lg:text-left">OTP shown upon rider arrival</span>
+            <div className="px-2 py-1.5 bg-gray-50 border border-gray-100 rounded flex justify-center items-center lg:justify-start">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center lg:text-left">Pickup OTP shown when rider arrives</span>
             </div>
           ) : null}
 
@@ -3882,15 +4006,7 @@ function OrderCard({
               </div>
             )}
 
-            <div className="flex items-center gap-1.5 flex-shrink-0 lg:hidden">
-              {(isPreparing || isReady || normalizedStatus === "confirmed") && dispatchStatus !== "accepted" && (
-                <ResendNotificationButton
-                  orderId={orderId}
-                  mongoId={mongoId}
-                  onSuccess={onSelect}
-                />
-              )}
-            </div>
+            {/* Mobile duplicate of the Resend button removed (it is shown in the action row below). */}
           </div>
         </div>
 
@@ -3965,10 +4081,8 @@ function PreparingOrders({
 
   const orders = rawOrders
     .map((order) => {
-      const initialETA = order.estimatedDeliveryTime || 30;
-      const preparingTimestamp = order.tracking?.preparing?.timestamp
-        ? new Date(order.tracking.preparing.timestamp)
-        : new Date(order.createdAt);
+      const initialETA = getPreparationMinutes(order);
+      const preparingTimestamp = getPreparingStartedAt(order);
 
       return {
         orderId: order.orderId || order._id,

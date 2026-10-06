@@ -37,6 +37,30 @@ const approvalBadgeClass = (status) => {
   return "bg-amber-50 text-amber-700 border-amber-200"
 }
 
+const CATEGORY_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 &'()\-/,.]*$/
+const TYPE_LABEL_PATTERN = /^[A-Za-z0-9 &'()\-/,.]*$/
+
+// Bug #37: field-level validation for the create/edit category form
+const validateCategoryForm = (data) => {
+  const errors = {}
+  const name = String(data?.name || "").trim()
+  const type = String(data?.type || "").trim()
+
+  if (!name) errors.name = "Category name is required"
+  else if (name.length < 2) errors.name = "Category name must be at least 2 characters"
+  else if (name.length > 40) errors.name = "Category name must be 40 characters or less"
+  else if (!/[A-Za-z]/.test(name)) errors.name = "Category name must contain letters"
+  else if (!CATEGORY_NAME_PATTERN.test(name)) errors.name = "Only letters, numbers, spaces and & ' ( ) - / , . are allowed"
+
+  if (type) {
+    if (type.length > 30) errors.type = "Type label must be 30 characters or less"
+    else if (!/[A-Za-z]/.test(type)) errors.type = "Type label must contain letters"
+    else if (!TYPE_LABEL_PATTERN.test(type)) errors.type = "Only letters, numbers, spaces and & ' ( ) - / , . are allowed"
+  }
+
+  return errors
+}
+
 const scopePillClass = (scope) => {
   if (scope === "Veg") return "bg-green-50 text-green-700 border-green-200"
   if (scope === "Non-Veg") return "bg-red-50 text-red-700 border-red-200"
@@ -57,6 +81,7 @@ export default function MenuCategoriesPage() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false)
   const [restaurantProfile, setRestaurantProfile] = useState(null)
+  const [formErrors, setFormErrors] = useState({})
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -139,6 +164,7 @@ export default function MenuCategoriesPage() {
     setShowModal(false)
     setEditingCategory(null)
     setFormData(defaultFormData)
+    setFormErrors({})
     setSelectedImageFile(null)
     setImagePreview(null)
     setUploadingImage(false)
@@ -147,6 +173,7 @@ export default function MenuCategoriesPage() {
 
   const openCreateModal = () => {
     setEditingCategory(null)
+    setFormErrors({})
     setFormData({
       ...defaultFormData,
       foodTypeScope: "Veg",
@@ -162,6 +189,7 @@ export default function MenuCategoriesPage() {
       return
     }
     setEditingCategory(category)
+    setFormErrors({})
     setFormData({
       name: category?.name || "",
       type: category?.type || "",
@@ -177,10 +205,16 @@ export default function MenuCategoriesPage() {
 
   const handleImageFileChange = (file) => {
     if (!file) return
+    if (!String(file.type || "").startsWith("image/")) {
+      setFormErrors((prev) => ({ ...prev, image: "Please choose an image file (JPG, PNG or WEBP)" }))
+      return
+    }
     if (file.size > 5 * 1024 * 1024) {
+      setFormErrors((prev) => ({ ...prev, image: "Image size must be 5MB or less" }))
       toast.error("Image size exceeds 5MB limit.")
       return
     }
+    setFormErrors((prev) => ({ ...prev, image: undefined }))
     setSelectedImageFile(file)
     try {
       setImagePreview(URL.createObjectURL(file))
@@ -198,12 +232,23 @@ export default function MenuCategoriesPage() {
   }
 
   const handleSaveCategory = async () => {
-    if (!String(formData.name || "").trim()) {
-      toast.error("Category name is required")
+    const errors = validateCategoryForm(formData)
+    const isDuplicateName = ownCategories.some(
+      (category) =>
+        String(category?.name || "").trim().toLowerCase() === String(formData.name || "").trim().toLowerCase() &&
+        String(category?._id || category?.id) !== String(editingCategory?._id || editingCategory?.id),
+    )
+    if (!errors.name && isDuplicateName) errors.name = "A category with this name already exists"
+    setFormErrors(errors)
+    const firstError = Object.values(errors).find(Boolean)
+    if (firstError) {
+      toast.error(firstError)
       return
     }
 
-    const scope = isPureVeg ? "Veg" : formData.foodTypeScope
+    // Veg-only app: every category is Veg.
+    // const scope = isPureVeg ? "Veg" : formData.foodTypeScope
+    const scope = "Veg"
 
     try {
       setUploadingImage(true)
@@ -312,7 +357,7 @@ export default function MenuCategoriesPage() {
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
             <p className="text-lg font-semibold text-slate-900">No restaurant categories yet</p>
             <p className="mt-2 text-sm text-slate-500">
-              Start with a category and choose whether it should accept veg, non-veg, or both kinds of dishes.
+              Start by adding a category for your dishes.
             </p>
           </div>
         ) : (
@@ -346,9 +391,11 @@ export default function MenuCategoriesPage() {
                           {status === "approved" ? <BadgeCheck className="mr-1 h-3.5 w-3.5" /> : <Clock3 className="mr-1 h-3.5 w-3.5" />}
                           {status.charAt(0).toUpperCase() + status.slice(1)}
                         </span>
+                        {/* Veg-only app: diet scope pill hidden.
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${scopePillClass(category?.foodTypeScope)}`}>
                           {category?.foodTypeScope || "Both"}
                         </span>
+                        */}
                         {isGlobal && (
                           <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
                             <Globe className="mr-1 h-3.5 w-3.5" />
@@ -428,7 +475,7 @@ export default function MenuCategoriesPage() {
                   <p className="text-xs text-slate-500">
                     {editingCategory
                       ? "Any edit sends this category back for admin approval."
-                      : "Choose the diet scope carefully before sending it for approval."}
+                      : "New categories are sent to admin for approval."}
                   </p>
                 </div>
                 <button onClick={resetModal}>
@@ -442,12 +489,20 @@ export default function MenuCategoriesPage() {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                    maxLength={40}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setFormData((prev) => ({ ...prev, name: value }))
+                      if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: validateCategoryForm({ name: value }).name }))
+                    }}
                     placeholder="Enter category name"
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    aria-invalid={Boolean(formErrors.name)}
+                    className={`w-full rounded-xl border px-4 py-3 outline-none ${formErrors.name ? "border-rose-500 focus:border-rose-600" : "border-slate-300 focus:border-slate-900"}`}
                   />
+                  {formErrors.name && <p className="mt-1 text-xs font-medium text-rose-600">{formErrors.name}</p>}
                 </div>
 
+                {/* Veg-only app (bug #35): Diet Scope selector hidden; categories are always Veg.
                 <div>
                   <label className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
                     <span>Diet Scope</span>
@@ -477,16 +532,24 @@ export default function MenuCategoriesPage() {
                     </select>
                   )}
                 </div>
+                */}
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">Optional Type Label</label>
                   <input
                     type="text"
                     value={formData.type}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value }))}
+                    maxLength={30}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setFormData((prev) => ({ ...prev, type: value }))
+                      if (formErrors.type) setFormErrors((prev) => ({ ...prev, type: validateCategoryForm({ name: "ok", type: value }).type }))
+                    }}
                     placeholder="Examples: Starters, Desserts, Drinks"
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    aria-invalid={Boolean(formErrors.type)}
+                    className={`w-full rounded-xl border px-4 py-3 outline-none ${formErrors.type ? "border-rose-500 focus:border-rose-600" : "border-slate-300 focus:border-slate-900"}`}
                   />
+                  {formErrors.type && <p className="mt-1 text-xs font-medium text-rose-600">{formErrors.type}</p>}
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -513,6 +576,7 @@ export default function MenuCategoriesPage() {
                     onChange={(e) => handleImageFileChange(e.target.files?.[0])}
                   />
                 </div>
+                {formErrors.image && <p className="-mt-2 text-xs font-medium text-rose-600">{formErrors.image}</p>}
 
                 <label className="flex items-center gap-2 text-sm text-slate-700">
                   <input

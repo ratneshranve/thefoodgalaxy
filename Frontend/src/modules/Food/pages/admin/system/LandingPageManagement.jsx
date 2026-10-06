@@ -911,7 +911,7 @@ export default function LandingPageManagement() {
       }))
 
       if (response.data.success) {
-        setSuccess(`${response.data.data.banners?.length || files.length} under 250 banner(s) uploaded successfully!`)
+        { const okCount = response.data.data.banners?.length || 0; if (okCount === 0) { setErrorSafely(response.data.data.errors?.[0] || 'Upload failed. Please try again.') } else { setSuccess(`${okCount} under 250 banner(s) uploaded successfully!`) } }
         await fetchUnder250Banners()
         setTimeout(() => setSuccess(null), 3000)
       }
@@ -1035,7 +1035,7 @@ export default function LandingPageManagement() {
       }))
 
       if (response.data.success) {
-        setSuccess(`${response.data.data.banners?.length || files.length} ads banner(s) uploaded successfully!`)
+        { const okCount = response.data.data.banners?.length || 0; if (okCount === 0) { setErrorSafely(response.data.data.errors?.[0] || 'Upload failed. Please try again.') } else { setSuccess(`${okCount} ads banner(s) uploaded successfully!`) } }
         await fetchDiningBanners()
         setTimeout(() => setSuccess(null), 3000)
       }

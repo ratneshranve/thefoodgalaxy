@@ -137,8 +137,11 @@ export const initSocket = async (server) => {
             }
         }
 
-        // Generic joinRoom (used by Admin bulk upload page)
+        // Generic joinRoom (used by Admin bulk upload page).
+        // Security: only admins may join arbitrary rooms; otherwise any client could
+        // join e.g. "restaurant:<otherId>" and receive another restaurant's orders.
         socket.on('joinRoom', (roomName) => {
+            if (role !== 'ADMIN') return;
             if (typeof roomName === 'string' && roomName.trim()) {
                 socket.join(roomName.trim());
                 logger.info(`Socket ${socket.id} (${role}:${userId}) joined room: ${roomName.trim()}`);
@@ -346,7 +349,7 @@ export const initSocket = async (server) => {
             }
         });
 
-        // ðŸ†• Resync State on Reconnect
+        // 🆕 Resync State on Reconnect
         socket.on('resync', async () => {
           try {
             if (role === 'DELIVERY_PARTNER') {
@@ -419,7 +422,7 @@ export const initSocket = async (server) => {
               });
             }
           } catch (err) {
-            logger.error(`Resync failed for ${role}:${userId} â€” ${err.message}`);
+            logger.error(`Resync failed for ${role}:${userId} — ${err.message}`);
           }
         });
     });

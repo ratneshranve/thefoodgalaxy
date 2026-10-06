@@ -652,7 +652,7 @@ export default function Home() {
   const [activeFilterTab, setActiveFilterTab] = useState("sort");
   const categoryScrollRef = useRef(null);
   const gsapAnimationsRef = useRef([]);
-  // Show skeletons immediately while loading â€” delayed toggles caused visible layout swap (CLS).
+  // Show skeletons immediately while loading — delayed toggles caused visible layout swap (CLS).
   const showBannerSkeleton = loadingBanners;
   const showCategorySkeleton = loadingFoods || loadingMenuCategories;
   const showExploreSkeleton = loadingLandingConfig;
@@ -3024,7 +3024,7 @@ export default function Home() {
                           }`}>
                         <span
                           className={`text-sm font-medium ${activeFilters.has("price-under-200") ? "text-primary" : "text-gray-700 dark:text-gray-300"}`}>
-                          Under â‚¹200
+                          Under ₹200
                         </span>
                       </button>
                       <button
@@ -3035,7 +3035,7 @@ export default function Home() {
                           }`}>
                         <span
                           className={`text-sm font-medium ${activeFilters.has("price-under-500") ? "text-primary" : "text-gray-700 dark:text-gray-300"}`}>
-                          Under â‚¹500
+                          Under ₹500
                         </span>
                       </button>
                     </div>

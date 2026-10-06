@@ -44,6 +44,7 @@ const foodSubscriptionPlanSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 25,
       unique: true
     },
     description: {

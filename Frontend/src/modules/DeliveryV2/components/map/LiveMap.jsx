@@ -81,6 +81,25 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
     setBaselineDirections(null);
   }, [tripStatus, activeOrder?._id]);
 
+  // Bug #52: after returning from Google Maps the WebView may have dropped the map
+  // drawing (blank map / no route). Redraw the map and request the route again.
+  useEffect(() => {
+    const handleResume = () => {
+      if (document.hidden) return;
+      setLastDirectionsAt(0);
+      setDirections(null);
+      if (map && window.google?.maps?.event) {
+        window.google.maps.event.trigger(map, 'resize');
+      }
+    };
+    document.addEventListener('visibilitychange', handleResume);
+    window.addEventListener('pageshow', handleResume);
+    return () => {
+      document.removeEventListener('visibilitychange', handleResume);
+      window.removeEventListener('pageshow', handleResume);
+    };
+  }, [map]);
+
   const parsePoint = useCallback((raw) => {
     if (!raw) return null;
     const lat = parseFloat(raw.lat ?? raw.latitude);

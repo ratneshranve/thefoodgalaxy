@@ -14,6 +14,7 @@ import quickIcon from "@food/assets/category-icons/quick.png";
 import taxiIcon from "@food/assets/category-icons/taxi.png";
 import hotelIcon from "@food/assets/category-icons/hotel.png";
 import useNotificationInbox from "@food/hooks/useNotificationInbox";
+import { loadBusinessSettings, getCachedSettings, resolveMediaUrl } from "@food/utils/businessSettings";
 
 const ICON_MAP = {
   CheckCircle2,
@@ -40,6 +41,15 @@ export default function HomeHeader({
     const saved = localStorage.getItem('food_user_notifications');
     return saved ? JSON.parse(saved) : [];
   });
+  const [logoUrl, setLogoUrl] = useState(() => resolveMediaUrl(getCachedSettings()?.logo) || "/logo.png");
+  useEffect(() => {
+    let active = true;
+    loadBusinessSettings().then((settings) => {
+      const url = resolveMediaUrl(settings?.logo);
+      if (active && url) setLogoUrl(url);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
   const {
     items: broadcastNotifications,
     unreadCount: broadcastUnreadCount,
@@ -111,6 +121,15 @@ export default function HomeHeader({
         <div className="relative z-10 space-y-2.5">
           {/* Row 1: Location, Toggle, and Notifications */}
         <div className="flex items-center justify-between gap-3">
+          {/* App Logo */}
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt="The Food Galaxy"
+              className="h-10 w-10 shrink-0 rounded-xl object-contain bg-white/90 p-0.5 shadow-sm"
+              onError={(e) => { if (!e.currentTarget.src.endsWith("/logo.png")) e.currentTarget.src = "/logo.png"; }}
+            />
+          )}
           {/* Location Selector */}
           <div
             className="flex items-center gap-2 cursor-pointer group min-w-0 flex-1"
@@ -194,7 +213,7 @@ export default function HomeHeader({
                     <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       Notifications
                       {unreadCount > 0 && (
-                        <Badge variant="secondary" className="bg-orange-100 text-primary border-none text-[10px] h-4">
+                        <Badge variant="secondary" className="bg-orange-100 text-primary dark:bg-primary dark:text-white border-none text-[10px] h-4">
                           {unreadCount} New
                         </Badge>
                       )}
@@ -205,13 +224,13 @@ export default function HomeHeader({
                       mergedNotifications.slice(0, 5).map((notif) => {
                         const Icon = ICON_MAP[notif.icon] || Bell;
                         return (
-                          <div key={notif.id} className="p-4 flex items-start gap-3 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 transition-colors">
-                            <div className="mt-1 p-2 rounded-full bg-gray-100 text-primary">
+                          <div key={notif.id} className="p-4 flex items-start gap-3 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <div className="mt-1 p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-primary">
                               <Icon className="h-4 w-4" />
                             </div>
                             <div className="flex-1 min-w-0">
                                <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{notif.title}</p>
-                               <p className="text-xs text-gray-500 line-clamp-1">{notif.message}</p>
+                               <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{notif.message}</p>
                             </div>
                           </div>
                         )
@@ -272,7 +291,7 @@ export default function HomeHeader({
             </div>
           </div>
 
-          {/* Veg Toggle (Stacked Pill Switch) */}
+          {/* Veg-only app: Veg Mode toggle hidden.
           <div 
             className="flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-transform duration-300 shrink-0 px-2 bg-white/70 dark:bg-[#1a1a1a]/70 backdrop-blur-md rounded-2xl py-1 shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-white/50 dark:border-white/10"
             onClick={() => handleVegModeChange?.(!vegMode)}
@@ -284,6 +303,7 @@ export default function HomeHeader({
               <div className={`absolute top-[1px] w-[12px] h-[12px] rounded-full bg-white shadow-sm transition-transform duration-300 ${vegMode ? 'translate-x-[15px]' : 'translate-x-[1px]'}`} />
             </div>
           </div>
+          */}
         </div>
       </div>
     </>

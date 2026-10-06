@@ -176,7 +176,7 @@ const RestaurantImageCarousel = React.memo(
             dText = `${discountVal}% OFF`;
           } else {
             discountedPrice = Math.max(0, priceNum - discountVal);
-            dText = `FLAT â‚¹${discountVal} OFF`;
+            dText = `FLAT ₹${discountVal} OFF`;
           }
         } else if (!discountedPrice && bestGlobalOffer) {
           const discountVal = Number(bestGlobalOffer.discountValue) || 0;
@@ -189,7 +189,7 @@ const RestaurantImageCarousel = React.memo(
             dText = bestGlobalOffer.title || `${discountVal}% OFF`;
           } else {
             discountedPrice = Math.max(0, priceNum - discountVal);
-            dText = bestGlobalOffer.title || `FLAT â‚¹${discountVal} OFF`;
+            dText = bestGlobalOffer.title || `FLAT ₹${discountVal} OFF`;
           }
         } else if (!discountedPrice && restaurant.discount > 0) {
           discountedPrice = priceNum * (1 - restaurant.discount / 100);
@@ -227,7 +227,7 @@ const RestaurantImageCarousel = React.memo(
       return () => clearInterval(interval);
     }, [priority, bannerItems.length]);
 
-    // Auto-slide for restaurant images (priority cards only â€” reduces timer churn)
+    // Auto-slide for restaurant images (priority cards only — reduces timer churn)
     useEffect(() => {
       if (!priority || images.length <= 1) return;
       const interval = setInterval(() => {

@@ -144,8 +144,10 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
             const price = parseFloat(row.Price || row.price || 0);
             const description = (row.Description || row.description || '').trim();
             
-            const rawType = (row['Food Type (Veg/Non-Veg)'] || row.Type || row.type || 'veg').trim().toLowerCase();
-            const foodType = (rawType.includes('non-veg') || rawType === 'nonveg') ? 'Non-Veg' : 'Veg';
+            // Veg-only app: every bulk-uploaded dish is saved as Veg.
+            // const rawType = (row['Food Type (Veg/Non-Veg)'] || row.Type || row.type || 'veg').trim().toLowerCase();
+            // const foodType = (rawType.includes('non-veg') || rawType === 'nonveg') ? 'Non-Veg' : 'Veg';
+            const foodType = 'Veg';
             
             const preparationTime = (row['Preparation Time'] || '').toString().trim();
             
@@ -260,29 +262,31 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
 
             sectionsResponseMap[sectionName].items.push(itemForUI);
             
-            if (!hasPredefinedImage) {
-                const sectionIndex = Object.keys(sectionsResponseMap).indexOf(sectionName);
-                const itemIndex = sectionsResponseMap[sectionName].items.length - 1;
-
-                await enqueueImageJob({
-                    restaurantId,
-                    itemId: itemDoc._id.toString(),
-                    itemName: itemDoc.name,
-                    itemDescription: itemDoc.description,
-                    categoryName: itemDoc.categoryName,
-                    foodType: itemDoc.foodType,
-                    sectionIndex,
-                    itemIndex
-                });
-                queuedJobsCount++;
-            }
+            // AI image generation is disabled (owner request). Items keep the
+            // "Image URL" from the sheet, or no image; nothing is queued.
+            // if (!hasPredefinedImage) {
+            //     const sectionIndex = Object.keys(sectionsResponseMap).indexOf(sectionName);
+            //     const itemIndex = sectionsResponseMap[sectionName].items.length - 1;
+            //
+            //     await enqueueImageJob({
+            //         restaurantId,
+            //         itemId: itemDoc._id.toString(),
+            //         itemName: itemDoc.name,
+            //         itemDescription: itemDoc.description,
+            //         categoryName: itemDoc.categoryName,
+            //         foodType: itemDoc.foodType,
+            //         sectionIndex,
+            //         itemIndex
+            //     });
+            //     queuedJobsCount++;
+            // }
         }
 
         const menuResponse = Object.values(sectionsResponseMap);
         
         res.status(200).json({
             success: true,
-            message: `Menu uploaded successfully. Generating ${queuedJobsCount} image(s) in background.`,
+            message: `Menu uploaded successfully. ${newItems.length} item(s) processed.`,
             queuedJobsCount,
             menu: menuResponse
         });
@@ -297,6 +301,9 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
  * Trigger manual regeneration for a specific item
  */
 router.post('/regenerate-image', async (req, res) => {
+    // AI image generation is disabled (owner request).
+    return res.status(410).json({ success: false, message: 'AI image generation is disabled' });
+    // eslint-disable-next-line no-unreachable
     try {
         const { restaurantId, itemId, sectionIndex, itemIndex } = req.body;
         

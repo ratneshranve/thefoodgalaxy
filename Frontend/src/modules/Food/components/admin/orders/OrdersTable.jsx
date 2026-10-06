@@ -614,7 +614,7 @@ export default function OrdersTable({
       </div>
       
       {/* Pagination */}
-      {totalPages > 1 && (
+      {orders.length > 0 && (
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
           <div className="text-sm text-slate-600">
             Showing <span className="font-semibold">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}

@@ -354,7 +354,15 @@ export default function Cart() {
     if (normalized === "other") return "Other"
     return label || "Saved address"
   }
-  const sanitizeRecipientPhone = (value) => String(value || "").replace(/[^\d+]/g, "").slice(0, 14)
+  // Bug #45: recipient phone must be a valid 10-digit Indian mobile number.
+  const sanitizeRecipientPhone = (value) => {
+    let digits = String(value || "").replace(/\D/g, "")
+    if (digits.length > 10 && digits.startsWith("91")) digits = digits.slice(2)
+    if (digits.length > 10 && digits.startsWith("0")) digits = digits.slice(1)
+    return digits.slice(0, 10)
+  }
+  const isValidRecipientPhone = (value) => /^[6-9]\d{9}$/.test(String(value || ""))
+  const sanitizeRecipientName = (value) => String(value || "").replace(/[^A-Za-z .]/g, "").replace(/\s{2,}/g, " ").slice(0, 50)
   const savedAddress = getDefaultAddress()
   const selectedAddress = addresses.find((addr) => getAddressId(addr) && getAddressId(addr) === selectedAddressId)
 
@@ -459,7 +467,7 @@ export default function Cart() {
   useEffect(() => {
     setRecipientDetails((prev) => ({
       name: prev.name || userProfile?.name || "",
-      phone: prev.phone || userProfile?.phone || "",
+      phone: prev.phone || sanitizeRecipientPhone(userProfile?.phone || ""),
     }))
   }, [userProfile?.name, userProfile?.phone])
 
@@ -988,9 +996,16 @@ export default function Cart() {
   useEffect(() => {
     const fetchOrderCount = async () => {
       try {
-        const response = await userAPI.getOrders({ page: 1, limit: 1 })
+        // Bug #63: userAPI has no getOrders (it threw, so every user looked like a
+        // first-time customer). orderAPI.getOrders returns { orders, pagination }.
+        const response = await orderAPI.getOrders({ page: 1, limit: 1 })
         if (response?.data?.success) {
-          const totalOrders = response?.data?.data?.pagination?.total || 0
+          const payload = response?.data?.data || {}
+          const totalOrders = Number(
+            payload?.pagination?.total ??
+            payload?.meta?.total ??
+            (Array.isArray(payload?.orders) ? payload.orders.length : 0)
+          ) || 0
           setUserOrderCount(totalOrders)
         }
       } catch (error) {
@@ -1563,7 +1578,16 @@ export default function Cart() {
 
 
   const handlePlaceOrder = async () => {
-
+    // Bug #45: block ordering with an invalid recipient phone number.
+    if (recipientDetails.phone && !isValidRecipientPhone(recipientDetails.phone)) {
+      toast.error("Please enter a valid 10-digit mobile number starting with 6, 7, 8 or 9")
+      setIsEditingRecipient(true)
+      return
+    }
+    if (isEditingRecipient && !String(recipientDetails.name || "").trim()) {
+      toast.error("Please enter the recipient name")
+      return
+    }
 
     if (!hasSavedAddress) {
       toast.error("Please choose a delivery location to continue")
@@ -2108,13 +2132,12 @@ export default function Cart() {
   }
 
   const handleGoToOrders = () => {
-    setShowOrderSuccess(false)
-    setShowSavingsCongrats(false)
-    setCongratssSavingsAmount(0)
-    setCongratssSavingsPercentage(0)
-    setCongratssSavingsItems([])
-    setOrderSuccessSavingsAmount(0)
-    navigate(`/user/orders/${placedOrderId}?confirmed=true`, {
+    // Bug #47: navigate straight to tracking. Resetting the success overlay first
+    // re-rendered this page with an empty cart ("Your cart is empty") before the
+    // tracking page opened, and "/user/..." needed an extra redirect to "/food/user/...".
+    // The overlay state is discarded when this page unmounts.
+    navigate(`/food/user/orders/${placedOrderId}?confirmed=true`, {
+      replace: true,
       state: { order: placedOrder },
     })
   }
@@ -2244,9 +2267,9 @@ export default function Cart() {
                       return (
                         <div key={item.id}>
                           <div className="flex items-center gap-4">
-                          {/* Veg/Non-veg indicator */}
-                          <div className={`w-4 h-4 border-2 ${item.isVeg === true || item.foodType === 'Veg' ? 'border-green-600' : 'border-red-600'} flex items-center justify-center flex-shrink-0 rounded-[2px]`}>
-                            <div className={`w-2 h-2 rounded-full ${item.isVeg === true || item.foodType === 'Veg' ? 'bg-green-600' : 'bg-red-600'}`} />
+                          {/* Veg indicator (veg-only app: always green) */}
+                          <div className="w-4 h-4 border-2 border-green-600 flex items-center justify-center flex-shrink-0 rounded-[2px]">
+                            <div className="w-2 h-2 rounded-full bg-green-600" />
                           </div>
 
                           <div className="flex-1 min-w-0 flex items-center gap-4">
@@ -2764,7 +2787,7 @@ export default function Cart() {
                     <Phone className="h-4 w-4 md:h-5 md:w-5 text-gray-500 dark:text-gray-400 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm md:text-base text-gray-800 dark:text-gray-200 font-medium">
-                        {recipientName}, <span className="font-semibold">{recipientPhone || "+91-XXXXXXXXXX"}</span>
+                        {recipientName}, <span className="font-semibold">{recipientPhone ? (/^\d{10}$/.test(recipientPhone) ? `+91 ${recipientPhone}` : recipientPhone) : "+91-XXXXXXXXXX"}</span>
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Order recipient details
@@ -2773,7 +2796,19 @@ export default function Cart() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setIsEditingRecipient((prev) => !prev)}
+                    onClick={() => {
+                      if (isEditingRecipient) {
+                        if (!String(recipientDetails.name || "").trim()) {
+                          toast.error("Please enter the recipient name")
+                          return
+                        }
+                        if (!isValidRecipientPhone(recipientDetails.phone)) {
+                          toast.error("Please enter a valid 10-digit mobile number starting with 6, 7, 8 or 9")
+                          return
+                        }
+                      }
+                      setIsEditingRecipient((prev) => !prev)
+                    }}
                      className="text-primary text-xs md:text-sm font-semibold whitespace-nowrap"
                   >
                     {isEditingRecipient ? "Done" : "Change"}
@@ -2792,9 +2827,10 @@ export default function Cart() {
                         onChange={(e) =>
                           setRecipientDetails((prev) => ({
                             ...prev,
-                            name: e.target.value,
+                            name: sanitizeRecipientName(e.target.value),
                           }))
                         }
+                        maxLength={50}
                         placeholder="Enter recipient name"
                          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary"
                       />
@@ -2803,21 +2839,37 @@ export default function Cart() {
                       <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
                         Phone Number
                       </label>
-                      <input
-                        type="tel"
-                        value={recipientDetails.phone}
-                        onChange={(e) =>
-                          setRecipientDetails((prev) => ({
-                            ...prev,
-                            phone: sanitizeRecipientPhone(e.target.value),
-                          }))
-                        }
-                        placeholder="Enter recipient phone"
-                         className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary"
-                      />
+                      <div className="flex items-stretch gap-2">
+                        <span className="flex items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-3 text-sm text-gray-600 dark:text-gray-300">+91</span>
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          maxLength={10}
+                          value={recipientDetails.phone}
+                          onChange={(e) =>
+                            setRecipientDetails((prev) => ({
+                              ...prev,
+                              phone: sanitizeRecipientPhone(e.target.value),
+                            }))
+                          }
+                          placeholder="10-digit mobile number"
+                          aria-invalid={Boolean(recipientDetails.phone) && !isValidRecipientPhone(recipientDetails.phone)}
+                          className={`w-full rounded-xl border bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none ${
+                            recipientDetails.phone && !isValidRecipientPhone(recipientDetails.phone)
+                              ? "border-red-500 focus:border-red-500"
+                              : "border-gray-200 dark:border-gray-700 focus:border-primary"
+                          }`}
+                        />
+                      </div>
+                      {recipientDetails.phone && !isValidRecipientPhone(recipientDetails.phone) && (
+                        <p className="mt-1 text-[11px] font-medium text-red-600">
+                          Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9
+                        </p>
+                      )}
                     </div>
+                    {/* Bug #44: was Hinglish ("Agar aap kisi aur ke liye order kar rahe ho...") */}
                     <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                      Agar aap kisi aur ke liye order kar rahe ho, to yahan uska naam aur phone save kar do.
+                      Ordering for someone else? Save their name and phone number here.
                     </p>
                   </div>
                 )}
@@ -3177,7 +3229,7 @@ export default function Cart() {
                   style={{ animation: 'bounce 0.8s ease-in-out infinite' }}
                 >
                   <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center shadow-2xl shadow-yellow-300/60 dark:shadow-yellow-900/40">
-                    <span className="text-5xl">ðŸŽ‰</span>
+                    <span className="text-5xl">🎉</span>
                   </div>
                 </div>
 

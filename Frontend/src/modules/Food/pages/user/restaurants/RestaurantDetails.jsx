@@ -114,6 +114,9 @@ function RestaurantDetailsContent() {
   const [searchParams] = useSearchParams()
   const showOnlyUnder250 = searchParams.get('under250') === 'true'
   const targetDishId = useMemo(() => String(searchParams.get('dish') || '').trim(), [searchParams])
+  // Bug #42: "?dish=<id>&open=1" opens the dish sheet (variant picker) directly,
+  // used when ADD is tapped on a dish with variants from the home page.
+  const openTargetDish = useMemo(() => searchParams.get('open') === '1', [searchParams])
   const BACKEND_ORIGIN = useMemo(() => API_BASE_URL.replace(/\/api(?:\/v\d+)?\/?$/, ""), [])
   const { addToCart, updateQuantity, removeFromCart, getCartItem, cart } = useCart()
   const { vegMode, vegModeOption, addDishFavorite, removeDishFavorite, isDishFavorite, getDishFavorites, getFavorites, addFavorite, removeFavorite, isFavorite } = useProfile()
@@ -2144,11 +2147,16 @@ function RestaurantDetailsContent() {
       setHighlightedDishId((current) => (current === targetDishId ? null : current))
     }, 2600)
 
+    const openTimer = openTargetDish
+      ? window.setTimeout(() => handleItemClick(matchedItem), 450)
+      : null
+
     return () => {
       window.clearTimeout(scrollTimer)
       window.clearTimeout(highlightTimer)
+      if (openTimer) window.clearTimeout(openTimer)
     }
-  }, [restaurant, targetDishId])
+  }, [restaurant, targetDishId, openTargetDish])
 
   // Highlight offers/texts for the blue offer line
   const offersList = Array.isArray(restaurant?.offers) ? restaurant.offers : []
@@ -2194,14 +2202,18 @@ function RestaurantDetailsContent() {
     const quantity = getDishQuantity(item)
     const isVeg = item.foodType === "Veg"
     const isHighlighted = highlightedDishId === (item.id || item._id)
+    const hasMultipleVariants = (Array.isArray(item.variants) ? item.variants : []).length > 1
 
     const cardContent = (
       <>
         {/* Left Side - Details */}
         <div className="flex-1 min-w-0">
-          {/* Veg Icon & Spicy Indicator */}
+          {/* Veg Icon & Spicy Indicator (veg-only app: always the green veg mark) */}
           <div className="flex items-center gap-2 mb-1">
-            {isVeg ? (
+            <div className="w-4 h-4 border-2 border-green-600 flex items-center justify-center rounded-sm flex-shrink-0">
+              <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+            </div>
+            {/* {isVeg ? (
               <div className="w-4 h-4 border-2 border-green-600 flex items-center justify-center rounded-sm flex-shrink-0">
                 <div className="w-2 h-2 bg-green-600 rounded-full"></div>
               </div>
@@ -2209,7 +2221,7 @@ function RestaurantDetailsContent() {
               <div className="w-4 h-4 border-2 border-red-600 flex items-center justify-center rounded-sm flex-shrink-0">
                 <div className="w-2 h-2 bg-red-600 rounded-full"></div>
               </div>
-            )}
+            )} */}
             {item.isSpicy && <span className="text-xs font-semibold text-red-500">Spicy</span>}
           </div>
 
@@ -2287,6 +2299,7 @@ function RestaurantDetailsContent() {
           )}
 
           {/* Mobile-only action buttons */}
+          {/* Bug #55: Save (bookmark) & Share removed from dish card.
           <div className="flex gap-4 mt-3 md:hidden">
             <button
               type="button"
@@ -2321,6 +2334,7 @@ function RestaurantDetailsContent() {
               <Share2 size={18} />
             </button>
           </div>
+          */}
         </div>
 
         {/* Right Side - Image and Add Button Wrapper */}
@@ -2356,6 +2370,11 @@ function RestaurantDetailsContent() {
                 onClick={(e) => {
                   e.stopPropagation()
                   if (!shouldShowGrayscale && !isRestaurantOffline) {
+                    // Dishes with several variants: let the customer pick which one to add.
+                    if (hasMultipleVariants) {
+                      handleItemClick(item)
+                      return
+                    }
                     updateItemQuantity(item, quantity + 1, e)
                   }
                 }}
@@ -2371,6 +2390,12 @@ function RestaurantDetailsContent() {
               onClick={(e) => {
                 e.stopPropagation()
                 if (!shouldShowGrayscale && !isRestaurantOffline) {
+                  // Bugs #42/#43: dishes with several variants open the variant picker
+                  // instead of silently adding the default variant.
+                  if (hasMultipleVariants) {
+                    handleItemClick(item)
+                    return
+                  }
                   updateItemQuantity(item, 1, e)
                 }
               }}
@@ -2618,17 +2643,18 @@ function RestaurantDetailsContent() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start justify-between gap-3">
               <div
-                className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300 min-w-0"
+                className="flex items-start gap-1 text-sm text-gray-700 dark:text-gray-300 min-w-0"
               >
-                <MapPin className="h-4 w-4" />
-                <span className="truncate">
+                <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+                {/* Bug #54: show the full restaurant address (wraps instead of truncating) */}
+                <span className="break-words">
                   {restaurant?.distance || "1.2 km"} | {restaurant?.location || "Location"}
                 </span>
               </div>
               <span
-                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold text-white ${
+                className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold text-white ${
                   isRestaurantOffline ? "bg-rose-600" : "bg-emerald-600"
                 }`}
               >
@@ -2741,6 +2767,7 @@ function RestaurantDetailsContent() {
                     )}
                     <ChevronDown className="h-3 w-3" />
                   </Button>
+                  {/* Veg-only app: Veg / Non-veg quick filter chips hidden.
                   {vegModeOption !== "pure-veg" && (
                     <Button
                       variant="outline"
@@ -2781,6 +2808,7 @@ function RestaurantDetailsContent() {
                       )}
                     </Button>
                   )}
+                  */}
                 </div>
               </div>
 
@@ -3261,6 +3289,7 @@ function RestaurantDetailsContent() {
                     </div>
 
                     {/* Veg/Non-veg preference */}
+                    {/* Veg-only app: Veg/Non-veg preference filter hidden.
                     {vegModeOption !== "pure-veg" && (
                       <div className="space-y-2">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Veg/Non-veg preference:</h3>
@@ -3300,6 +3329,7 @@ function RestaurantDetailsContent() {
                         </div>
                       </div>
                     )}
+                    */}
 
 
                   </div>
@@ -3523,7 +3553,7 @@ function RestaurantDetailsContent() {
                           )}
                         </div>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          {getDishFavorites().length} dishes � {getFavorites().length} restaurant
+                          {getDishFavorites().length} dishes • {getFavorites().length} restaurant
                         </p>
                       </div>
                     </button>
@@ -3615,6 +3645,7 @@ function RestaurantDetailsContent() {
                       </div>
                     )}
                     {/* Bookmark and Share Icons Overlay */}
+                    {/* Bug #55: Save (bookmark) & Share removed from item details.
                     <div className="absolute bottom-4 right-4 flex items-center gap-3">
                       <button
                         onClick={(e) => {
@@ -3635,6 +3666,7 @@ function RestaurantDetailsContent() {
                         <Share2 className="h-5 w-5" />
                       </button>
                     </div>
+                    */}
                   </div>
 
                   {/* Content Section */}
@@ -3642,8 +3674,9 @@ function RestaurantDetailsContent() {
                     {/* Item Name and Indicator */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2 flex-1">
-                        <div className={`h-5 w-5 rounded border-2 ${selectedItem.foodType === "Veg" ? "border-green-600 bg-green-50" : "border-red-600 bg-red-50"} dark:border-gray-600 dark:bg-gray-900/30 flex items-center justify-center flex-shrink-0`}>
-                          <div className={`h-2.5 w-2.5 rounded-full ${selectedItem.foodType === "Veg" ? "bg-green-600" : "bg-red-600"}`} />
+                        {/* Veg-only app: always show the green veg mark */}
+                        <div className="h-5 w-5 rounded border-2 border-green-600 bg-green-50 dark:border-green-500 dark:bg-gray-900/30 flex items-center justify-center flex-shrink-0">
+                          <div className="h-2.5 w-2.5 rounded-full bg-green-600" />
                         </div>
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                           {selectedItem.name}

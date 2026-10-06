@@ -44,6 +44,10 @@ export const config = {
 
     // Uploads
     uploadPath: resolveUploadRoot(),
+    // local | vps | cloudinary (admin Toggle Management overrides this at runtime)
+    uploadProvider: process.env.UPLOAD_PROVIDER || 'local',
+    uploadVpsDir: process.env.UPLOAD_VPS_DIR || '/var/www/uploads',
+    uploadVpsPublicUrl: process.env.UPLOAD_VPS_PUBLIC_URL || '',
 
     // Redis
     redisEnabled: process.env.REDIS_ENABLED === 'true',

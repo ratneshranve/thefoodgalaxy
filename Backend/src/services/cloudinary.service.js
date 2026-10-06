@@ -1,16 +1,13 @@
-import fs from 'fs';
-import path from 'path';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
-import { getUploadPublicUrl, resolveUploadRoot } from '../utils/uploadPaths.js';
+import { saveBuffer, deleteStoredAsset } from './storage.service.js';
 
-const UPLOAD_BASE_DIR = resolveUploadRoot();
-
-const ensureDirectoryExists = (dirPath) => {
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-    }
-};
+/**
+ * Upload facade used across the backend. The file name is historical: it no
+ * longer talks to Cloudinary directly. Every function goes through
+ * storage.service.js, which saves to the provider chosen in the admin panel
+ * (local disk, VPS folder or Cloudinary).
+ */
 
 const getProcessingOptions = (folder) => {
     // defaults
@@ -33,67 +30,68 @@ const getProcessingOptions = (folder) => {
     return { width, height, quality, prefix };
 };
 
-export const uploadImageBuffer = async (buffer, folder = 'uploads') => {
+const shortId = () => uuidv4().replace(/-/g, '').substring(0, 8);
+
+/** Resize + convert to WebP, then store. Returns { secure_url, public_id, provider }. */
+export const uploadImageBufferDetailed = async (buffer, folder = 'uploads') => {
     if (!buffer) {
         throw new Error('File buffer is required');
     }
 
     const { width, height, quality, prefix } = getProcessingOptions(folder);
-    const fileName = `${prefix}_${uuidv4().replace(/-/g, '').substring(0, 8)}.webp`;
-
-    const targetDir = path.join(UPLOAD_BASE_DIR, folder);
-    ensureDirectoryExists(targetDir);
-
-    const filePath = path.join(targetDir, fileName);
-
-    await sharp(buffer)
+    const processed = await sharp(buffer)
         .resize({ width, height, fit: 'inside', withoutEnlargement: true })
         .webp({ quality })
-        .toFile(filePath);
+        .toBuffer();
 
-    return getUploadPublicUrl(folder, fileName);
+    const saved = await saveBuffer({
+        buffer: processed,
+        folder,
+        fileName: `${prefix}_${shortId()}.webp`,
+        resourceType: 'image',
+    });
+    return { secure_url: saved.url, public_id: saved.publicId, provider: saved.provider };
 };
 
-export const uploadImageBufferDetailed = async (buffer, folder = 'uploads') => {
-    const secure_url = await uploadImageBuffer(buffer, folder);
-    return { secure_url };
+export const uploadImageBuffer = async (buffer, folder = 'uploads') => {
+    const { secure_url } = await uploadImageBufferDetailed(buffer, folder);
+    return secure_url;
 };
 
 export const uploadVideoBuffer = async (buffer, folder = 'uploads') => {
-    // For now, just save it directly if it's a video (sharp doesn't support video)
+    // sharp does not handle video, store as-is
     if (!buffer) throw new Error('File buffer is required');
-    const targetDir = path.join(UPLOAD_BASE_DIR, folder);
-    ensureDirectoryExists(targetDir);
-    const fileName = `video_${uuidv4().replace(/-/g, '').substring(0, 8)}.mp4`;
-    const filePath = path.join(targetDir, fileName);
-    fs.writeFileSync(filePath, buffer);
-    return getUploadPublicUrl(folder, fileName);
+    const saved = await saveBuffer({
+        buffer,
+        folder,
+        fileName: `video_${shortId()}.mp4`,
+        resourceType: 'video',
+    });
+    return saved.url;
 };
 
-export const uploadFileBuffer = async (buffer, folder = 'uploads', options = {}) => {
+export const uploadFileBufferDetailed = async (buffer, folder = 'uploads', options = {}) => {
     if (!buffer) throw new Error('File buffer is required');
 
-    const targetDir = path.join(UPLOAD_BASE_DIR, folder);
-    ensureDirectoryExists(targetDir);
-
-    let fileName = options.fileName ? options.fileName.replace(/\s+/g, '_') : `file_${uuidv4().replace(/-/g, '').substring(0, 8)}`;
+    let fileName = options.fileName ? String(options.fileName).replace(/\s+/g, '_') : `file_${shortId()}`;
     // ensure extension if format provided
     if (options.format && !fileName.endsWith(`.${options.format}`)) {
         fileName += `.${options.format}`;
     }
 
-    const filePath = path.join(targetDir, fileName);
-    fs.writeFileSync(filePath, buffer);
-
-    return getUploadPublicUrl(folder, fileName);
+    const saved = await saveBuffer({ buffer, folder, fileName, resourceType: 'raw' });
+    return { secure_url: saved.url, public_id: saved.publicId, provider: saved.provider };
 };
 
-export const uploadFileBufferDetailed = async (buffer, folder = 'uploads', options = {}) => {
-    const secure_url = await uploadFileBuffer(buffer, folder, options);
-    return { secure_url };
+export const uploadFileBuffer = async (buffer, folder = 'uploads', options = {}) => {
+    const { secure_url } = await uploadFileBufferDetailed(buffer, folder, options);
+    return secure_url;
 };
+
+/** Delete a previously uploaded file (works for local, VPS and Cloudinary assets). */
+export const deleteUploadedAsset = (publicIdOrUrl, options = {}) => deleteStoredAsset(publicIdOrUrl, options);
 
 export const buildRawDownloadUrlFromFileUrl = (fileUrl, options = {}) => {
-    // Already a local URL, just return it
+    // Local / VPS / Cloudinary URLs are all directly downloadable
     return fileUrl;
 };

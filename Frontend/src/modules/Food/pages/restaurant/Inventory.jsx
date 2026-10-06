@@ -42,8 +42,9 @@ const MENU_FILTER_OPTIONS = [
   { value: "in-stock", label: "In stock" },
   { value: "out-of-stock", label: "Out of stock" },
   { value: "recommended", label: "Recommended" },
-  { value: "veg", label: "Veg" },
-  { value: "non-veg", label: "Non-veg" },
+  // Veg-only app: Veg / Non-veg filters hidden.
+  // { value: "veg", label: "Veg" },
+  // { value: "non-veg", label: "Non-veg" },
 ]
 
 const ADDON_FILTER_OPTIONS = [
@@ -860,9 +861,9 @@ export default function Inventory() {
     try {
       setIsUploadingBulk(true);
       const XLSX = await loadXlsx();
-      const headers = ["Name", "Description", "Price", "Category Name", "Food Type (Veg/Non-Veg)", "Preparation Time", "Is Available (TRUE/FALSE)", "Image URL", "Variants (Name:Price, Name:Price)"];
+      const headers = ["Name", "Description", "Price", "Category Name", "Food Type (Veg)", "Preparation Time", "Is Available (TRUE/FALSE)", "Image URL", "Variants (Name:Price, Name:Price)"];
       const rows = [
-        ["Chicken Dum Biryani", "Authentic slow-cooked chicken biryani with aromatic spices", 350, "Biryani", "Non-Veg", "30 mins", "TRUE", "https://res.cloudinary.com/demo/image/upload/sample.jpg", "Half:180, Full:350"],
+        ["Veg Dum Biryani", "Authentic slow-cooked vegetable biryani with aromatic spices", 350, "Biryani", "Veg", "30 mins", "TRUE", "https://res.cloudinary.com/demo/image/upload/sample.jpg", "Half:180, Full:350"],
         ["Paneer Tikka", "Grilled cottage cheese cubes marinated in yogurt and spices", 280, "Starters", "Veg", "20 mins", "TRUE", "https://res.cloudinary.com/demo/image/upload/sample.jpg", ""]
       ];
 
@@ -945,7 +946,8 @@ export default function Inventory() {
               else if (header.includes("description")) item.description = val;
               else if (header.includes("price")) item.price = Number(val) || 0;
               else if (header.includes("category")) item.categoryName = val;
-              else if (header.includes("type")) item.foodType = val;
+              // Veg-only app: every bulk-uploaded dish is saved as Veg.
+              else if (header.includes("type")) item.foodType = "Veg";
               else if (header.includes("prep")) item.preparationTime = val;
               else if (header.includes("available")) item.isAvailable = String(val).toLowerCase() === "true";
               else if (header.includes("image")) item.image = val;
@@ -1085,13 +1087,12 @@ export default function Inventory() {
                   categoryId: section.categoryId || section.id || "",
                   inStock: item.isAvailable !== undefined ? item.isAvailable : true,
                   isAvailable: item.isAvailable !== undefined ? item.isAvailable : true,
-                  isVeg: item.foodType === "Veg",
-                  foodType: item.foodType || "Non-Veg",
+                  isVeg: true, // veg-only app
+                  foodType: "Veg",
                   approvalStatus: String(item.approvalStatus || "approved").toLowerCase(),
                   rejectionReason: item.rejectionReason || "",
-                  // Backend menu is generated from food_items and currently doesn't persist "recommended".
-                  // Keep as a local UI preference keyed by food item id.
-                  isRecommended: Boolean(recommendedMap?.[String(item.id)]),
+                  // Bug #133: "recommended" is now saved on the food item in the backend.
+                  isRecommended: item.isRecommended === true,
                   stockQuantity: item.stock || "Unlimited",
                   unit: item.itemSizeUnit || "piece",
                   expiryDate: null,
@@ -1117,11 +1118,11 @@ export default function Inventory() {
                   categoryId: section.categoryId || section.id || "",
                   inStock: item.isAvailable !== undefined ? item.isAvailable : true,
                   isAvailable: item.isAvailable !== undefined ? item.isAvailable : true,
-                  isVeg: item.foodType === "Veg",
-                  foodType: item.foodType || "Non-Veg",
+                  isVeg: true, // veg-only app
+                  foodType: "Veg",
                   approvalStatus: String(item.approvalStatus || "approved").toLowerCase(),
                   rejectionReason: item.rejectionReason || "",
-                  isRecommended: Boolean(recommendedMap?.[String(item.id)]),
+                  isRecommended: item.isRecommended === true,
                   stockQuantity: item.stock || "Unlimited",
                   unit: item.itemSizeUnit || "piece",
                   expiryDate: null,
@@ -1651,11 +1652,11 @@ export default function Inventory() {
       .map(category => {
         const items = category.items || []
         const matchesCategory =
-          category.name?.toLowerCase().includes(q) ||
-          (category.description || "").toLowerCase().includes(q)
+          String(category?.name || "").toLowerCase().includes(q) ||
+          String(category?.description || "").toLowerCase().includes(q)
 
         const matchingItems = items.filter(item =>
-          item.name?.toLowerCase().includes(q)
+          String(item?.name || "").toLowerCase().includes(q)
         )
 
         if (!matchesCategory && matchingItems.length === 0) {
@@ -1963,16 +1964,26 @@ export default function Inventory() {
       })
     )
 
-    // Persist local recommended preference (backend doesn't support it yet).
+    // Bug #133: persist "recommended" on the backend so customers see it in the
+    // restaurant's Recommended section (it used to live only in localStorage).
     try {
-      setRecommendedMap((prev) => {
-        const next = { ...(prev || {}) }
-        next[String(itemId)] = Boolean(newRecommendationStatus)
-        localStorage.setItem(INVENTORY_RECOMMENDED_KEY, JSON.stringify(next))
-        return next
-      })
+      await restaurantAPI.updateFood(itemId, { isRecommended: Boolean(newRecommendationStatus) })
+      toast.success(newRecommendationStatus ? "Marked as recommended" : "Removed from recommended")
     } catch (error) {
       debugWarn("Failed to persist recommended state:", error)
+      toast.error(error?.response?.data?.message || "Failed to update recommended")
+      // Roll back the optimistic update
+      setCategories(prev =>
+        prev.map(category => {
+          if (category.id !== categoryId) return category
+          return {
+            ...category,
+            items: category.items.map(item =>
+              item.id === itemId ? { ...item, isRecommended: !newRecommendationStatus } : item
+            ),
+          }
+        })
+      )
     }
   }
 
@@ -2217,6 +2228,7 @@ export default function Inventory() {
               </div>
 
               <div className="flex gap-2 flex-wrap items-center">
+                {/* Bug #34: Filters button removed - the status chips below do the same filtering.
                 <button
                   onClick={() => setFilterOpen(true)}
                   className="relative flex h-12 items-center justify-center gap-2 rounded-[20px] border border-[#e7d5e0] bg-white px-4 text-sm font-semibold text-secondary transition-colors hover:border-[#d5bdd0] hover:bg-[#f9f0f7]"
@@ -2227,6 +2239,7 @@ export default function Inventory() {
                   <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-white" />
                 )}
               </button>
+                */}
 
               {activeTab !== "add-ons" && (
                 <button
@@ -2632,15 +2645,12 @@ export default function Inventory() {
                                   </h4>
                                   
                                   <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-                                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${
-                                      item.isVeg
-                                        ? "bg-white text-green-600 border border-green-100"
-                                        : "bg-white text-red-600 border border-red-100"
-                                    }`}>
-                                      <div className={`h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 rounded-[2px] border flex items-center justify-center ${item.isVeg ? 'border-green-600' : 'border-red-600'}`}>
-                                        <div className={`h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full ${item.isVeg ? 'bg-green-600' : 'bg-red-600'}`} />
+                                    {/* Veg-only app: always the green Veg badge */}
+                                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow-sm transition-all bg-white text-green-600 border border-green-100">
+                                      <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 rounded-[2px] border flex items-center justify-center border-green-600">
+                                        <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-green-600" />
                                       </div>
-                                      {item.isVeg ? "Veg" : "Non-veg"}
+                                      Veg
                                     </span>
                                     <span className={`rounded-full px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-black uppercase tracking-wider border shadow-sm ${approvalMeta.className.replace('text-', 'text-').replace('bg-', 'bg-white border-')}`}>
                                       {approvalMeta.label}
@@ -3231,7 +3241,8 @@ export default function Inventory() {
 
       {/* Floating Menu Button & Popup (hidden on Add-ons tab) */}
       {activeTab !== "add-ons" && (
-        <div className="fixed right-4 bottom-24 z-30 flex flex-col items-end gap-2">
+        <div className="fixed right-4 bottom-[calc(6.75rem+env(safe-area-inset-bottom))] lg:bottom-6 z-30 flex flex-col items-end gap-2">
+          {/* Bug #33: keep the floating Menu button clear of the bottom nav (incl. phone safe-area) */}
 
           <motion.button
             type="button"
@@ -3267,7 +3278,7 @@ export default function Inventory() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ duration: 0.2 }}
-                  className="fixed right-4 bottom-36 z-30 h-[45vh] w-[60vw] max-w-sm overflow-hidden rounded-[28px] border border-[#ead6e3] bg-white shadow-[0_24px_60px_-30px_rgba(126,56,102,0.45)]"
+                  className="fixed right-4 bottom-[calc(10.25rem+env(safe-area-inset-bottom))] lg:bottom-20 z-30 h-[45vh] w-[60vw] max-w-sm overflow-hidden rounded-[28px] border border-[#ead6e3] bg-white shadow-[0_24px_60px_-30px_rgba(126,56,102,0.45)]"
                 >
                   <div className="h-full flex flex-col">
                     <div className="bg-[linear-gradient(135deg,#fcf4f9_0%,#f6e8f1_100%)] px-4 pt-4 pb-3">

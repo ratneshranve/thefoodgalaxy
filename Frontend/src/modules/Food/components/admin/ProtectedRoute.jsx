@@ -12,7 +12,7 @@ const buildPathPermissions = () => {
       map.push({ path: item.path, permissions: [item.label] });
     } else if (item.type === "expandable") {
       item.subItems?.forEach(sub => {
-        map.push({ path: sub.path, permissions: [item.label, sub.label] });
+        map.push({ path: sub.path, permissions: [item.label, sub.label], parent: item.label, siblings: item.subItems.map((s) => s.label) });
       });
     } else if (item.type === "section") {
       item.items?.forEach(secItem => {
@@ -20,7 +20,7 @@ const buildPathPermissions = () => {
           map.push({ path: secItem.path, permissions: [secItem.label] });
         } else if (secItem.type === "expandable") {
           secItem.subItems?.forEach(sub => {
-            map.push({ path: sub.path, permissions: [secItem.label, sub.label] });
+            map.push({ path: sub.path, permissions: [secItem.label, sub.label], parent: secItem.label, siblings: secItem.subItems.map((s) => s.label) });
           });
         }
       });
@@ -73,9 +73,17 @@ export default function ProtectedRoute({ children }) {
       
       if (match) {
         // Check if user has AT LEAST ONE of the required permissions
-        const hasAccess = match.permissions.some(perm => allowed.includes(perm));
+        // Bug #106: if specific sub-pages were granted, only those are allowed -
+        // being allowed the parent menu must not unlock the unchecked sub-pages.
+        const canAccess = (entry) => {
+          if (entry.parent && Array.isArray(entry.siblings) && entry.siblings.some((label) => allowed.includes(label))) {
+            return allowed.includes(entry.permissions[1]);
+          }
+          return entry.permissions.some(perm => allowed.includes(perm));
+        };
+        const hasAccess = canAccess(match);
         if (!hasAccess) {
-            const firstAllowed = pathPermissions.find(p => p.permissions.some(perm => allowed.includes(perm)));
+            const firstAllowed = pathPermissions.find(canAccess);
             if (firstAllowed && firstAllowed.path !== location.pathname) {
               return <Navigate to={firstAllowed.path} replace />
             } else {

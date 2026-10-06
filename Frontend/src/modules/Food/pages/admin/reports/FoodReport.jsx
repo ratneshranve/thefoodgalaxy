@@ -170,6 +170,7 @@ export default function FoodReport() {
                 <ChevronDown className="absolute right-2 bottom-2.5 w-4 h-4 text-slate-500 pointer-events-none" />
               </div>
 
+              {/* Veg-only app: Veg/Non-Veg type filter hidden.
               <div className="relative">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Type
@@ -185,6 +186,7 @@ export default function FoodReport() {
                 </select>
                 <ChevronDown className="absolute right-2 bottom-2.5 w-4 h-4 text-slate-500 pointer-events-none" />
               </div>
+              */}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">

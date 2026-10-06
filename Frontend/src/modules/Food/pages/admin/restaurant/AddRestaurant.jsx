@@ -167,7 +167,7 @@ export default function AddRestaurant() {
   // Step 1: Basic Info
   const [step1, setStep1] = useState({
     restaurantName: "",
-    pureVegRestaurant: null,
+    pureVegRestaurant: true, // veg-only app: every restaurant is pure veg
     ownerName: "",
     ownerEmail: "",
     ownerPhone: "",
@@ -223,7 +223,7 @@ export default function AddRestaurant() {
     { key: "en", label: "English(EN)" },
     { key: "bn", label: "Bengali - ?????(BN)" },
     { key: "ar", label: "Arabic - ??????? (AR)" },
-    { key: "es", label: "Spanish - espa�ol(ES)" },
+    { key: "es", label: "Spanish - español(ES)" },
   ]
 
   const mainContentRef = useRef(null)
@@ -882,6 +882,7 @@ export default function AddRestaurant() {
               placeholder="Customers will see this name"
             />
           </div>
+          {/* Veg-only app: 'Pure veg restaurant?' question hidden; restaurants are always pure veg.
           <div>
             <Label className="text-xs text-gray-700">Pure veg restaurant?*</Label>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -912,6 +913,7 @@ export default function AddRestaurant() {
               This helps users filter restaurants by dietary preference.
             </p>
           </div>
+          */}
         </div>
       </section>
 

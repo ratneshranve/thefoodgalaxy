@@ -241,16 +241,11 @@ export default function Favorites() {
                           </div>
                           <div className="flex items-center justify-between text-xs pt-2 border-t">
                             <div className="flex items-center gap-1">
-                              {dish.foodType === "Veg" ? (
-                                <div className="w-3 h-3 border-2 border-green-600 flex items-center justify-center rounded-sm">
-                                  <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                                </div>
-                              ) : (
-                                <div className="w-3 h-3 border-2 border-red-600 flex items-center justify-center rounded-sm">
-                                  <div className="w-1.5 h-1.5 bg-red-600 rounded-full"></div>
-                                </div>
-                              )}
-                              <span className="text-muted-foreground font-medium text-xs">{dish.foodType || "N/A"}</span>
+                              {/* Veg-only app: always the green veg mark */}
+                              <div className="w-3 h-3 border-2 border-green-600 flex items-center justify-center rounded-sm">
+                                <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
+                              </div>
+                              <span className="text-muted-foreground font-medium text-xs">Veg</span>
                             </div>
                             <div className="text-sm font-bold text-primary">
                               {"\u20B9"}{Math.round(dish.price || 0)}

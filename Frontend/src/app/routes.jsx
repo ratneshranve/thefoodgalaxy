@@ -1,7 +1,7 @@
 // Routing file
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Suspense, lazy, useEffect } from 'react'
-import { AppShellSkeleton } from '@food/components/ui/loading-skeletons'
+import Loader from '@food/components/Loader'
 
 const NATIVE_LAST_ROUTE_KEY = 'native_last_route'
 
@@ -10,19 +10,8 @@ const FoodApp = lazy(() => import('../modules/Food/routes'))
 const AuthApp = lazy(() => import('../modules/auth/routes'))
 import ProtectedRoute from '@food/components/ProtectedRoute'
 
-const PageLoader = () => {
-  if (typeof window !== 'undefined') {
-    const path = window.location.pathname.toLowerCase()
-    if (
-      path.includes('/terms') ||
-      path.includes('/privacy') ||
-      path.includes('/support')
-    ) {
-      return null
-    }
-  }
-  return <AppShellSkeleton />
-}
+// Path-aware (hash routes too): no user-app skeleton for restaurant/delivery/admin (bug #23).
+const PageLoader = () => <Loader />
 
 /**
  * FoodAppWrapper — Quick-spicy App. को /food prefix के साथ render करता है.

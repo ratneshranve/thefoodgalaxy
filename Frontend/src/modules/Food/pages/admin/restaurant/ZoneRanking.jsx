@@ -134,7 +134,8 @@ export default function ZoneRanking() {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 disabled={loadingZones}
               >
-                <option value="">-- Choose a Zone --</option>
+                {/* Bug #88: the placeholder is only shown until a zone is chosen */}
+                {!selectedZone && <option value="">-- Choose a Zone --</option>}
                 {zones.map(z => (
                   <option key={z._id || z.id} value={z._id || z.id}>
                     {z.name}

@@ -29,6 +29,9 @@ const businessSettingsSchema = new mongoose.Schema(
             url: { type: String, default: '' },
             publicId: { type: String, default: '' }
         },
+        // Where NEW uploads are stored: 'local' | 'vps' | 'cloudinary'.
+        // No default on purpose: when unset, UPLOAD_PROVIDER from .env is used.
+        uploadProvider: { type: String, enum: ['local', 'vps', 'cloudinary'], default: undefined },
         onlinePaymentOnly: { type: Boolean, default: false },
         maxCodAmount: { type: Number, default: 0 }, // 0 means no limit
         maintenanceMode: { type: Boolean, default: false },

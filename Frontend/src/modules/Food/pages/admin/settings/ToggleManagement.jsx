@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Info, Loader2 } from "lucide-react";
+import { Info, Loader2, HardDrive, Server, Cloud, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { adminAPI } from "@food/api";
 import { setCachedSettings } from "@food/utils/businessSettings";
@@ -12,6 +12,30 @@ const TOGGLE_LABELS = {
   deliveryRegistration: "Delivery partner registration",
 };
 
+const UPLOAD_PROVIDER_OPTIONS = [
+  {
+    id: "local",
+    label: "Local",
+    icon: HardDrive,
+    description: "Saves files on this server in the backend uploads folder. Best for development and small setups.",
+    env: ["UPLOAD_LOCAL_DIR=uploads"],
+  },
+  {
+    id: "vps",
+    label: "VPS",
+    icon: Server,
+    description: "Saves files in a folder on your VPS (default /var/www/uploads). Can be served by nginx / a CDN.",
+    env: ["UPLOAD_VPS_DIR=/var/www/uploads", "UPLOAD_VPS_PUBLIC_URL=https://yourdomain.com/uploads (optional)"],
+  },
+  {
+    id: "cloudinary",
+    label: "Cloudinary",
+    icon: Cloud,
+    description: "Uploads files to your Cloudinary account. Works on any hosting, no server disk needed.",
+    env: ["CLOUDINARY_CLOUD_NAME=...", "CLOUDINARY_API_KEY=...", "CLOUDINARY_API_SECRET=..."],
+  },
+];
+
 export default function ToggleManagement() {
   const [loading, setLoading] = useState(true);
   const [savingField, setSavingField] = useState(null);
@@ -19,16 +43,29 @@ export default function ToggleManagement() {
   const [toggles, setToggles] = useState({
     onlinePaymentOnly: false,
     maxCodAmount: 0,
+    uploadProvider: "local",
     maintenanceMode: false,
     customerRegistration: true,
     restaurantRegistration: true,
     deliveryRegistration: true,
   });
 
+  const [storageStatus, setStorageStatus] = useState(null);
+
   const codSaveTimerRef = useRef(null);
+
+  const fetchStorageStatus = async () => {
+    try {
+      const response = await adminAPI.getStorageStatus();
+      setStorageStatus(response?.data?.data || response?.data || null);
+    } catch {
+      setStorageStatus(null);
+    }
+  };
 
   useEffect(() => {
     fetchBusinessSettings();
+    fetchStorageStatus();
     return () => {
       if (codSaveTimerRef.current) clearTimeout(codSaveTimerRef.current);
     };
@@ -45,6 +82,7 @@ export default function ToggleManagement() {
           ...prev,
           onlinePaymentOnly: settings.onlinePaymentOnly || false,
           maxCodAmount: settings.maxCodAmount || 0,
+          uploadProvider: ["local", "vps", "cloudinary"].includes(settings.uploadProvider) ? settings.uploadProvider : "local",
           maintenanceMode: settings.maintenanceMode || false,
           customerRegistration: settings.customerRegistration !== false,
           restaurantRegistration: settings.restaurantRegistration !== false,
@@ -88,6 +126,26 @@ export default function ToggleManagement() {
       await persistToggles({ [field]: nextValue }, field);
     } catch {
       // state reverted in persistToggles via fetchBusinessSettings
+    }
+  };
+
+  const handleUploadProviderChange = async (provider) => {
+    if (toggles.uploadProvider === provider) return;
+    const previous = toggles.uploadProvider;
+    setToggles((prev) => ({ ...prev, uploadProvider: provider }));
+    setSavingField("uploadProvider");
+    try {
+      const response = await adminAPI.updateBusinessToggles({ uploadProvider: provider });
+      const updated = response?.data?.data || response?.data;
+      if (updated) setCachedSettings(updated);
+      const label = UPLOAD_PROVIDER_OPTIONS.find((o) => o.id === provider)?.label || provider;
+      toast.success(`New uploads will be stored in: ${label}`);
+    } catch (error) {
+      setToggles((prev) => ({ ...prev, uploadProvider: previous }));
+      toast.error(error?.response?.data?.message || "Failed to change upload storage");
+    } finally {
+      setSavingField(null);
+      fetchStorageStatus();
     }
   };
 
@@ -141,6 +199,61 @@ export default function ToggleManagement() {
       </div>
 
       <div className="space-y-4">
+        {/* Upload storage provider */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-semibold text-slate-900">Upload Storage</h3>
+              {isSaving("uploadProvider") && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Choose where newly uploaded images, banners and documents are stored. Files that are already uploaded stay where they are and keep working.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {UPLOAD_PROVIDER_OPTIONS.map((option) => {
+                const Icon = option.icon;
+                const active = toggles.uploadProvider === option.id;
+                const info = storageStatus?.providers?.[option.id];
+                const ready = info ? info.available : true;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    disabled={isSaving("uploadProvider") || (!ready && !active)}
+                    onClick={() => handleUploadProviderChange(option.id)}
+                    className={`text-left rounded-xl border-2 p-4 transition-all disabled:cursor-not-allowed ${
+                      active ? "border-blue-600 bg-blue-50/60" : "border-slate-200 bg-white hover:border-slate-300"
+                    } ${!ready && !active ? "opacity-60" : ""}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                        <Icon className={`w-4 h-4 ${active ? "text-blue-600" : "text-slate-500"}`} />
+                        {option.label}
+                      </span>
+                      {active && <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">In use</span>}
+                    </div>
+                    <p className="text-xs text-slate-600 mb-3">{option.description}</p>
+                    <p className={`flex items-start gap-1.5 text-[11px] font-medium ${ready ? "text-emerald-700" : "text-amber-700"}`}>
+                      {ready ? <CheckCircle2 className="w-3.5 h-3.5 mt-px shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 mt-px shrink-0" />}
+                      <span>{info ? info.message : "Checking..."}</span>
+                    </p>
+                    {info?.path && <p className="mt-1 break-all text-[10px] text-slate-400">{info.path}</p>}
+                    {!ready && (
+                      <div className="mt-2 rounded-lg bg-slate-50 p-2 text-[10px] text-slate-500">
+                        <p className="font-semibold text-slate-600 mb-1">Add to backend .env:</p>
+                        {option.env.map((line) => (
+                          <p key={line} className="font-mono break-all">{line}</p>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white rounded-lg shadow-sm border border-slate-200">
           <div className="px-4 py-4 border-b border-slate-100">
             <h3 className="text-sm font-semibold text-slate-900 mb-4">System Features</h3>

@@ -73,8 +73,27 @@ export default function RestaurantLogin() {
 
   const primaryColor = "#7e3866"
 
+  // Bug #28: keep the phone field visible above the on-screen keyboard.
+  const keepPhoneInputVisible = () => {
+    const el = phoneInputRef.current
+    if (!el) return
+    window.setTimeout(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+    }, 300)
+  }
+
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null
+    if (!vv) return undefined
+    const onResize = () => {
+      if (document.activeElement === phoneInputRef.current) keepPhoneInputVisible()
+    }
+    vv.addEventListener("resize", onResize)
+    return () => vv.removeEventListener("resize", onResize)
+  }, [])
+
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex flex-col relative overflow-hidden font-['Poppins']">
+    <div className="min-h-[100dvh] bg-white dark:bg-[#0a0a0a] flex flex-col relative overflow-x-hidden font-['Poppins']">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-primary/10 via-primary/5 to-transparent pointer-events-none" />
       <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none animate-pulse" />
@@ -90,7 +109,7 @@ export default function RestaurantLogin() {
         </Link>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10">
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-6 sm:px-6 sm:py-12 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -98,13 +117,13 @@ export default function RestaurantLogin() {
           className="w-full max-w-[440px]"
         >
           {/* Logo & Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-5 sm:mb-8">
             {logoUrl && (
               <motion.div
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="relative w-32 h-32 md:w-36 md:h-36 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden border-4 border-white mx-auto mb-4 bg-white flex items-center justify-center"
+                className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden border-4 border-white mx-auto mb-3 sm:mb-4 bg-white flex items-center justify-center"
                 style={{ borderRadius: '50%', WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
               >
                 <img 
@@ -127,20 +146,20 @@ export default function RestaurantLogin() {
           </div>
 
           {/* Login Card */}
-          <div className="bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-2xl rounded-[3rem] p-8 sm:p-12 shadow-[0_40px_80px_-20px_rgba(126,56,102,0.2)] dark:shadow-none border border-white/20 dark:border-gray-800 relative overflow-hidden">
+          <div className="bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-2xl rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-12 shadow-[0_40px_80px_-20px_rgba(126,56,102,0.2)] dark:shadow-none border border-white/20 dark:border-gray-800 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
-            <div className="mb-10 text-center sm:text-left">
-              <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2 font-['Outfit'] tracking-tight">
+            <div className="mb-6 sm:mb-10 text-center sm:text-left">
+              <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mb-2 font-['Outfit'] tracking-tight">
                 Partner Login
               </h2>
               <div className="h-1 w-10 bg-primary rounded-full mb-3 hidden sm:block" />
-              <p className="text-base text-gray-500 dark:text-gray-400 font-medium">
+              <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 font-medium">
                 Enter your registered mobile number to manage your restaurant
               </p>
             </div>
 
-            <form onSubmit={handleSendOTP} className="space-y-8">
+            <form onSubmit={handleSendOTP} className="space-y-6 sm:space-y-8">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1">Mobile Number</label>
                 <div className="relative group">
@@ -162,6 +181,7 @@ export default function RestaurantLogin() {
                       sessionStorage.setItem("restaurantLoginPhone", val);
                     }}
                     maxLength={10}
+                    onFocus={keepPhoneInputVisible}
                     className="block w-full pl-22 pr-6 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border-2 border-transparent focus:border-primary/50 rounded-2xl outline-none transition-all placeholder:text-gray-400 font-medium text-lg shadow-sm"
                     placeholder="Enter Number"
                   />
@@ -190,14 +210,14 @@ export default function RestaurantLogin() {
             </form>
           </div>
 
-          <div className="mt-8 text-center">
+          <div className="mt-5 sm:mt-8 text-center">
             <p className="text-[11px] text-gray-400 font-medium leading-relaxed max-w-[320px] mx-auto">
               By continuing, you agree to The Food Galaxy's <br />
               <Link to="/food/restaurant/profile/terms" className="text-gray-900 dark:text-white font-bold hover:text-primary transition-colors">Terms of Service</Link> & <Link to="/food/restaurant/profile/privacy" className="text-gray-900 dark:text-white font-bold hover:text-primary transition-colors">Privacy Policy</Link>
             </p>
           </div>
 
-          <div className="mt-12 flex justify-center items-center gap-6 opacity-30 grayscale hover:opacity-60 transition-opacity">
+          <div className="mt-6 sm:mt-12 hidden sm:flex justify-center items-center gap-6 opacity-30 grayscale hover:opacity-60 transition-opacity">
             <div className="flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-widest">Business Verified</span>

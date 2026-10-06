@@ -333,9 +333,12 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
           const filteredItems = item.items.reduce((acc, subItem) => {
             if (subItem.type === "expandable") {
               // Check if they have the main parent permission OR any specific sub-permission
-              const allowedSubItems = (subItem.subItems || []).filter(si => 
-                allowed.includes(subItem.label) || allowed.includes(si.label)
-              )
+              // Bug #106: explicitly granted sub-pages win over the parent permission
+              const subList = subItem.subItems || []
+              const explicitSubItems = subList.filter(si => allowed.includes(si.label))
+              const allowedSubItems = explicitSubItems.length > 0
+                ? explicitSubItems
+                : (allowed.includes(subItem.label) ? subList : [])
               if (allowedSubItems.length > 0) {
                 acc.push({ ...subItem, subItems: allowedSubItems })
               } else if (allowed.includes(subItem.label)) {

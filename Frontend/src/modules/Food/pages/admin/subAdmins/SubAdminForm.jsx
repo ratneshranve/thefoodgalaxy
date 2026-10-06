@@ -68,9 +68,14 @@ export default function SubAdminForm({ subAdmin, onClose }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let next = type === "checkbox" ? checked : value;
+    // Bug #103: phone is a 10-digit Indian mobile number.
+    if (name === "phone") next = String(value).replace(/\D/g, "").slice(0, 10);
+    // Bug #104: password is limited to 8 characters.
+    if (name === "password") next = String(value).slice(0, 8);
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: next,
     }));
   };
 
@@ -81,6 +86,12 @@ export default function SubAdminForm({ subAdmin, onClose }) {
     }
     if (!isEditing && !formData.password) {
       return toast.error("Password is required for new sub admin");
+    }
+    if (formData.phone && !/^[6-9]\d{9}$/.test(formData.phone)) {
+      return toast.error("Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9");
+    }
+    if (formData.password && (formData.password.length < 6 || formData.password.length > 8)) {
+      return toast.error("Password must be 6 to 8 characters");
     }
 
     setLoading(true);
@@ -180,12 +191,14 @@ export default function SubAdminForm({ subAdmin, onClose }) {
                   Phone
                 </label>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#11b5b8]"
-                  placeholder="+1 234 567 890"
+                  placeholder="10-digit mobile number"
                 />
               </div>
 
@@ -197,6 +210,8 @@ export default function SubAdminForm({ subAdmin, onClose }) {
                   <input
                     type={showPassword ? "text" : "password"}
                     name="password"
+                    maxLength={8}
+                    minLength={6}
                     value={formData.password}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#11b5b8] pr-10"

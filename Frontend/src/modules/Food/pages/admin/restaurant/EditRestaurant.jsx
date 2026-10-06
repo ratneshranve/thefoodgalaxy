@@ -302,7 +302,7 @@ export default function EditRestaurant() {
 
       const payload = {
         name: detailsForm.name,
-        pureVegRestaurant: detailsForm.pureVegRestaurant === true,
+        pureVegRestaurant: true, // veg-only app (was detailsForm.pureVegRestaurant === true)
         ownerName: detailsForm.ownerName,
         ownerEmail: detailsForm.ownerEmail,
         ownerPhone: detailsForm.ownerPhone,
@@ -432,6 +432,7 @@ export default function EditRestaurant() {
                   <Label>Restaurant Name</Label>
                   <Input value={detailsForm.name} onChange={(e) => setDetailsForm((p) => ({ ...p, name: e.target.value }))} />
                 </div>
+                {/* Veg-only app: Pure Veg toggle hidden.
                 <div>
                   <Label>Pure Veg</Label>
                   <div className="mt-2 flex items-center gap-2">
@@ -459,6 +460,7 @@ export default function EditRestaurant() {
                     </button>
                   </div>
                 </div>
+                */}
                 <div>
                   <Label>Primary Email</Label>
                   <Input value={detailsForm.email} onChange={(e) => setDetailsForm((p) => ({ ...p, email: e.target.value }))} />

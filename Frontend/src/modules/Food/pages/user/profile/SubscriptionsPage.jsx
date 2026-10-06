@@ -175,7 +175,7 @@ export default function SubscriptionsPage() {
   };
 
   return (
-    <AnimatedPage className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24 text-gray-900 dark:text-gray-100">
+    <AnimatedPage className="min-h-screen overflow-x-hidden bg-gray-50 dark:bg-gray-950 pb-24 text-gray-900 dark:text-gray-100">
       {/* Top Header */}
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/80 dark:border-gray-800 px-4 py-3 flex items-center space-x-3">
         <button
@@ -190,7 +190,7 @@ export default function SubscriptionsPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
+      <div className="max-w-4xl mx-auto p-4 space-y-6 overflow-x-hidden">
         {/* Hero Section */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-green-950 to-emerald-900 text-white p-6 sm:p-8 shadow-xl border border-emerald-500/30">
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
@@ -229,13 +229,13 @@ export default function SubscriptionsPage() {
             {activeSub && (
               <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950/30 via-green-900/20 to-emerald-900/30 dark:from-emerald-950/50 dark:via-green-950/40 dark:to-emerald-900/50 rounded-3xl p-6 border-2 border-emerald-500/50 shadow-lg shadow-emerald-950/20">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-emerald-500/20 pb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-3 bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-950 rounded-2xl shadow-md">
+                  <div className="flex min-w-0 items-center space-x-3">
+                    <div className="p-3 shrink-0 bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-950 rounded-2xl shadow-md">
                       <Crown className="w-6 h-6" />
                     </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="min-w-0 break-words [overflow-wrap:anywhere] text-xl font-bold text-gray-900 dark:text-white">
                           {activeSub.planSnapshot?.name || "VIP Subscription"}
                         </h3>
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-gray-950">
@@ -266,7 +266,7 @@ export default function SubscriptionsPage() {
                       activeSub.planSnapshot.benefits.map((b, idx) => (
                         <div key={idx} className="flex items-center space-x-2 text-sm font-medium">
                           <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <span>{b.title}</span>
+                          <span className="min-w-0 break-words">{b.title}</span>
                         </div>
                       ))}
                   </div>
@@ -316,12 +316,14 @@ export default function SubscriptionsPage() {
                         }`}
                       >
                         <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-400/10 text-amber-400 border border-amber-400/30">
-                              <Crown className="w-3.5 h-3.5 text-amber-400" />
-                              <span>{plan.name}</span>
+                          {/* Bugs #123/#124: long plan names wrap inside the card instead of
+                              pushing it wider than the screen. */}
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <span className="inline-flex min-w-0 max-w-full items-start gap-1.5 px-3 py-1 rounded-2xl text-xs font-extrabold bg-amber-400/10 text-amber-400 border border-amber-400/30">
+                              <Crown className="w-3.5 h-3.5 mt-px shrink-0 text-amber-400" />
+                              <span className="min-w-0 break-words [overflow-wrap:anywhere]">{plan.name}</span>
                             </span>
-                            <span className="text-xs font-semibold text-gray-500">
+                            <span className="shrink-0 text-xs font-semibold text-gray-500">
                               {plan.durationDays} Days
                             </span>
                           </div>
@@ -346,7 +348,7 @@ export default function SubscriptionsPage() {
                               plan.benefits.map((b, idx) => (
                                 <div key={idx} className="flex items-center space-x-2 text-xs font-semibold text-gray-800 dark:text-gray-200">
                                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                  <span>{b.title}</span>
+                                  <span className="min-w-0 break-words">{b.title}</span>
                                 </div>
                               ))}
                           </div>

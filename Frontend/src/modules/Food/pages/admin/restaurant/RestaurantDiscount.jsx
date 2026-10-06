@@ -276,7 +276,7 @@ export default function RestaurantDiscount() {
                           <Button
                             variant="outline"
                             onClick={() => openDiscountModal(restaurant)}
-                            className="bg-white hover:bg-slate-50"
+                            className="bg-white text-slate-900 hover:bg-slate-50 hover:text-slate-900"
                           >
                             Manage Discounts
                           </Button>

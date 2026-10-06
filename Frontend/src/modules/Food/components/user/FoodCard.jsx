@@ -7,6 +7,7 @@ import { useCart } from "@food/context/CartContext"
 import { isModuleAuthenticated } from "@food/utils/auth"
 import { useNavigate, useLocation } from "react-router-dom"
 import { toast } from "sonner"
+import { getDishDetailPath, foodHasVariants } from "@food/utils/dishLinks"
 
 const RUPEE_SYMBOL = "\u20B9"
 
@@ -43,9 +44,30 @@ const FoodCard = ({
     (Array.isArray(item.images) ? item.images[0] : "") ||
     ""
 
+  const detailPath = getDishDetailPath(item)
+  const hasVariants = foodHasVariants(item)
+
+  // Bug #41: the card itself opens the dish on its restaurant page.
+  const handleCardClick = (e) => {
+    if (onClick) {
+      onClick(e)
+      return
+    }
+    if (detailPath) navigate(detailPath)
+  }
+
   const handleAddToCart = (e) => {
     e.preventDefault()
     e.stopPropagation()
+
+    // Bug #42: dishes with variants must be added through the variant picker.
+    if (hasVariants) {
+      const variantPath = getDishDetailPath(item, { open: true })
+      if (variantPath) {
+        navigate(variantPath)
+        return
+      }
+    }
 
     if (!isModuleAuthenticated("user")) {
       toast.error("Please login to add items to cart")
@@ -80,8 +102,8 @@ const FoodCard = ({
   return (
     <motion.div
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className={`group relative bg-white dark:bg-[#161616] rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col ${className}`}
-      onClick={onClick}
+      className={`group relative bg-white dark:bg-[#161616] rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col ${onClick || detailPath ? "cursor-pointer" : ""} ${className}`}
+      onClick={handleCardClick}
     >
       {/* Image Container */}
       <div className={`relative w-full overflow-hidden bg-gray-100 dark:bg-gray-900 ${compact ? "h-32 sm:h-36" : "h-40 sm:h-48"}`}>
@@ -97,9 +119,12 @@ const FoodCard = ({
           </div>
         )}
 
-        {/* Veg / Non-Veg Indicator Badge */}
+        {/* Veg Indicator Badge (veg-only app: always the green veg mark) */}
         <div className="absolute top-2.5 left-2.5 z-10 bg-white/90 dark:bg-black/80 backdrop-blur-md p-1 rounded-md border border-black/5 shadow-sm">
-          {isVeg ? (
+          <div className="h-3.5 w-3.5 rounded border border-green-600 flex items-center justify-center">
+            <div className="h-1.5 w-1.5 rounded-full bg-green-600" />
+          </div>
+          {/* {isVeg ? (
             <div className="h-3.5 w-3.5 rounded border border-green-600 flex items-center justify-center">
               <div className="h-1.5 w-1.5 rounded-full bg-green-600" />
             </div>
@@ -107,7 +132,7 @@ const FoodCard = ({
             <div className="h-3.5 w-3.5 rounded border border-red-600 flex items-center justify-center">
               <div className="h-1.5 w-1.5 rounded-full bg-red-600" />
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Discount Badge */}
@@ -147,8 +172,8 @@ const FoodCard = ({
             </div>
           </div>
 
-          {/* Action Button: ADD / Counter */}
-          {quantity > 0 ? (
+          {/* Action Button: ADD / Counter (dishes with variants always go through the picker) */}
+          {quantity > 0 && !hasVariants ? (
             <div
               className="flex items-center bg-primary text-white rounded-xl shadow-md overflow-hidden"
               onClick={(e) => e.stopPropagation()}
@@ -182,6 +207,9 @@ const FoodCard = ({
             </Button>
           )}
         </div>
+        {hasVariants && (
+          <p className="mt-1 text-right text-[10px] font-medium text-gray-400 dark:text-gray-500">Customisable</p>
+        )}
       </div>
     </motion.div>
   )

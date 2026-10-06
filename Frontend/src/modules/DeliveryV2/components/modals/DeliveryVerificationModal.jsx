@@ -25,14 +25,19 @@ const DeliveryInstructionsPanel = ({ note }) => {
 
   return (
     <div className="w-full rounded-3xl mb-6 overflow-hidden border border-orange-100 shadow-sm">
-      <div className="bg-linear-to-r from-orange-500 to-amber-500 px-5 py-3 flex items-center justify-between">
+      {/* Bug #66: inline gradient - the theme's class-based gradient override made this
+          header transparent, hiding the white heading text. */}
+      <div
+        className="px-5 py-3 flex items-center justify-between"
+        style={{ background: 'linear-gradient(90deg, var(--dv-primary, #f97316) 0%, var(--dv-primary-strong, #d97706) 100%)' }}
+      >
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 bg-white/20 rounded-2xl flex items-center justify-center text-white">
             <Package className="w-5 h-5" />
           </div>
           <div>
             <p className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
-              Delivery instruction
+              User note
             </p>
             <p className="text-[11px] font-semibold text-white/90">
               Read before handover
@@ -233,7 +238,7 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
         toast.error("Could not generate QR code");
       }
     } catch (e) {
-      toast.error("QR Generation failed");
+      toast.error(e?.response?.data?.message || "QR Generation failed");
     } finally {
       setIsGeneratingQr(false);
     }

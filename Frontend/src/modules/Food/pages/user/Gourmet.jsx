@@ -251,7 +251,7 @@ export default function Gourmet() {
                               <Clock className="h-4 w-4 text-primary" strokeWidth={2.5} />
                               <span>{restaurant.estimatedDeliveryTime || '25-30 mins'}</span>
                             </div>
-                            <span className="text-gray-200">â€¢</span>
+                            <span className="text-gray-200">•</span>
                             <div className="flex items-center gap-1.5">
                               <span className="text-[#a05485] font-black">{distanceStr} away</span>
                             </div>

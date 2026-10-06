@@ -91,6 +91,9 @@ export default function Feedback() {
     reasons: []
   })
   const [complaintsSearchQuery, setComplaintsSearchQuery] = useState("")
+  // Bug #134: search boxes were not connected to anything.
+  const [complaintsSearchInput, setComplaintsSearchInput] = useState("")
+  const [reviewSearchQuery, setReviewSearchQuery] = useState("")
   
   const [isDateSelectorOpen, setIsDateSelectorOpen] = useState(false)
   const [selectedDateRange, setSelectedDateRange] = useState("last5days") 
@@ -253,6 +256,7 @@ export default function Feedback() {
 
             return {
               id: order._id || order.orderId || `review-${index}`,
+              timestamp: orderDate.getTime(),
               orderNumber: order.orderId || order.orderNumber || String(index),
               outlet: outlet,
               userName: userName,
@@ -287,9 +291,32 @@ export default function Feedback() {
 
   useEffect(() => {
     let filtered = [...reviews]
+
+    // Bug #134: search by customer, review text or order id
+    const q = reviewSearchQuery.trim().toLowerCase()
+    if (q) {
+      filtered = filtered.filter((review) =>
+        [review.userName, review.reviewText, review.orderNumber]
+          .some((value) => String(value || "").toLowerCase().includes(q)),
+      )
+    }
+
+    // Period filter (last N days)
+    const durationDays = Number(filterValues.duration)
+    if (durationDays > 0) {
+      const cutoff = Date.now() - durationDays * 24 * 60 * 60 * 1000
+      filtered = filtered.filter((review) => Number(review.timestamp || 0) >= cutoff)
+    }
+
+    // Rating filter (selected star values)
+    const ratings = Array.isArray(filterValues.reviewType) ? filterValues.reviewType : []
+    if (ratings.length > 0) {
+      filtered = filtered.filter((review) => ratings.includes(Math.round(Number(review.rating) || 0)))
+    }
+
     if (filterValues.sortBy) {
       filtered.sort((a, b) => {
-        const dateA = new Date(a.date); const dateB = new Date(b.date)
+        const dateA = Number(a.timestamp || 0); const dateB = Number(b.timestamp || 0)
         if (filterValues.sortBy === "newest") return dateB - dateA
         if (filterValues.sortBy === "oldest") return dateA - dateB
         if (filterValues.sortBy === "bestRated") return (b.rating ?? 0) - (a.rating ?? 0)
@@ -298,9 +325,16 @@ export default function Feedback() {
       })
     }
     setDisplayedReviews(filtered)
-  }, [reviews, filterValues])
+  }, [reviews, filterValues, reviewSearchQuery])
 
-  const handleFilterReset = () => { setFilterValues({ duration: null, sortBy: "newest", reviewType: [] }); setIsFilterApply() }
+  // Debounce the complaints search box into the API query
+  useEffect(() => {
+    const timer = setTimeout(() => setComplaintsSearchQuery(complaintsSearchInput.trim()), 400)
+    return () => clearTimeout(timer)
+  }, [complaintsSearchInput])
+
+  // (was calling an undefined setIsFilterApply(), which crashed "Reset")
+  const handleFilterReset = () => { setFilterValues({ duration: null, sortBy: "newest", reviewType: [] }); setReviewSearchQuery("") }
   const handleFilterApply = () => { setIsFilterLoading(true); setIsFilterOpen(false); setTimeout(() => setIsFilterLoading(false), 200) }
 
   const formatDate = (date) => {
@@ -359,7 +393,7 @@ export default function Feedback() {
   }
 
   const handleComplaintsFilterApply = () => { setIsComplaintsLoading(true); setIsComplaintsFilterOpen(false); setTimeout(() => setIsComplaintsLoading(false), 200) }
-  const handleComplaintsFilterReset = () => { setComplaintsFilterValues({ issueType: [], reasons: [] }); setComplaintsSearchQuery(""); setIsComplaintsLoading(true); setTimeout(() => setIsComplaintsLoading(false), 200) }
+  const handleComplaintsFilterReset = () => { setComplaintsFilterValues({ issueType: [], reasons: [] }); setComplaintsSearchInput(""); setComplaintsSearchQuery(""); setIsComplaintsLoading(true); setTimeout(() => setIsComplaintsLoading(false), 200) }
 
   const handleDateRangeSelect = (range) => {
     setSelectedDateRange(range)
@@ -446,6 +480,21 @@ export default function Feedback() {
                 <SlidersHorizontal className="w-4 h-4 text-gray-900 dark:text-white" />
               </button>
             </div>
+            <div className="bg-white dark:bg-[#1a1a1a] p-3 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center gap-2">
+              <Search className="w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={complaintsSearchInput}
+                onChange={(e) => setComplaintsSearchInput(e.target.value)}
+                placeholder="Search complaints"
+                className="flex-1 text-sm bg-transparent focus:outline-none dark:text-white"
+              />
+              {complaintsSearchInput ? (
+                <button type="button" onClick={() => setComplaintsSearchInput("")} aria-label="Clear search">
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              ) : null}
+            </div>
 
             <AnimatePresence mode="wait">
               {isComplaintsLoading ? (
@@ -497,12 +546,32 @@ export default function Feedback() {
             <div className="flex gap-2">
               <div className="flex-1 bg-white dark:bg-[#1a1a1a] p-3 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center gap-2">
                 <Search className="w-4 h-4 text-gray-400" />
-                <input type="text" placeholder="Search reviews" className="flex-1 text-sm bg-transparent focus:outline-none dark:text-white" />
+                <input
+                  type="text"
+                  value={reviewSearchQuery}
+                  onChange={(e) => setReviewSearchQuery(e.target.value)}
+                  placeholder="Search by customer, review or order"
+                  className="flex-1 text-sm bg-transparent focus:outline-none dark:text-white"
+                />
+                {reviewSearchQuery ? (
+                  <button type="button" onClick={() => setReviewSearchQuery("")} aria-label="Clear search">
+                    <X className="w-4 h-4 text-gray-400" />
+                  </button>
+                ) : null}
               </div>
-              <button onClick={() => setIsFilterOpen(true)} className="bg-white dark:bg-[#1a1a1a] p-3 rounded-xl border border-gray-200 dark:border-gray-800">
+              <button onClick={() => setIsFilterOpen(true)} className="relative bg-white dark:bg-[#1a1a1a] p-3 rounded-xl border border-gray-200 dark:border-gray-800">
                 <SlidersHorizontal className="w-4 h-4 text-gray-900 dark:text-white" />
+                {(filterValues.duration || (filterValues.reviewType || []).length > 0 || filterValues.sortBy !== "newest") && (
+                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />
+                )}
               </button>
             </div>
+
+            {!isLoadingReviews && displayedReviews.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] p-6 text-center text-sm text-gray-500">
+                {reviews.length === 0 ? "No reviews yet." : "No reviews match your search or filters."}
+              </div>
+            )}
 
             <div className="space-y-4 pb-20">
               {displayedReviews.map((review) => (
@@ -602,6 +671,125 @@ export default function Feedback() {
               >
                 Apply Custom Range
               </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Reviews Filter Popup (bug #134: the filter button opened a sheet that was never rendered) */}
+      <AnimatePresence>
+        {isFilterOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50"
+              onClick={() => setIsFilterOpen(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="restaurant-modal-sheet bg-white dark:bg-[#1a1a1a] rounded-t-3xl shadow-2xl z-50 p-4 space-y-5"
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold dark:text-white">Filter reviews</h3>
+                <button onClick={() => setIsFilterOpen(false)}><X className="w-5 h-5 dark:text-white" /></button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Sort by</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "newest", label: "Newest first" },
+                    { id: "oldest", label: "Oldest first" },
+                    { id: "bestRated", label: "Highest rated" },
+                    { id: "worstRated", label: "Lowest rated" },
+                  ].map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setFilterValues((prev) => ({ ...prev, sortBy: option.id }))}
+                      className={`py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${
+                        filterValues.sortBy === option.id ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black" : "border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-400"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Period</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { id: null, label: "All" },
+                    { id: "7", label: "7 days" },
+                    { id: "30", label: "30 days" },
+                    { id: "90", label: "90 days" },
+                  ].map((option) => (
+                    <button
+                      key={String(option.id)}
+                      type="button"
+                      onClick={() => setFilterValues((prev) => ({ ...prev, duration: option.id }))}
+                      className={`py-2.5 rounded-xl border-2 text-xs font-bold transition-all ${
+                        (filterValues.duration || null) === option.id ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black" : "border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-400"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Rating</p>
+                <div className="flex gap-2">
+                  {[5, 4, 3, 2, 1].map((star) => {
+                    const selected = (filterValues.reviewType || []).includes(star)
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() =>
+                          setFilterValues((prev) => {
+                            const current = Array.isArray(prev.reviewType) ? prev.reviewType : []
+                            return {
+                              ...prev,
+                              reviewType: selected ? current.filter((value) => value !== star) : [...current, star],
+                            }
+                          })
+                        }
+                        className={`flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${
+                          selected ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black" : "border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-400"
+                        }`}
+                      >
+                        {star} <Star className="w-3 h-3 fill-current" />
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleFilterReset}
+                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-800 font-bold text-sm text-gray-700 dark:text-gray-300"
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFilterApply}
+                  className="flex-1 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black font-bold text-sm"
+                >
+                  Apply
+                </button>
+              </div>
             </motion.div>
           </>
         )}

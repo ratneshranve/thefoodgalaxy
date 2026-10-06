@@ -67,9 +67,14 @@ export function useLocationSelector() {
 
 function LocationSelectorProvider({ children }) {
   const navigate = useNavigate()
+  const location = useLocation()
 
+  // Bug #128: remember where the selector was opened from (e.g. Profile) so
+  // "back" returns there instead of always going to the home page.
   const openLocationSelector = () => {
-    navigate("/food/user/address-selector")
+    navigate("/food/user/address-selector", {
+      state: { backTo: `${location.pathname}${location.search || ""}` },
+    })
   }
 
   const value = {

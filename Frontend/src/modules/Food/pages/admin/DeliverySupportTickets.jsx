@@ -321,7 +321,8 @@ export default function DeliverySupportTickets() {
                         >
                           <Edit className="w-4 h-4 text-blue-600" />
                         </button>
-                        {ticket.status !== 'closed' && (
+                        {/* Bug #120: status stays editable (closed/resolved tickets can be reopened) */}
+                        {(
                           <select
                             value={ticket.status}
                             onChange={(e) => handleStatusChange(ticket._id, e.target.value)}

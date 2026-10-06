@@ -183,26 +183,36 @@ router.get('/restaurants/:id/addons', cacheResponse(600, 'restaurant_addons'), g
 // Foods (restaurant creates/updates items -> stored in food_items collection)
 router.post('/foods', authMiddleware, requireRestaurant, async (req, res, next) => {
     await invalidateCache('restaurant_menu:*');
+    await invalidateCache('foods:*');
     next();
 }, createRestaurantFoodController);
 router.post('/foods/bulk', authMiddleware, requireRestaurant, async (req, res, next) => {
     await invalidateCache('restaurant_menu:*');
+    await invalidateCache('foods:*');
     next();
 }, bulkCreateRestaurantFoodController);
 router.patch('/foods/:id', authMiddleware, requireRestaurant, async (req, res, next) => {
     await invalidateCache('restaurant_menu:*');
+    await invalidateCache('foods:*');
     next();
 }, updateRestaurantFoodController);
 router.delete('/foods/:id', authMiddleware, requireRestaurant, async (req, res, next) => {
     await invalidateCache('restaurant_menu:*');
+    await invalidateCache('foods:*');
     next();
 }, deleteRestaurantFoodController);
 
 // Add-ons (restaurant dashboard) - approval handled by admin
 router.get('/addons', authMiddleware, requireRestaurant, listAddonsController);
-router.post('/addons', authMiddleware, requireRestaurant, createAddonController);
-router.patch('/addons/:id', authMiddleware, requireRestaurant, updateAddonController);
-router.delete('/addons/:id', authMiddleware, requireRestaurant, deleteAddonController);
+// Bug #122: the public add-ons list (checkout) is cached for 10 minutes and was never
+// invalidated, so new/changed add-ons did not show at checkout.
+const invalidateAddonsCache = async (req, res, next) => {
+    await invalidateCache('restaurant_addons:*');
+    next();
+};
+router.post('/addons', authMiddleware, requireRestaurant, invalidateAddonsCache, createAddonController);
+router.patch('/addons/:id', authMiddleware, requireRestaurant, invalidateAddonsCache, updateAddonController);
+router.delete('/addons/:id', authMiddleware, requireRestaurant, invalidateAddonsCache, deleteAddonController);
 
 // Orders (restaurant dashboard)
 router.get('/orders', authMiddleware, requireRestaurant, orderController.listOrdersRestaurantController);

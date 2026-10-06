@@ -22,7 +22,8 @@ export default function ShareFeedback() {
   const [showThanks, setShowThanks] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const numbers = Array.from({ length: 11 }, (_, i) => i)
+  // Bug #113: ratings are on a 1-5 scale everywhere (was 0-10 here).
+  const numbers = Array.from({ length: 5 }, (_, i) => i + 1)
 
   const handleClose = () => {
     goBack()
@@ -35,9 +36,9 @@ export default function ShareFeedback() {
       setIsSubmitting(true)
       // Save feedback experience to backend
       const response = await api.post(API_ENDPOINTS.ADMIN.FEEDBACK_EXPERIENCE_CREATE, {
-        rating: Math.ceil(rating / 2) || 1, // Convert 0-10 to 1-5 for backend
+        rating,
         module: 'restaurant',
-        comment: `User rated ${rating}/10 overall experience`
+        comment: `User rated ${rating}/5 overall experience`
       })
       
       if (response.data?.success) {
@@ -80,7 +81,7 @@ export default function ShareFeedback() {
 
         {/* Rating scale */}
         <div className="mb-3">
-          <div className="grid grid-cols-11 gap-1 rounded-xl border border-gray-300 bg-white overflow-hidden">
+          <div className="grid grid-cols-5 gap-1 rounded-xl border border-gray-300 bg-white overflow-hidden">
             {numbers.map((num) => {
               const isActive = rating === num
               const intensity =
@@ -119,7 +120,7 @@ export default function ShareFeedback() {
             >
               You rated your experience{" "}
               <span className="font-semibold text-gray-900">
-                {rating}/10
+                {rating}/5
               </span>
               .
             </motion.p>

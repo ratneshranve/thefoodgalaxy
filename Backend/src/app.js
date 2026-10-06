@@ -12,7 +12,7 @@ import { requestIdMiddleware } from './middleware/requestId.js';
 import { healthCheck } from './config/health.js';
 import { config } from './config/env.js';
 import compression from 'compression';
-import { resolveUploadRoot } from './utils/uploadPaths.js';
+import { resolveUploadRoot, resolveVpsUploadRoot } from './utils/uploadPaths.js';
 
 const app = express();
 
@@ -115,8 +115,13 @@ app.use('/api', routes);
 
 // Static Uploads Serving
 const uploadDir = resolveUploadRoot();
+// Files saved by the "vps" provider live in a second folder; serve both so URLs
+// keep working after the admin switches between local and VPS storage.
+const vpsUploadDir = resolveVpsUploadRoot();
 app.use('/uploads', express.static(uploadDir));
+app.use('/uploads', express.static(vpsUploadDir));
 app.use('/api/v1/uploads', express.static(uploadDir));
+app.use('/api/v1/uploads', express.static(vpsUploadDir));
 
 // Error Handling
 app.use(errorHandler);

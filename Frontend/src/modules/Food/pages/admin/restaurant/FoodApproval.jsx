@@ -488,6 +488,33 @@ export default function FoodApproval() {
                     )}
                 </div>
 
+                {/* Bug #38: show the variants (name + price) */}
+                {Array.isArray(selectedRequest.variants) && selectedRequest.variants.length > 0 && (
+                  <div className="col-span-full">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                      Variants ({selectedRequest.variants.length})
+                    </label>
+                    <div className="overflow-hidden rounded-lg border border-slate-100">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold">Variant</th>
+                            <th className="px-3 py-2 text-right font-semibold">Price</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {selectedRequest.variants.map((variant, idx) => (
+                            <tr key={variant.id || variant._id || idx}>
+                              <td className="px-3 py-2 text-gray-800">{variant.name}</td>
+                              <td className="px-3 py-2 text-right font-semibold text-green-600">₹{Number(variant.price || 0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 {selectedRequest.description && (
                   <div className="col-span-full">
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Description</label>

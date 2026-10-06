@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Outlet, useLocation } from "react-router-dom"
 import RestaurantNavbar from "./RestaurantNavbar"
 import RestaurantSidebar from "./RestaurantSidebar"
@@ -8,6 +8,8 @@ import { RestaurantLayoutProvider, useRestaurantLayout } from "./RestaurantLayou
 import { RestaurantNotificationProvider } from "@food/context/RestaurantNotificationContext"
 import { getRestaurantLayoutOptions, getRestaurantHeaderOptions } from "@food/utils/restaurantLayoutConfig"
 import { cn } from "@food/utils/utils"
+import PullToRefresh from "@/shared/components/PullToRefresh"
+import { dispatchNotificationInboxRefresh } from "@food/hooks/useNotificationInbox"
 
 export default function RestaurantLayout() {
   const { pathname } = useLocation()
@@ -83,6 +85,16 @@ function RestaurantLayoutShell({
   const { showSidebar, showNavbar, showBottomNav } = options
   const headerOptions = getRestaurantHeaderOptions(pathname)
 
+  // Bug #40: pull down at the top of any restaurant page to reload its data.
+  // Re-mounting the routed page makes it fetch fresh data on mount.
+  const [refreshKey, setRefreshKey] = useState(0)
+  const handlePullRefresh = useCallback(async () => {
+    setRefreshKey((key) => key + 1)
+    dispatchNotificationInboxRefresh()
+    window.dispatchEvent(new Event("restaurantPullRefresh"))
+    await new Promise((resolve) => setTimeout(resolve, 700))
+  }, [])
+
   return (
     <div className="restaurant-layout h-screen overflow-hidden bg-gray-100 flex">
       {sidebarOpen && showSidebar && (
@@ -127,10 +139,12 @@ function RestaurantLayoutShell({
               "pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0"
           )}
         >
-          <div id="restaurant-scroll-content" className="min-h-full w-full">
+          <div id="restaurant-scroll-content" key={refreshKey} className="min-h-full w-full">
             <Outlet />
           </div>
         </main>
+
+        <PullToRefresh onRefresh={handlePullRefresh} />
 
         <GlobalRestaurantOrderNotification />
 

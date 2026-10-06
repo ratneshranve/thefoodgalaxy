@@ -209,8 +209,9 @@ export default function AllOrdersPage() {
     if (order.sendCutlery) tags.push('CUTLERY')
     tags.push('HOME DELIVERY')
     // Check if all items are veg
-    const allVeg = items.every(item => item.isVeg !== false)
-    if (allVeg && items.length > 0) tags.push('VEG ONLY')
+    // Veg-only app: every order is veg, so the "VEG ONLY" tag is not shown.
+    // const allVeg = items.every(item => item.isVeg !== false)
+    // if (allVeg && items.length > 0) tags.push('VEG ONLY')
     
     // Calculate Net Payout for the Restaurant
     let restaurantPayout = 0;

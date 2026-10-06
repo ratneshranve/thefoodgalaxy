@@ -565,7 +565,7 @@ export default function Customers() {
           </div>
 
           {/* Pagination Controls */}
-          {totalPages > 1 && (
+          {totalCustomers > 0 && (
             <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 mt-4">
               <div className="text-sm text-slate-500">
                 Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalCustomers)}</span> of <span className="font-medium">{totalCustomers}</span> results

@@ -990,7 +990,7 @@ export default function HubMenu() {
       return
     }
     
-    toast.message('Finish category setup on Menu Categories so you can choose veg, non-veg, or both before admin approval.')
+    toast.message('Finish category setup on Menu Categories before admin approval.')
     navigate('/restaurant/menu-categories', {
       state: {
         draftCategoryName: newCategoryName.trim(),
@@ -1364,21 +1364,13 @@ export default function HubMenu() {
                     {group.items.map((item) => (
                       <div key={item.id} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
                         <div className="flex items-start gap-3">
-                          {/* Left: Veg/Non-veg icon, name, price */}
+                          {/* Left: Veg icon (veg-only app: always green), name, price */}
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <div
-                                className={`w-4 h-4 rounded-sm border-2 shrink-0 flex items-center justify-center ${
-                                  item.foodType === "Veg"
-                                    ? "bg-green-50 border-green-600"
-                                    : "bg-red-50 border-red-600"
-                                }`}
+                                className={`w-4 h-4 rounded-sm border-2 shrink-0 flex items-center justify-center bg-green-50 border-green-600`}
                               >
-                                <div className={`w-2 h-2 rounded-full ${
-                                  item.foodType === "Veg"
-                                    ? "bg-green-600"
-                                    : "bg-red-600"
-                                }`} />
+                                <div className={`w-2 h-2 rounded-full bg-green-600`} />
                               </div>
                             </div>
                             <div className="flex items-center gap-2 mb-1">
@@ -2146,17 +2138,9 @@ export default function HubMenu() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <div
-                                      className={`w-4 h-4 rounded-sm border-2 shrink-0 flex items-center justify-center ${
-                                        item.foodType === "Veg"
-                                          ? "bg-green-50 border-green-600"
-                                          : "bg-red-50 border-red-600"
-                                      }`}
+                                      className={`w-4 h-4 rounded-sm border-2 shrink-0 flex items-center justify-center bg-green-50 border-green-600`}
                                     >
-                                      <div className={`w-2 h-2 rounded-full ${
-                                        item.foodType === "Veg"
-                                          ? "bg-green-600"
-                                          : "bg-red-600"
-                                      }`} />
+                                      <div className={`w-2 h-2 rounded-full bg-green-600`} />
                                     </div>
                                     <h4 className="text-sm font-bold text-gray-900 truncate">
                                       {item.name}

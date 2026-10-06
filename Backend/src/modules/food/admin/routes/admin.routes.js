@@ -13,6 +13,7 @@ import * as liveMonitorController from '../controllers/liveMonitor.controller.js
 import * as appIntroAdController from '../controllers/appIntroAd.controller.js';
 import { upload } from '../../../../middleware/upload.js';
 import menuBulkRoutes from './menuBulk.routes.js';
+import { invalidateCache } from '../../../../middleware/cache.js';
 
 const router = express.Router();
 
@@ -107,16 +108,27 @@ router.patch('/categories/:id/make-global', adminController.makeCategoryGlobal);
 
 // ----- Restaurant Add-ons Approval -----
 router.get('/addons', addonsApprovalController.getRestaurantAddons);
-router.patch('/addons/:id', addonsApprovalController.updateRestaurantAddon);
-router.patch('/addons/:id/approve', addonsApprovalController.approveRestaurantAddon);
-router.patch('/addons/:id/reject', addonsApprovalController.rejectRestaurantAddon);
+// Bug #122: approved/changed add-ons must show at checkout immediately.
+const invalidateAddonsCache = async (req, res, next) => {
+    await invalidateCache('restaurant_addons:*');
+    next();
+};
+// Approved/rejected foods must show (or disappear) in the user app immediately.
+const invalidateFoodCaches = async (req, res, next) => {
+    await invalidateCache('restaurant_menu:*');
+    await invalidateCache('foods:*');
+    next();
+};
+router.patch('/addons/:id', invalidateAddonsCache, addonsApprovalController.updateRestaurantAddon);
+router.patch('/addons/:id/approve', invalidateAddonsCache, addonsApprovalController.approveRestaurantAddon);
+router.patch('/addons/:id/reject', invalidateAddonsCache, addonsApprovalController.rejectRestaurantAddon);
 
 // ----- Foods -----
 // Food approval queue (pending items created by restaurants)
 router.get('/foods/pending-approvals', foodApprovalController.getPendingFoodApprovals);
-router.patch('/foods/bulk-approve', foodApprovalController.bulkApproveFoodItemsController);
-router.patch('/foods/:id/approve', foodApprovalController.approveFoodItemController);
-router.patch('/foods/:id/reject', foodApprovalController.rejectFoodItemController);
+router.patch('/foods/bulk-approve', invalidateFoodCaches, foodApprovalController.bulkApproveFoodItemsController);
+router.patch('/foods/:id/approve', invalidateFoodCaches, foodApprovalController.approveFoodItemController);
+router.patch('/foods/:id/reject', invalidateFoodCaches, foodApprovalController.rejectFoodItemController);
 
 router.get('/foods', adminController.getFoods);
 router.post('/foods', adminController.createFood);
@@ -144,6 +156,7 @@ router.put('/referral-settings', adminController.createOrUpdateReferralSettings)
 // ----- Business Settings -----
 router.get('/business-settings/public', businessSettingsController.getBusinessSettings); // Public endpoint
 router.get('/business-settings', businessSettingsController.getBusinessSettings);
+router.get('/business-settings/storage-status', businessSettingsController.getStorageStatusController);
 router.patch('/business-settings/toggles', businessSettingsController.updateBusinessToggles);
 router.patch('/business-settings', upload.fields([
     { name: 'logo', maxCount: 1 },

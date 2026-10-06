@@ -635,7 +635,7 @@ export default function EditOwner() {
               </div>
             </div>
 
-            {/* Pure Veg Toggle */}
+            {/* Veg-only app: Pure Veg toggle hidden.
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
               <div className="flex items-center gap-3">
                 <div className={`w-4 h-4 border-2 rounded-sm flex items-center justify-center ${formData.pureVegRestaurant ? 'border-green-600' : 'border-red-600'}`}>
@@ -650,6 +650,7 @@ export default function EditOwner() {
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.pureVegRestaurant ? 'left-7' : 'left-1'}`} />
               </button>
             </div>
+            */}
 
             {/* Name Field */}
             <div>

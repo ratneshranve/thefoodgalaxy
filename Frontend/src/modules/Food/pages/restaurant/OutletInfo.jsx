@@ -438,10 +438,12 @@ export default function OutletInfo() {
                 <p className="text-[13px] text-gray-500 font-medium mb-0.5">Email</p>
                 <p className="text-[15px] font-bold text-gray-900">{restaurantData?.email || restaurantData?.ownerEmail || "N/A"}</p>
               </div>
+              {/* Veg-only app: restaurant type (Pure Veg / Veg & Non-Veg) hidden.
               <div>
                 <p className="text-[13px] text-gray-500 font-medium mb-0.5">Restaurant type</p>
                 <p className="text-[15px] font-bold text-gray-900">{restaurantData?.pureVegRestaurant ? "Pure Veg" : "Veg & Non-Veg"}</p>
               </div>
+              */}
             </div>
           </div>
 
@@ -561,10 +563,12 @@ export default function OutletInfo() {
                   <label className="text-[13px] font-bold text-gray-700 mb-1.5 block tracking-wide">Email</label>
                   <input className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all text-[15px] text-gray-900 px-4 placeholder:text-gray-400" value={editFormData.email || editFormData.ownerEmail || ''} onChange={e => setEditFormData({...editFormData, email: e.target.value})} placeholder="Enter email address" />
                 </div>
+                {/* Veg-only app: Pure Veg checkbox hidden.
                 <div className="flex items-center gap-3 mt-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
                   <input type="checkbox" id="pureVeg" checked={!!editFormData.pureVegRestaurant} onChange={e => setEditFormData({...editFormData, pureVegRestaurant: e.target.checked})} className="w-5 h-5 rounded border-gray-300 text-[#E91E63] focus:ring-[#E91E63]" />
                   <label htmlFor="pureVeg" className="text-[14px] font-bold text-gray-800 cursor-pointer">Pure Veg Restaurant</label>
                 </div>
+                */}
               </>
             )}
             {editSection === 'compliance' && (

@@ -60,7 +60,7 @@ export async function listPendingFoodApprovals(query = {}) {
         restaurantId: toRestaurantDisplayId(f.restaurantId),
         category: f.categoryName || '',
         itemName: f.name,
-        foodType: f.foodType || 'Non-Veg',
+        foodType: f.foodType || 'Veg',
         sectionName: f.categoryName || '',
         subsectionName: '',
         approvalStatus: f.approvalStatus || 'pending',

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { usePagination } from "@food/components/admin/TablePagination"
 import { BarChart3, ChevronDown, Info, Settings, FileText, FileSpreadsheet, Code, Loader2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
@@ -146,6 +147,8 @@ export default function TransactionReport() {
       case "json": exportTransactionReportToJSON(filteredTransactions); break
     }
   }
+
+  const { pageItems: pagedTransactions, controls: paginationControls, startIndex: pageStart } = usePagination(filteredTransactions, 25)
 
   const handleFilterApply = () => {
     // Filters are already applied via useMemo
@@ -461,13 +464,13 @@ export default function TransactionReport() {
                     </td>
                   </tr>
                 ) : (
-                  filteredTransactions.map((transaction, index) => (
+                  pagedTransactions.map((transaction, index) => (
                     <tr
                       key={transaction.id}
                       className="hover:bg-slate-50 transition-colors"
                     >
                       <td className="px-1.5 py-1">
-                        <span className="text-[10px] font-medium text-slate-700">{index + 1}</span>
+                        <span className="text-[10px] font-medium text-slate-700">{pageStart + index + 1}</span>
                       </td>
                       <td className="px-1.5 py-1">
                         <span className="text-[10px] text-slate-700">{transaction.orderId}</span>
@@ -519,6 +522,7 @@ export default function TransactionReport() {
               </tbody>
             </table>
           </div>
+          {paginationControls}
         </div>
       </div>
     </div>

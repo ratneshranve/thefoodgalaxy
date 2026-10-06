@@ -20,8 +20,11 @@ const foodSchema = new mongoose.Schema(
         otherPlatformGst: { type: Number, default: null, min: 0, max: 100 },
         variants: { type: [foodVariantSchema], default: [] },
         image: { type: String, trim: true, default: '' },
-        foodType: { type: String, enum: ['Veg', 'Non-Veg'], default: 'Non-Veg' },
+        // Veg-only app: new dishes default to Veg.
+        foodType: { type: String, enum: ['Veg', 'Non-Veg'], default: 'Veg' },
         isAvailable: { type: Boolean, default: true, index: true },
+        // Restaurant can mark a dish as recommended; shown in the user app's Recommended section.
+        isRecommended: { type: Boolean, default: false },
         preparationTime: { type: String, trim: true, default: '' },
         approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved', index: true },
         rejectionReason: { type: String, trim: true, default: '' },

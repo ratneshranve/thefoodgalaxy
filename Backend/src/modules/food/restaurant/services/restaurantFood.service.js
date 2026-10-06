@@ -8,7 +8,8 @@ import {
     extractRawFoodVariants,
     getFoodDisplayPrice,
     hasFoodVariants,
-    normalizeFoodVariantsInput
+    normalizeFoodVariantsInput,
+    serializeFoodVariants
 } from '../../admin/services/foodVariant.service.js';
 import {
     backfillLegacyCategoryWorkflow,
@@ -293,7 +294,7 @@ export async function createRestaurantFood(restaurantId, body = {}) {
     try {
         const { notifyAdminsSafely } = await import('../../../../core/notifications/firebase.service.js');
         void notifyAdminsSafely({
-            title: 'New Product Approval Request Ã°Å¸Ââ€',
+            title: 'New Product Approval Request 🍔',
             body: `Restaurant has submitted a new item "${doc.name}" for approval.`,
             data: {
                 type: 'approval_request',
@@ -336,6 +337,9 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
     }
     Object.assign(update, getUpdatedFoodPricing(existing, body));
     if (body.isAvailable !== undefined) update.isAvailable = body.isAvailable !== false;
+    if (body.isRecommended !== undefined) {
+        update.isRecommended = body.isRecommended === true || String(body.isRecommended).toLowerCase() === 'true';
+    }
     if (body.preparationTime !== undefined) update.preparationTime = toStr(body.preparationTime);
 
     const targetFoodType = body.foodType !== undefined ? normalizeFoodType(body.foodType) : normalizeFoodType(existing.foodType);
@@ -355,7 +359,11 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
         update.categoryName = categoryName || '';
     }
 
-    const shouldResubmitForApproval = Object.keys(update).length > 0;
+    // Stock (isAvailable) and "recommended" are operational toggles, not content
+    // changes, so they must not send the dish back to admin approval (which hid
+    // the dish from customers every time stock was toggled).
+    const NON_APPROVAL_FIELDS = new Set(['isAvailable', 'isRecommended']);
+    const shouldResubmitForApproval = Object.keys(update).some((key) => !NON_APPROVAL_FIELDS.has(key));
 
     if (shouldResubmitForApproval) {
         update.approvalStatus = 'pending';
@@ -461,7 +469,7 @@ export async function bulkCreateFood(restaurantId, items = []) {
         try {
             const { notifyAdminsSafely } = await import('../../../../core/notifications/firebase.service.js');
             void notifyAdminsSafely({
-                title: 'Bulk Product Approval Request ðŸš€',
+                title: 'Bulk Product Approval Request 🚀',
                 body: `Restaurant has uploaded ${processedItems.length} new items for approval.`,
                 data: {
                     type: 'approval_request',
@@ -561,9 +569,12 @@ export async function listPublicApprovedFoods(query = {}) {
             name: f.name,
             description: f.description || '',
             price: getFoodDisplayPrice(f),
+            // Bug #42: the home "Add" button needs to know about variants.
+            variants: serializeFoodVariants(f.variants),
             image: normalizeMediaUrl(f.image || ''),
-            foodType: f.foodType || 'Non-Veg',
+            foodType: f.foodType || 'Veg',
             isAvailable: f.isAvailable !== false,
+            isRecommended: f.isRecommended === true,
             approvalStatus: f.approvalStatus || 'approved'
         };
     });

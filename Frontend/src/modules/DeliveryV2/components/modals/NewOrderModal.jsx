@@ -195,23 +195,23 @@ export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccep
           </button>
         </div>
 
-        {/* Header Ribbon (Old Green Style) */}
+        {/* Header Ribbon */}
         <div 
           className="p-4 sm:p-8 flex justify-between items-center text-white border-b border-white/10"
-          style={{ background: 'linear-gradient(33deg, #15498b 0%, #000000 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #d9383a 0%, #7f1d1d 100%)' }}
         >
           <div>
             <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest mb-1">Incoming Request</p>
             <div className="flex items-end gap-2">
               <h2 className="text-2xl sm:text-4xl font-bold tracking-tighter">₹{Number(earnings || 0).toFixed(2)}</h2>
               {bonus > 0 && (
-                <p className="text-white/70 text-xs font-semibold mb-1">
+                <p className="text-amber-200 text-xs font-semibold mb-1">
                   (₹{Number(baseEarnings).toFixed(0)} + ₹{Number(bonus).toFixed(0)} Bonus)
                 </p>
               )}
             </div>
           </div>
-          <div className="bg-white/20 border border-white/30 rounded-2xl sm:rounded-3xl px-3 sm:px-6 py-2 sm:py-3 text-white font-bold text-lg sm:text-2xl shadow-inner tabular-nums">
+          <div className="bg-amber-400/20 border border-amber-300/40 rounded-2xl sm:rounded-3xl px-3 sm:px-6 py-2 sm:py-3 text-amber-100 font-bold text-lg sm:text-2xl shadow-inner tabular-nums">
             {timeLeft}s
           </div>
         </div>

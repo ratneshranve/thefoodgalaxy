@@ -93,14 +93,23 @@ export default function Coupons() {
     const f = draft || formData
     const pct = f.discountType === "percentage"
     const value = Number(f.discountValue)
-    if (!String(f.couponCode || "").trim()) e.couponCode = "Coupon code is required"
+    const code = String(f.couponCode || "").trim()
+    if (!code) e.couponCode = "Coupon code is required"
+    else if (!/^[A-Z0-9]{3,20}$/.test(code.toUpperCase())) e.couponCode = "Use 3-20 letters/numbers only (no spaces or symbols)"
     if (!Number.isFinite(value) || value <= 0) e.discountValue = "Discount must be greater than 0"
+    else if (pct && value > 100) e.discountValue = "Percentage cannot be more than 100"
     if (pct && (f.maxDiscount === "" || f.maxDiscount === null || f.maxDiscount === undefined)) {
       e.maxDiscount = "Max discount is required for percentage coupons"
+    } else if (pct && Number(f.maxDiscount) <= 0) {
+      e.maxDiscount = "Max discount must be greater than 0"
     }
     if (f.minOrderValue !== "" && Number(f.minOrderValue) < 0) e.minOrderValue = "Min order cannot be negative"
-    if (f.usageLimit !== "" && Number(f.usageLimit) < 1) e.usageLimit = "Usage limit must be at least 1"
-    if (f.perUserLimit !== "" && Number(f.perUserLimit) < 1) e.perUserLimit = "Per user limit must be at least 1"
+    if (!pct && f.minOrderValue !== "" && Number.isFinite(value) && value > Number(f.minOrderValue)) {
+      e.minOrderValue = "Min order must be at least the flat discount amount"
+    }
+    if (f.usageLimit !== "" && (!Number.isInteger(Number(f.usageLimit)) || Number(f.usageLimit) < 1)) e.usageLimit = "Usage limit must be a whole number, at least 1"
+    if (f.perUserLimit !== "" && (!Number.isInteger(Number(f.perUserLimit)) || Number(f.perUserLimit) < 1)) e.perUserLimit = "Per user limit must be a whole number, at least 1"
+    if (f.usageLimit !== "" && f.perUserLimit !== "" && Number(f.perUserLimit) > Number(f.usageLimit)) e.perUserLimit = "Per user limit cannot exceed total usage limit"
     const start = f.startDate ? new Date(`${f.startDate}T00:00:00`) : null
     const end = f.endDate ? new Date(`${f.endDate}T00:00:00`) : null
     const now = new Date()
@@ -454,6 +463,7 @@ export default function Coupons() {
                 {errors.perUserLimit && <p className="mt-1 text-xs text-red-600">{errors.perUserLimit}</p>}
               </div>
 
+              {/* Bug #60: "First order only" removed - the Customer Scope field already covers it.
               <div className="flex items-center gap-2">
                 <input
                   id="isFirstOrderOnly"
@@ -464,6 +474,7 @@ export default function Coupons() {
                 />
                 <label htmlFor="isFirstOrderOnly" className="text-sm text-slate-700">First order only</label>
               </div>
+              */}
 
                 {formData.restaurantScope === "selected" && (
                   <div className="md:col-span-2 lg:col-span-3">

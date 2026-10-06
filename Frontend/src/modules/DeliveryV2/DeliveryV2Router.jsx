@@ -1,5 +1,6 @@
-import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy, useCallback, useState } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import PullToRefresh from '@/shared/components/PullToRefresh';
 import ProtectedRoute from './components/ProtectedRoute';
 import Loader from "@food/components/Loader";
 
@@ -33,15 +34,45 @@ import NotificationsV2 from './pages/NotificationsV2';
 
 
 
+// Bug #116: pull-to-refresh. Not on the live map feed (pull-down there pans the
+// map / drags the order sheet) or on auth/registration screens.
+const PULL_REFRESH_DISABLED = /^\/food\/delivery\/?(feed\/?)?$|\/(welcome|login|otp|signup)(\/|$)/;
+
+// Bug #126: referral links point to "/signup?ref=<code>", but that route simply
+// redirected to login and dropped the code. Remember it for the signup form.
+const DELIVERY_REFERRAL_KEY = 'pending_delivery_referral';
+const SignupReferralRedirect = () => {
+  const location = useLocation();
+  const ref = new URLSearchParams(location.search || '').get('ref');
+  if (ref) {
+    try {
+      localStorage.setItem(DELIVERY_REFERRAL_KEY, String(ref).trim().slice(0, 64));
+    } catch {
+      /* ignore storage errors */
+    }
+  }
+  return <Navigate to={`/food/delivery/login${location.search || ''}`} replace />;
+};
+
 const DeliveryV2Router = () => {
+  const location = useLocation();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handlePullRefresh = useCallback(async () => {
+    setRefreshKey((key) => key + 1);
+    window.dispatchEvent(new Event('deliveryPullRefresh'));
+    await new Promise((resolve) => setTimeout(resolve, 700));
+  }, []);
+  const pullRefreshEnabled = !PULL_REFRESH_DISABLED.test(location.pathname);
+
   return (
     <Suspense fallback={<Loader />}>
-      <Routes>
+      <PullToRefresh onRefresh={handlePullRefresh} enabled={pullRefreshEnabled} />
+      <Routes key={refreshKey}>
         {/* Auth routes */}
         <Route path="welcome" element={<Welcome />} />
         <Route path="login" element={<SignIn />} />
         <Route path="otp" element={<OTP />} />
-        <Route path="signup" element={<Navigate to="/food/delivery/login" replace />} />
+        <Route path="signup" element={<SignupReferralRedirect />} />
         <Route path="signup/details" element={<SignupStep1 />} />
         <Route path="signup/documents" element={<SignupStep2 />} />
         <Route path="terms" element={<TermsAndConditionsV2 />} />
@@ -76,6 +107,8 @@ const DeliveryV2Router = () => {
         <Route path="/pocket/balance" element={<ProtectedRoute><PocketBalanceV2 /></ProtectedRoute>} />
         <Route path="/pocket/cash-limit" element={<ProtectedRoute><CashLimitInfoV2 /></ProtectedRoute>} />
         <Route path="/pocket/details" element={<ProtectedRoute><PocketDetailsV2 /></ProtectedRoute>} />
+        {/* Bug #118: "/earnings" had no route, so the fallback sent riders to home. */}
+        <Route path="/earnings" element={<Navigate to="/food/delivery/pocket/details" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/food/delivery" replace />} />

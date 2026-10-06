@@ -22,9 +22,10 @@ const pathExists = (value) => {
 };
 
 export const resolveUploadRoot = () => {
+    const fromLocalDir = toAbsolutePath(process.env.UPLOAD_LOCAL_DIR);
     const fromUploadDir = toAbsolutePath(process.env.UPLOAD_DIR);
     const fromUploadPath = toAbsolutePath(process.env.UPLOAD_PATH);
-    const configured = fromUploadDir || fromUploadPath;
+    const configured = fromLocalDir || fromUploadDir || fromUploadPath;
 
     if (configured && pathExists(configured)) return configured;
     if (pathExists(DEFAULT_UPLOAD_ROOT)) return DEFAULT_UPLOAD_ROOT;
@@ -32,6 +33,10 @@ export const resolveUploadRoot = () => {
 
     return configured || DEFAULT_UPLOAD_ROOT;
 };
+
+/** Folder used by the "vps" upload provider (a directory on the server). */
+export const resolveVpsUploadRoot = () =>
+    toAbsolutePath(process.env.UPLOAD_VPS_DIR) || path.normalize('/var/www/uploads');
 
 export const getUploadPublicUrl = (folder, fileName) => {
     const safeFolder = String(folder || '')

@@ -28,6 +28,9 @@ export const categoryAllowsFoodType = (scope, foodType) => {
     const normalizedScope = normalizeCategoryFoodTypeScope(scope, 'Both');
     const normalizedFoodType = normalizeFoodTypeForCategory(foodType);
     if (normalizedScope === 'Both') return true;
+    // Veg-only app: diet scope is no longer chosen in the UI, so a Veg dish is
+    // accepted in every category (including legacy "Non-Veg" scoped ones).
+    if (normalizedFoodType === 'Veg') return true;
     return normalizedScope === normalizedFoodType;
 };
 

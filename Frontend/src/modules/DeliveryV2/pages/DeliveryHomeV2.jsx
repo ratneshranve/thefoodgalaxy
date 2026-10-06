@@ -592,6 +592,12 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     });
   }, [isOnline, riderLocation, activeOrder?._id, activeOrder?.orderId]);
 
+  // Bug #52: the GPS watcher below is created once when going online, so it must
+  // read the *current* trip values through a ref (it used to keep the values from
+  // when it was created: null polyline, old trip phase, old distance).
+  const liveTripRef = useRef({ tripStatus, distanceToTarget, activePolyline, eta });
+  liveTripRef.current = { tripStatus, distanceToTarget, activePolyline, eta };
+
   // 3. Location logic (Smart Frequency Tracking)
   useEffect(() => {
     if (!isOnline) {
@@ -616,6 +622,8 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       const avgSpeed = rollingSpeedRef.current.length > 0 
         ? rollingSpeedRef.current.reduce((a, b) => a + b, 0) / rollingSpeedRef.current.length 
         : speed || 0;
+
+      const { tripStatus, distanceToTarget, activePolyline, eta } = liveTripRef.current;
 
       // Phase 11: Geo-fencing Auto-arrival (within 100m) - Disabled in DEV so UI steps can be tested manually
       if (!isSimMode && !import.meta.env.DEV && distanceToTarget && distanceToTarget <= 100 && !lastAutoArrivalRef.current[tripStatus]) {
@@ -720,6 +728,54 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       window.removeEventListener('focus', refreshLocation);
     };
   }, [isOnline, isSimMode, setRiderLocation]);
+
+  // Bug #52: after coming back from Google Maps, re-sync the active trip with the
+  // server so the trip phase (and with it the route and the complete/arrive
+  // actions) matches reality again.
+  useEffect(() => {
+    let lastSyncAt = 0;
+    const resyncActiveTrip = async () => {
+      if (document.hidden) return;
+      const now = Date.now();
+      if (now - lastSyncAt < 3000) return;
+      lastSyncAt = now;
+      try {
+        const response = await deliveryAPI.getCurrentDelivery();
+        const rawData = response?.data?.data?.activeOrder || response?.data?.data;
+        const serverData = rawData && (rawData._id || rawData.orderId) ? rawData : null;
+        if (!serverData) return;
+
+        const current = useDeliveryStore.getState().activeOrder;
+        const sameOrder =
+          current &&
+          String(current._id || '') === String(serverData._id || '');
+        if (!sameOrder) return;
+
+        const backendStatus = String(
+          serverData.deliveryState?.status || serverData.orderStatus || serverData.status || '',
+        ).toLowerCase();
+        const currentPhase = serverData.deliveryState?.currentPhase;
+        if (['delivered', 'completed'].includes(backendStatus)) {
+          updateTripStatus('COMPLETED');
+        } else if (currentPhase === 'at_drop' || backendStatus === 'reached_drop') {
+          updateTripStatus('REACHED_DROP');
+        } else if (currentPhase === 'en_route_to_delivery' || backendStatus === 'picked_up') {
+          updateTripStatus('PICKED_UP');
+        } else if (currentPhase === 'at_pickup' || backendStatus === 'reached_pickup') {
+          updateTripStatus('REACHED_PICKUP');
+        }
+      } catch {
+        /* keep the current trip on network errors */
+      }
+    };
+
+    document.addEventListener('visibilitychange', resyncActiveTrip);
+    window.addEventListener('focus', resyncActiveTrip);
+    return () => {
+      document.removeEventListener('visibilitychange', resyncActiveTrip);
+      window.removeEventListener('focus', resyncActiveTrip);
+    };
+  }, [updateTripStatus]);
 
   // Online heartbeat: keep rider visible in admin map / availability without per-tick HTTP.
   useEffect(() => {
@@ -1732,18 +1788,18 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                              </div>
                            )}
                         </div>
-                        <ActionSlider label="Slide to Arrive" successLabel="Arrived âœ“" disabled={!isWithinRange} onConfirm={reachDrop} color="bg-blue-600" />
+                        <ActionSlider label="Slide to Arrive" successLabel="Arrived ✓" disabled={!isWithinRange} onConfirm={reachDrop} color="bg-red-600" />
                       </div>
                     ) : (
                       <button 
                         onClick={() => setShowVerification(true)} 
                         className="w-full text-white rounded-2xl py-4 sm:py-5 px-4 font-bold text-xs sm:text-sm tracking-[0.14em] transform transition-all active:scale-95 flex items-center justify-center gap-2.5 sm:gap-3 border border-white/20"
                         style={{
-                          background: 'linear-gradient(33deg, #15498b 0%, #000000 100%)',
-                          boxShadow: '0 14px 34px rgba(21, 73, 139, 0.42)',
+                          background: 'linear-gradient(135deg, #d9383a 0%, #991b1b 100%)',
+                          boxShadow: '0 14px 34px rgba(217, 56, 58, 0.35)',
                         }}
                       >
-                        <CheckCircle2 className="w-6 h-6" /> VERIFY & COMPLETE
+                        <CheckCircle2 className="w-6 h-6 text-amber-300" /> VERIFY & COMPLETE
                       </button>
                     )}
 

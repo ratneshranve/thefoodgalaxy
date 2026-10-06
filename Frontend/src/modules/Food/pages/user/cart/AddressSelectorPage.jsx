@@ -137,7 +137,21 @@ export default function AddressSelectorPage() {
         setIsKeywordSearching(true)
         const refLat = location?.latitude ?? 22.7196
         const refLng = location?.longitude ?? 75.8577
-        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&q=${encodeURIComponent(q)}`
+        // Bug #127: the search was a global, unbiased query (results from other
+        // countries/cities). Restrict to India and prefer results near the user.
+        const params = new URLSearchParams({
+          format: "json",
+          addressdetails: "1",
+          limit: "15",
+          countrycodes: "in",
+          "accept-language": "en",
+          q,
+        })
+        if (Number.isFinite(refLat) && Number.isFinite(refLng)) {
+          params.set("viewbox", `${refLng - 0.6},${refLat + 0.6},${refLng + 0.6},${refLat - 0.6}`)
+          params.set("bounded", "0")
+        }
+        const url = `https://nominatim.openstreetmap.org/search?${params.toString()}`
         const res = await fetch(url, { headers: { Accept: "application/json" } })
         const json = await res.json()
         const mapped = (Array.isArray(json) ? json : []).map(r => ({
@@ -151,7 +165,7 @@ export default function AddressSelectorPage() {
           .filter(x => Number.isFinite(x.lat) && Number.isFinite(x.lng))
           .map(x => ({ ...x, distanceMeters: calculateDistance(refLat, refLng, x.lat, x.lng) }))
           .sort((a, b) => (a.distanceMeters ?? Infinity) - (b.distanceMeters ?? Infinity))
-          .slice(0, 4)
+          .slice(0, 8)
         setKeywordAddressSuggestions(withDistance)
       } catch (e) {
         setKeywordAddressSuggestions([])

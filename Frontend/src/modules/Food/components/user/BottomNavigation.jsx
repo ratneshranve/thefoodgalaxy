@@ -52,7 +52,8 @@ export default function BottomNavigation() {
         !pathname.includes("/profile")))
 
   return (
-    <div className="md:hidden fixed bottom-3 left-3 right-3 bg-white dark:bg-[#1a1a1a] rounded-[2rem] z-50 shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 dark:border-gray-800">
+    // Bug #20: keep the menu above the phone's system navigation bar (safe-area inset).
+    <div className="md:hidden fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] left-3 right-3 bg-white dark:bg-[#1a1a1a] rounded-[2rem] z-50 shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 dark:border-gray-800">
       <div className="flex items-center justify-between px-2 py-1.5">
         {/* Home Tab */}
         <Link

@@ -13,7 +13,8 @@ import {
   Briefcase,
   Trash2,
   AlertTriangle,
-  Bell
+  Bell,
+  Star
 } from "lucide-react"
 import { deliveryAPI, notificationAPI } from "@food/api"
 import { toast } from "sonner"
@@ -70,16 +71,23 @@ export const ProfileV2 = () => {
     }).catch(() => {})
   }, [])
 
-  const refId = profile?._id || profile?.id || profile?.referralCode || ""
-  const referralLink = refId ? `${window.location.origin}/food/delivery/signup?ref=${encodeURIComponent(String(refId))}` : ""
+  const refId = profile?.referralCode || profile?._id || profile?.id || ""
+  // Bug #126: use a public web origin (inside the app WebView the origin may not be shareable)
+  const publicOrigin = (() => {
+    const configured = String(import.meta.env.VITE_PUBLIC_APP_URL || "").trim().replace(/\/+$/, "")
+    if (configured) return configured
+    const origin = typeof window !== "undefined" ? window.location.origin : ""
+    return /^https?:\/\//i.test(origin) ? origin : ""
+  })()
+  const referralLink = refId && publicOrigin ? `${publicOrigin}/food/delivery/signup?ref=${encodeURIComponent(String(refId))}` : ""
 
   const handleShareReferral = async () => {
-    if (!referralLink) return
+    if (!refId) return
     const rewardText = referralReward > 0 ? `₹${referralReward}` : "rewards"
-    const shareText = `Join as a delivery partner and earn ${rewardText}.`
+    const shareText = `Join as a delivery partner and earn ${rewardText}. Use my referral code ${refId} while registering.`
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Delivery referral", text: shareText, url: referralLink })
+        await navigator.share({ title: "Delivery referral", text: shareText, ...(referralLink ? { url: referralLink } : {}) })
       } else {
         const fallbackUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${referralLink}`)}`
         window.open(fallbackUrl, "_blank", "noopener,noreferrer")
@@ -184,7 +192,25 @@ export const ProfileV2 = () => {
               <h2 className="text-2xl md:text-3xl font-bold">{profile?.name || ""}</h2>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
-            <p className="text-gray-600 text-sm md:text-base mb-3 font-medium">{profile?.deliveryId || ""}</p>
+            <p className="text-gray-600 text-sm md:text-base mb-2 font-medium">{profile?.deliveryId || ""}</p>
+            {/* Bug #79: show the rider's customer rating */}
+            {(() => {
+              const rating = Number(profile?.rating ?? profile?.metrics?.rating ?? profile?.averageRating ?? 0)
+              const count = Number(profile?.totalRatings ?? profile?.metrics?.ratingCount ?? 0)
+              return (
+                <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1">
+                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  {rating > 0 && count > 0 ? (
+                    <span className="text-xs font-bold text-gray-900">
+                      {rating.toFixed(1)}
+                      <span className="font-medium text-gray-500"> ({count} {count === 1 ? "rating" : "ratings"})</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs font-semibold text-gray-600">No ratings yet</span>
+                  )}
+                </div>
+              )
+            })()}
           </div>
           <div className="relative shrink-0 ml-4">
             {profile?.profileImage?.url ? (

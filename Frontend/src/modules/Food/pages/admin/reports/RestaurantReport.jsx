@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
+import { usePagination } from "@food/components/admin/TablePagination"
 import { Search, Download, ChevronDown, Filter, Briefcase, RefreshCw, Settings, ArrowUpDown, FileText, FileSpreadsheet, Code, Loader2, Star } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog"
@@ -113,6 +114,8 @@ export default function RestaurantReport() {
       case "json": exportReportsToJSON(filteredRestaurants, "restaurant_report"); break
     }
   }
+
+  const { pageItems: pagedRestaurants, controls: paginationControls } = usePagination(filteredRestaurants, 25)
 
   const handleFilterApply = () => {
     // Filters are already applied via useMemo
@@ -396,7 +399,7 @@ export default function RestaurantReport() {
                     </td>
                   </tr>
                 ) : (
-                  filteredRestaurants.map((restaurant) => (
+                  pagedRestaurants.map((restaurant) => (
                     <tr key={restaurant.sl} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-medium text-slate-700">{restaurant.sl}</span>
@@ -455,6 +458,7 @@ export default function RestaurantReport() {
               </tbody>
             </table>
           </div>
+          {paginationControls}
         </div>
       </div>
 

@@ -219,14 +219,14 @@ export const adminAPI = {
     return adminClient.put("/food/admin/business-settings", data, config);
   },
   login: (email, password) => authService.adminLogin(email, password),
-  /** POST /auth/admin/forgot-password/request-otp â€“ only accepts registered admin email */
+  /** POST /auth/admin/forgot-password/request-otp – only accepts registered admin email */
   requestForgotPasswordOtp: (email) =>
     adminClient.post("/auth/admin/forgot-password/request-otp", {
       email: String(email || "")
         .trim()
         .toLowerCase(),
     }),
-  /** POST /auth/admin/forgot-password/reset â€“ verify OTP and set new password in one call */
+  /** POST /auth/admin/forgot-password/reset – verify OTP and set new password in one call */
   resetPasswordWithOtp: (email, otp, newPassword) =>
     adminClient.post("/auth/admin/forgot-password/reset", {
       email: String(email || "")
@@ -472,7 +472,7 @@ export const adminAPI = {
     adminClient.post(`/food/admin/customers/${String(id)}/wallet-topup`, { amount: Number(amount), description }),
   deductCustomerWallet: (id, amount, description) =>
     adminClient.post(`/food/admin/customers/${String(id)}/wallet-deduct`, { amount: Number(amount), description }),
-  /** Orders (admin) â€“ list, get by id, assign delivery partner */
+  /** Orders (admin) – list, get by id, assign delivery partner */
   getOrders: (params = {}) =>
     adminClient.get("/food/admin/orders", { params: { limit: 50, page: 1, ...params } }),
   getOrderById: (orderId) =>
@@ -489,7 +489,7 @@ export const adminAPI = {
     adminClient.post(`/food/admin/orders/${String(orderId)}/resend-notification`, {}),
   deleteOrder: (orderId) =>
     adminClient.delete(`/food/admin/orders/${String(orderId)}`),
-  /** Dispatch settings â€“ auto vs manual assign (global) */
+  /** Dispatch settings – auto vs manual assign (global) */
   /** Create restaurant (admin). Single API: POST /food/admin/restaurants. Body: JSON with image URLs. */
   createRestaurant: (body) =>
     adminClient.post("/food/admin/restaurants", body ?? {}),
@@ -523,6 +523,9 @@ export const adminAPI = {
     adminClient.get("/food/admin/business-settings"),
   getPublicBusinessSettings: () =>
     userClient.get("/food/admin/business-settings/public"),
+  /** Readiness of the upload storage providers (local / vps / cloudinary). */
+  getStorageStatus: () =>
+    adminClient.get("/food/admin/business-settings/storage-status"),
   updateBusinessSettings: (data, files = {}) => {
     const formData = new FormData();
     formData.append("data", JSON.stringify(data));
@@ -1052,10 +1055,14 @@ export const restaurantAPI = {
    * UI expects this to move order into "preparing" bucket.
    * Backend supports PATCH /food/restaurant/orders/:orderId/status with { orderStatus }.
    */
-  acceptOrder: async (orderId, _prepTimeMins = null) => {
+  acceptOrder: async (orderId, prepTimeMins = null) => {
+    // Bug #50: send the prep time chosen in the accept dialog (it was ignored).
+    const prep = Number(prepTimeMins)
+    const prepPayload = Number.isFinite(prep) && prep > 0 ? { preparationTime: Math.round(prep) } : {}
     try {
       return await restaurantAPI.updateOrderStatus(orderId, {
         orderStatus: "preparing",
+        ...prepPayload,
       });
     } catch (error) {
       const statusCode = Number(error?.response?.status || 0);
@@ -1063,6 +1070,7 @@ export const restaurantAPI = {
         // Compatibility fallback: some backends treat "confirmed" as accept action.
         return restaurantAPI.updateOrderStatus(orderId, {
           orderStatus: "confirmed",
+          ...prepPayload,
         });
       }
       throw error;
@@ -2004,7 +2012,7 @@ export const uploadAPI = {
     });
   },
 };
-/** Order API (user app â€“ Bearer USER token). Minimal calls: single create/verify, list/details cached by caller. */
+/** Order API (user app – Bearer USER token). Minimal calls: single create/verify, list/details cached by caller. */
 export const orderAPI = {
   calculateOrder: (payload) =>
     userClient.post("/food/orders/calculate", payload ?? {}),

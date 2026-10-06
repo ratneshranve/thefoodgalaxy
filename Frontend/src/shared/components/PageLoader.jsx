@@ -1,6 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+
+// Route changes during app start-up (first render + automatic redirects such as
+// "/food/restaurant" -> "/food/restaurant/login") must not flash the spinner,
+// otherwise a loader appears right after the native splash (bugs #1-3).
+const APP_BOOT_GRACE_MS = 2500
+const appBootedAt = typeof performance !== 'undefined' ? performance.now() : Date.now()
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 
 /**
  * Lightweight route-change loader (CSS only).
@@ -10,8 +17,17 @@ import { Loader2 } from 'lucide-react'
 export default function PageLoader() {
   const [isNavigating, setIsNavigating] = useState(false)
   const location = useLocation()
+  const isFirstRenderRef = useRef(true)
 
   useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false
+      return undefined
+    }
+    if (now() - appBootedAt < APP_BOOT_GRACE_MS) {
+      return undefined
+    }
+
     if (
       location.pathname.includes('/under-250') ||
       location.pathname.includes('/restaurants/') ||

@@ -210,17 +210,10 @@ export async function createOrder(userId, dto) {
   if (!restaurant) throw new ValidationError("Restaurant not found");
 
   const businessSettings = await FoodBusinessSettings.findOne().select('maintenanceMode').lean();
+  // Bug #102: maintenance mode blocks ordering everywhere (it used to exempt the
+  // Indore zone, which is the only live zone, so the toggle never had any effect).
   if (businessSettings?.maintenanceMode) {
-    let isIndore = false;
-    if (restaurant.zoneId) {
-      const zone = await FoodZone.findById(restaurant.zoneId).select('name').lean();
-      if (zone && zone.name && zone.name.toLowerCase() === 'indore') {
-        isIndore = true;
-      }
-    }
-    if (!isIndore) {
-      throw new ValidationError('Ordering is temporarily unavailable due to maintenance. Please try again later.');
-    }
+    throw new ValidationError('Ordering is temporarily unavailable due to maintenance. Please try again later.');
   }
 
   if (restaurant.status !== "approved")
@@ -297,6 +290,25 @@ export async function createOrder(userId, dto) {
     normalizedPricing.total <= 0
   ) {
     normalizedPricing.total = computedTotal;
+  }
+
+  // Bug #63: order creation trusts the client-side pricing, so re-check that a
+  // first-time-only coupon is not used on a repeat order.
+  const requestedCouponCode = dto.pricing?.couponCode
+    ? String(dto.pricing.couponCode).trim().toUpperCase()
+    : "";
+  if (requestedCouponCode && userId && Number(normalizedPricing.discount) > 0) {
+    const couponOffer = await FoodOffer.findOne({ couponCode: requestedCouponCode })
+      .select("customerScope isFirstOrderOnly")
+      .lean();
+    if (couponOffer && (couponOffer.customerScope === "first-time" || couponOffer.isFirstOrderOnly === true)) {
+      const previousOrders = await FoodOrder.countDocuments({
+        userId: new mongoose.Types.ObjectId(userId),
+      });
+      if (previousOrders > 0) {
+        throw new ValidationError("This coupon is only for first-time customers.");
+      }
+    }
   }
 
   const payment = {
@@ -685,7 +697,8 @@ export async function getOrderById(
   const order = await FoodOrder.findOne(identity)
     .populate(
       "restaurantId",
-      "restaurantName ownerPhone profileImage area city location rating totalRatings primaryContactNumber",
+      // Address + compliance numbers are needed on the customer's tax invoice (bugs #70/#71).
+      "restaurantName ownerPhone profileImage area city state pincode addressLine1 addressLine2 location rating totalRatings primaryContactNumber gstRegistered gstNumber fssaiNumber panNumber",
     )
     .populate("dispatch.deliveryPartnerId", "name fullName phone phoneNumber rating totalRatings profileImage avatar")
     .populate("userId", "name fullName phone email")
@@ -694,6 +707,14 @@ export async function getOrderById(
   if (!order) throw new NotFoundError("Order not found");
 
   if (admin) return normalizeOrderForClient(order);
+
+  // Compliance numbers are only for the customer's invoice / admin, not riders.
+  if (deliveryPartnerId && order.restaurantId && typeof order.restaurantId === "object") {
+    delete order.restaurantId.panNumber;
+    delete order.restaurantId.gstNumber;
+    delete order.restaurantId.fssaiNumber;
+    delete order.restaurantId.gstRegistered;
+  }
 
   const orderUserId = order.userId?._id?.toString() || order.userId?.toString();
   const orderRestaurantId = order.restaurantId?._id?.toString() || order.restaurantId?.toString();
@@ -1328,7 +1349,8 @@ export async function updateOrderStatusRestaurant(
   orderId,
   restaurantId,
   orderStatus,
-  note = ""
+  note = "",
+  { preparationTime } = {},
 ) {
   const identity = buildOrderIdentityFilter(orderId);
   let order = await FoodOrder.findOne({
@@ -1341,6 +1363,14 @@ export async function updateOrderStatusRestaurant(
       throw new ValidationError(`Current order status '${from}' is further ahead than '${orderStatus}'. Order cannot be moved backwards.`);
   }
   order.orderStatus = orderStatus;
+  // Bug #50: remember when preparation started and the prep time the restaurant chose,
+  // so the "Preparing" ETA counts down from acceptance instead of order creation.
+  if (orderStatus === "preparing" && from !== "preparing") {
+    order.preparingAt = new Date();
+  }
+  if ((orderStatus === "preparing" || orderStatus === "confirmed") && Number(preparationTime) > 0) {
+    order.preparationTimeMinutes = Number(preparationTime);
+  }
   pushStatusHistory(order, {
     byRole: "RESTAURANT",
     byId: restaurantId,

@@ -2,6 +2,10 @@ const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
+const RUPEE = "\u20B9"
+// jsPDF's built-in fonts cannot draw the rupee sign, so PDFs use "Rs."
+const toPdfCurrency = (value) => String(value ?? "").replace(/\u20B9\s?/g, "Rs. ")
+
 // Export utility functions for orders
 export const exportToCSV = (orders, filename = "orders") => {
   // Detect order structure
@@ -34,7 +38,7 @@ export const exportToCSV = (orders, filename = "orders") => {
       order.customerName,
       order.customerPhone,
       order.restaurant,
-      order.total || `?${(order.totalAmount || 0).toFixed(2)}`,
+      order.total || `${RUPEE}${(order.totalAmount || 0).toFixed(2)}`,
       order.paymentStatus || "",
       order.orderStatus || "",
       order.deliveryType || ""
@@ -46,7 +50,8 @@ export const exportToCSV = (orders, filename = "orders") => {
     ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
   ].join("\n")
   
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+  // Bug #93: BOM so Excel opens the CSV as UTF-8 (otherwise the rupee sign shows as "?")
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" })
   const link = document.createElement("a")
   const url = URL.createObjectURL(blob)
   link.setAttribute("href", url)
@@ -103,7 +108,7 @@ export const exportToExcel = (orders, filename = "orders") => {
         order.deliveryBoyName || 'N/A',
         order.deliveryBoyNumber || 'N/A',
         order.status || 'N/A',
-        totalAmount > 0 ? `?${totalAmount.toFixed(2)}` : 'N/A',
+        totalAmount > 0 ? `${RUPEE}${totalAmount.toFixed(2)}` : 'N/A',
         paymentStatus
       ]
     })
@@ -116,7 +121,7 @@ export const exportToExcel = (orders, filename = "orders") => {
       order.customerName || 'N/A',
       order.customerPhone || 'N/A',
       order.restaurant || 'N/A',
-      order.total || `?${(order.totalAmount || 0).toFixed(2)}`,
+      order.total || `${RUPEE}${(order.totalAmount || 0).toFixed(2)}`,
       order.paymentStatus || 'N/A',
       order.orderStatus || 'N/A',
       order.deliveryType || 'N/A'
@@ -183,7 +188,8 @@ export const exportToExcel = (orders, filename = "orders") => {
     </html>
   `
   
-  const blob = new Blob([htmlContent], { type: "application/vnd.ms-excel;charset=utf-8" })
+  // Bug #93: BOM so Excel reads the file as UTF-8 and shows the rupee sign
+  const blob = new Blob(["\uFEFF" + htmlContent], { type: "application/vnd.ms-excel;charset=utf-8" })
   const link = document.createElement("a")
   const url = URL.createObjectURL(blob)
   link.setAttribute("href", url)
@@ -270,12 +276,14 @@ export const exportToPDF = async (orders, filename = "orders") => {
           order.deliveryBoyName || 'N/A',
           order.deliveryBoyNumber || 'N/A',
           order.status || 'N/A',
-          totalAmount > 0 ? `₹${totalAmount.toFixed(2)}` : 'N/A',
+          totalAmount > 0 ? `Rs. ${totalAmount.toFixed(2)}` : 'N/A',
           paymentStatus
         ]
       })
     } else {
-      headers = ["SI", "Order ID", "Order Date", "Customer Name", "Customer Phone", "Restaurant", "Total Amount", "Payment Status", "Order Status", "Delivery Type"]
+      // Bug #92: autoTable expects an array of header *rows*; a flat array made every
+      // header string a row and split it into single characters.
+      headers = [["SI", "Order ID", "Order Date", "Customer Name", "Customer Phone", "Restaurant", "Total Amount", "Payment Status", "Order Status", "Delivery Type"]]
       tableData = orders.map((order, index) => {
         const amount =
           order.totalAmount ??
@@ -289,7 +297,7 @@ export const exportToPDF = async (orders, filename = "orders") => {
           order.customerName || 'N/A',
           order.customerPhone || 'N/A',
           order.restaurant || 'N/A',
-          amount ? `₹${Number(amount).toFixed(2)}` : 'N/A',
+          amount ? `Rs. ${Number(amount).toFixed(2)}` : 'N/A',
           order.paymentStatus || 'N/A',
           order.orderStatus || 'N/A',
           order.deliveryType || 'N/A'
@@ -300,7 +308,7 @@ export const exportToPDF = async (orders, filename = "orders") => {
     // Add table using autoTable
     autoTable(doc, {
       head: headers,
-      body: tableData,
+      body: tableData.map((row) => row.map((cell) => toPdfCurrency(cell))),
       startY: 28,
       styles: {
         fontSize: 7,

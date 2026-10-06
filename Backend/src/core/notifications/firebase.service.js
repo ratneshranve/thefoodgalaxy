@@ -254,6 +254,28 @@ export const listOwnerTokens = async ({ ownerType, ownerId, platform }) => {
     return readTokensFromDoc(doc, platform);
 };
 
+/**
+ * A device token belongs to whoever is logged in on that device right now.
+ * Remove it from every *other* account of the same type, otherwise a phone that
+ * was used by restaurant A and then restaurant B keeps receiving A's order
+ * pushes (bug #111: "restaurant showing another restaurant order").
+ */
+export const detachDeviceTokenFromOtherOwners = async ({ model, ownerId, token }) => {
+    const normalizedToken = sanitizeString(token);
+    if (!model || !ownerId || !normalizedToken) return;
+    try {
+        await model.updateMany(
+            {
+                _id: { $ne: ownerId },
+                $or: [{ fcmTokens: normalizedToken }, { fcmTokenMobile: normalizedToken }]
+            },
+            { $pull: { fcmTokens: normalizedToken, fcmTokenMobile: normalizedToken } }
+        );
+    } catch (error) {
+        console.error('[FCM] Failed to detach device token from other owners:', error?.message || error);
+    }
+};
+
 export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, platform = 'web' }) => {
     const normalizedToken = sanitizeString(token);
     console.log(`[FCM-DEBUG] upsertFirebaseDeviceToken: ownerType=${ownerType}, ownerId=${ownerId}, platform=${platform}, tokenPreview=${normalizedToken?.slice(0, 10)}...`);
@@ -284,6 +306,7 @@ export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, pla
     doc[field] = tokens;
 
     await doc.save();
+    await detachDeviceTokenFromOtherOwners({ model, ownerId: doc._id, token: normalizedToken });
     console.log(`[FCM-DEBUG] upsert - Token list updated. New count: ${tokens.length}`);
     return { success: true };
 };

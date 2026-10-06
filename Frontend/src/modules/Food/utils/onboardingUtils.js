@@ -24,7 +24,8 @@ const isStepComplete = (stepData, stepNumber) => {
   if (stepNumber === 1) {
     return (
       stepData.restaurantName &&
-      typeof stepData.pureVegRestaurant === "boolean" &&
+      // Veg-only app: pure veg question is hidden, so it is not required.
+      // typeof stepData.pureVegRestaurant === "boolean" &&
       stepData.ownerName &&
       stepData.ownerEmail &&
       stepData.ownerPhone &&
@@ -93,10 +94,8 @@ const buildOnboardingLikeDataFromRestaurant = (restaurant) => {
     completedSteps: onboarding.completedSteps,
     step1: onboarding.step1 || {
       restaurantName: restaurant?.restaurantName || restaurant?.name,
-      pureVegRestaurant:
-        typeof restaurant?.pureVegRestaurant === "boolean"
-          ? restaurant.pureVegRestaurant
-          : null,
+      // Veg-only app: every restaurant is pure veg.
+      pureVegRestaurant: true,
       ownerName: restaurant?.ownerName,
       ownerEmail: restaurant?.ownerEmail || restaurant?.email,
       ownerPhone: restaurant?.ownerPhone || restaurant?.phone,
@@ -261,7 +260,19 @@ export const checkOnboardingStatus = async () => {
       const stepToShow = determineStepToShow(data)
       return stepToShow
     }
-    // No onboarding data, start from step 1
+    // No onboarding data on the server yet: resume the step saved on this device.
+    try {
+      const localData =
+        localStorage.getItem("restaurant_onboarding_data") ||
+        localStorage.getItem(getOnboardingStorageKey())
+      if (localData) {
+        const parsed = JSON.parse(localData)
+        const savedStep = Number(parsed?.currentStep)
+        if (Number.isFinite(savedStep) && savedStep >= 1) return Math.min(3, Math.floor(savedStep))
+      }
+    } catch {
+      /* ignore storage errors */
+    }
     return 1
   } catch (err) {
     // If API call fails, check localStorage

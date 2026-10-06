@@ -24,7 +24,9 @@ const defaultImages = {
 export default function FestBanner({ isVegMode, images = [], hideFoodImages = false }) {
   const [imgIndex, setImgIndex] = useState(0);
   const [bgIndex, setBgIndex] = useState(0);
-  const currentPool = isVegMode ? defaultImages.veg : defaultImages.nonVeg;
+  // Veg-only app: always rotate veg food images (non-veg pool is never shown).
+  // const currentPool = isVegMode ? defaultImages.veg : defaultImages.nonVeg;
+  const currentPool = defaultImages.veg;
   const hasBgImages = Array.isArray(images) && images.length > 0;
   
   // Dynamic rotation for foreground images

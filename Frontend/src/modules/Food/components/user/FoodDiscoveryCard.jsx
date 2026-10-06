@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Clock, Star } from "lucide-react";
 import OptimizedImage from "@food/components/OptimizedImage";
 import AddToCartButton from "@food/components/user/AddToCartButton";
+import { getDishDetailPath, foodHasVariants } from "@food/utils/dishLinks";
 
 const RUPEE_SYMBOL = "\u20B9";
 
@@ -29,10 +30,10 @@ const buildCartItem = (item) => ({
 
 export default function FoodDiscoveryCard({ item, className = "" }) {
   const id = getFoodId(item);
-  const restaurantSlug = item?.restaurantSlug || item?.restaurantId || "";
-  const detailTarget = restaurantSlug
-    ? `/user/restaurants/${restaurantSlug}${id ? `?dish=${encodeURIComponent(id)}` : ""}`
-    : "/user/cart";
+  // Bug #41: open the dish on its restaurant page (never fall back to the cart).
+  const detailTarget = getDishDetailPath(item) || "/food/user";
+  const hasVariants = foodHasVariants(item);
+  const variantTarget = getDishDetailPath(item, { open: true });
   const rating = Number(item?.rating || 0);
   const deliveryTime = item?.estimatedDeliveryTime || item?.deliveryTime || "";
 
@@ -47,7 +48,8 @@ export default function FoodDiscoveryCard({ item, className = "" }) {
             objectFit="cover"
           />
           <div className="absolute left-2 top-2 flex h-4 w-4 items-center justify-center rounded border border-white bg-white/90 shadow-sm">
-            <span className={`h-2 w-2 rounded-full ${isVegFood(item) ? "bg-green-600" : "bg-red-600"}`} />
+            {/* Veg-only app: always the green veg mark */}
+            <span className="h-2 w-2 rounded-full bg-green-600" />
           </div>
           {rating > 0 && (
             <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-lg bg-black/75 px-2 py-1 text-[10px] font-bold text-white backdrop-blur">
@@ -72,7 +74,18 @@ export default function FoodDiscoveryCard({ item, className = "" }) {
               </p>
             ) : null}
           </div>
-          <AddToCartButton item={buildCartItem(item)} className="shrink-0" />
+          {/* Bug #42: dishes with variants are added through the variant picker */}
+          {hasVariants && variantTarget ? (
+            <Link
+              to={variantTarget}
+              className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-center text-xs font-bold text-white shadow-md transition-all hover:bg-secondary active:scale-95"
+            >
+              Add
+              <span className="block text-[9px] font-medium opacity-80">Customisable</span>
+            </Link>
+          ) : (
+            <AddToCartButton item={buildCartItem(item)} className="shrink-0" />
+          )}
         </div>
       </div>
     </div>

@@ -136,6 +136,10 @@ export default function SubscriptionManagement() {
       toast.error("Plan name is required");
       return;
     }
+    if (formData.name.trim().length > 25) {
+      toast.error("Plan name must be 25 characters or less");
+      return;
+    }
     if (formData.durationDays <= 0 || formData.price < 0) {
       toast.error("Invalid duration or price");
       return;
@@ -627,7 +631,8 @@ export default function SubscriptionManagement() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Silver, Gold, Platinum"
+                  maxLength={25}
+                  placeholder="e.g. Silver, Gold, Platinum (max 25 characters)"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-500"

@@ -252,7 +252,7 @@ export const PocketV2 = () => {
           
           {/* 2. WEEKLY EARNINGS CARD */}
           <div 
-            onClick={() => navigate('/food/delivery/earnings')}
+            onClick={() => navigate('/food/delivery/pocket/details')}
             className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 text-center mb-5 transition-all active:scale-[0.98]"
           >
              <p className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Earnings: {getCurrentWeekRange()}</p>

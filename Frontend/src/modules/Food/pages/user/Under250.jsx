@@ -174,7 +174,11 @@ const HorizontalMenuScroller = ({ restaurant, quantities, isClosed, handleItemCl
             {/* Item Details */}
             <div className="flex flex-col">
               <div className="flex items-center gap-1 md:gap-1.5 mb-1">
-                {item.isVeg ? (
+                {/* Veg-only app: always show the green veg mark */}
+                <div className="flex-shrink-0 h-3.5 w-3.5 md:h-4 md:w-4 rounded border border-green-600 flex items-center justify-center">
+                  <div className="h-2 w-2 md:h-2 md:w-2 rounded-full bg-green-600" />
+                </div>
+                {/* {item.isVeg ? (
                   <div className="flex-shrink-0 h-3.5 w-3.5 md:h-4 md:w-4 rounded border border-green-600 flex items-center justify-center">
                     <div className="h-2 w-2 md:h-2 md:w-2 rounded-full bg-green-600" />
                   </div>
@@ -182,7 +186,7 @@ const HorizontalMenuScroller = ({ restaurant, quantities, isClosed, handleItemCl
                   <div className="flex-shrink-0 h-3.5 w-3.5 md:h-4 md:w-4 rounded border border-red-600 flex items-center justify-center">
                     <div className="h-2 w-2 md:h-2 md:w-2 rounded-full bg-red-600" />
                   </div>
-                )}
+                )} */}
                 <span className="text-sm md:text-base font-semibold text-gray-900 dark:text-white truncate">
                   {item.name}
                 </span>
@@ -1698,7 +1702,8 @@ export default function Under250() {
                 {/* Item Name and Indicator */}
                 <div className="flex items-start justify-between mb-3 md:mb-4 lg:mb-6">
                   <div className="flex items-center gap-2 md:gap-3 flex-1">
-                    {selectedItem.isVeg && (
+                    {/* Veg-only app: always show the green veg mark */}
+                    {true && (
                       <div className="h-5 w-5 md:h-6 md:w-6 lg:h-7 lg:w-7 rounded border-2 border-green-600 dark:border-green-500 bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
                         <div className="h-2.5 w-2.5 md:h-3 md:w-3 lg:h-3.5 lg:w-3.5 rounded-full bg-green-600 dark:bg-green-500" />
                       </div>

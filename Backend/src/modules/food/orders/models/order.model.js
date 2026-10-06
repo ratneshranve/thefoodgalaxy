@@ -251,6 +251,9 @@ const orderSchema = new mongoose.Schema(
         },
         customerName: { type: String, default: '', trim: true },
         customerPhone: { type: String, default: '', trim: true },
+        // Bug #50: prep time chosen by the restaurant when accepting + when preparation started.
+        preparationTimeMinutes: { type: Number, default: null, min: 0 },
+        preparingAt: { type: Date, default: null },
         pricing: {
             type: pricingSchema,
             required: false

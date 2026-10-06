@@ -286,14 +286,14 @@ export default function DesktopNavbar({ showLogo = true }) {
                                                 onClick={() => setHeroSearch("")}
                                             >
                                                 <span className="sr-only">Clear</span>
-                                                <span aria-hidden="true">�</span>
+                                                <span aria-hidden="true">×</span>
                                             </Button>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* VEG MODE Toggle - Moved here */}
+                            {/* Veg-only app: VEG MODE toggle hidden.
                             <div className="flex items-center gap-2 flex-shrink-0">
                                 <div className="flex flex-col items-end">
                                     <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 leading-none">VEG</span>
@@ -305,6 +305,7 @@ export default function DesktopNavbar({ showLogo = true }) {
                                     className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-600 h-5 w-9"
                                 />
                             </div>
+                            */}
                         </div>
 
                         {/* Right: Wallet and Cart Icons */}

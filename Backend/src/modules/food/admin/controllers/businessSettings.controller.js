@@ -1,6 +1,13 @@
 import { FoodBusinessSettings } from '../models/businessSettings.model.js';
 import { sendResponse } from '../../../../utils/response.js';
 import { uploadImageBufferDetailed, uploadFileBufferDetailed } from '../../../../services/cloudinary.service.js';
+import {
+    assertProviderAvailable,
+    getActiveUploadProvider,
+    getStorageStatus,
+    normalizeUploadProvider,
+    setActiveUploadProvider,
+} from '../../../../services/storage.service.js';
 
 export async function getBusinessSettings(req, res, next) {
     try {
@@ -12,7 +19,19 @@ export async function getBusinessSettings(req, res, next) {
                 email: 'admin@the food galaxy.com'
             });
         }
+        // Always report the provider that is really in use (DB value or .env fallback)
+        settings.uploadProvider = await getActiveUploadProvider();
         return sendResponse(res, 200, 'Business settings fetched successfully', settings);
+    } catch (error) {
+        next(error);
+    }
+}
+
+/** Admin: readiness of each upload provider (local / vps / cloudinary). */
+export async function getStorageStatusController(req, res, next) {
+    try {
+        const status = await getStorageStatus();
+        return sendResponse(res, 200, 'Storage status fetched successfully', status);
     } catch (error) {
         next(error);
     }
@@ -160,6 +179,7 @@ export async function updateBusinessToggles(req, res, next) {
         const {
             onlinePaymentOnly,
             maxCodAmount,
+            uploadProvider,
             maintenanceMode,
             customerRegistration,
             restaurantRegistration,
@@ -180,6 +200,12 @@ export async function updateBusinessToggles(req, res, next) {
         if (maxCodAmount !== undefined) {
             settings.maxCodAmount = Number(maxCodAmount) || 0;
         }
+        if (uploadProvider !== undefined) {
+            // Refuses providers that are not ready (missing folder / credentials)
+            const next = assertProviderAvailable(normalizeUploadProvider(uploadProvider));
+            settings.uploadProvider = next;
+            setActiveUploadProvider(next);
+        }
         if (maintenanceMode !== undefined) {
             settings.maintenanceMode = Boolean(maintenanceMode);
         }
@@ -195,6 +221,7 @@ export async function updateBusinessToggles(req, res, next) {
 
         await settings.save();
         const payload = settings.toObject ? settings.toObject() : settings;
+        payload.uploadProvider = await getActiveUploadProvider();
         return sendResponse(res, 200, 'Toggle settings updated successfully', payload);
     } catch (error) {
         next(error);

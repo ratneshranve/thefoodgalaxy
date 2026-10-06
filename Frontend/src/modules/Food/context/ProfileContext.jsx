@@ -77,17 +77,22 @@ export function ProfileProvider({ children }) {
     return saved ? JSON.parse(saved) : []
   })
 
-  // VegMode state - stored in localStorage for persistence
-  const [vegMode, setVegMode] = useState(() => {
-    const saved = localStorage.getItem("userVegMode")
-    // Default to false (OFF) if not set
-    return saved !== null ? saved === "true" : false
-  })
+  // Veg-only app: Veg Mode is disabled. The whole menu is veg, so the mode is
+  // always OFF (no extra filtering) and any previously saved value is ignored.
+  // const [vegMode, setVegMode] = useState(() => {
+  //   const saved = localStorage.getItem("userVegMode")
+  //   // Default to false (OFF) if not set
+  //   return saved !== null ? saved === "true" : false
+  // })
+  const [vegMode, setVegModeState] = useState(false)
+  const setVegMode = useCallback(() => setVegModeState(false), [])
 
-  const [vegModeOption, setVegModeOption] = useState(() => {
-    const saved = localStorage.getItem("userVegModeOption")
-    return saved !== null ? saved : "all"
-  })
+  // const [vegModeOption, setVegModeOption] = useState(() => {
+  //   const saved = localStorage.getItem("userVegModeOption")
+  //   return saved !== null ? saved : "all"
+  // })
+  const [vegModeOption, setVegModeOptionState] = useState("all")
+  const setVegModeOption = useCallback(() => setVegModeOptionState("all"), [])
 
   // Helper to check if authenticated
   const isAuthenticated = useMemo(() => {

@@ -472,10 +472,10 @@ export default function FeeSettings() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-200 pt-6 mt-6">
 
-                {/* Free Delivery Up To */}
+                {/* Free Delivery Above */}
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700">
-                    Free Delivery Up To (₹)
+                    Free Delivery Above (₹)
                   </label>
                   <input
                     type="number"

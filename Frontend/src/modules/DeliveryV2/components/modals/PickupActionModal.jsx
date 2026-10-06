@@ -95,7 +95,7 @@ export const PickupActionModal = ({
               </p>
               <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 mt-1.5">
                 {isAtPickup ? (
-                  <span className="text-green-600">Reached Location √</span>
+                  <span className="text-green-600">Reached Location</span>
                 ) : (
                   <span className="text-orange-500">
                     {distanceLabel}

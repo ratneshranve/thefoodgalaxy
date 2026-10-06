@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notificationAPI } from "@food/api";
 
 const normalizeInboxItems = (rows = []) =>
@@ -24,24 +24,31 @@ export default function useNotificationInbox(module, options = {}) {
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(Boolean(options?.autoload !== false));
+  // Only the latest request may update state. A poll that started before
+  // "Clear all"/"mark read" could otherwise resolve later and bring back the
+  // old unread count (stale red dot after clearing notifications).
+  const requestSeqRef = useRef(0);
 
   const fetchInbox = useCallback(async () => {
     if (!module) return;
 
+    const seq = ++requestSeqRef.current;
     try {
       setLoading(true);
       const response = await notificationAPI.getInbox(
         { page: 1, limit: options?.limit || 50 },
         { contextModule: module }
       );
+      if (seq !== requestSeqRef.current) return;
       const payload = response?.data?.data || {};
       setItems(normalizeInboxItems(payload?.items));
       setUnreadCount(Number(payload?.unreadCount || 0));
     } catch {
+      if (seq !== requestSeqRef.current) return;
       setItems([]);
       setUnreadCount(0);
     } finally {
-      setLoading(false);
+      if (seq === requestSeqRef.current) setLoading(false);
     }
   }, [module, options?.limit]);
 
@@ -71,6 +78,7 @@ export default function useNotificationInbox(module, options = {}) {
   const markAsRead = useCallback(
     async (id) => {
       if (!id || !module) return;
+      requestSeqRef.current += 1; // invalidate in-flight fetches
       setItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, read: true } : item))
       );
@@ -89,6 +97,7 @@ export default function useNotificationInbox(module, options = {}) {
   const dismiss = useCallback(
     async (id) => {
       if (!id || !module) return;
+      requestSeqRef.current += 1; // invalidate in-flight fetches
       const removed = items.find((item) => item.id === id);
       setItems((prev) => prev.filter((item) => item.id !== id));
       if (removed && !removed.read) {
@@ -107,6 +116,7 @@ export default function useNotificationInbox(module, options = {}) {
 
   const dismissAll = useCallback(async () => {
     if (!module) return;
+    requestSeqRef.current += 1; // invalidate in-flight fetches
     setItems([]);
     setUnreadCount(0);
     try {

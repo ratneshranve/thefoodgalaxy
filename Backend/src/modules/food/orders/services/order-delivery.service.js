@@ -283,8 +283,9 @@ export async function getCurrentTripDelivery(deliveryPartnerId) {
   const order = await FoodOrder.findOne({
     'dispatch.deliveryPartnerId': partnerId,
     'dispatch.status': 'accepted',
+    // Include the "arrived" statuses so an in-progress trip is always restored.
     orderStatus: {
-      $in: ['confirmed', 'preparing', 'ready_for_pickup', 'picked_up'],
+      $in: ['confirmed', 'preparing', 'ready_for_pickup', 'reached_pickup', 'picked_up', 'reached_drop'],
     },
   })
     .populate({

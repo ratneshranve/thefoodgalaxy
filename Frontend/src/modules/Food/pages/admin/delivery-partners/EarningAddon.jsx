@@ -156,8 +156,8 @@ export default function EarningAddon() {
     const startDate = new Date(formData.startDate)
     const endDate = new Date(formData.endDate)
     
-    if (endDate <= startDate) {
-      toast.error("End date must be after start date")
+    if (endDate < startDate) {
+      toast.error("End date cannot be before start date")
       return
     }
 

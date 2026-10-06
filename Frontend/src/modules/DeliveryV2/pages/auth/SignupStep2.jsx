@@ -89,7 +89,46 @@ const deleteFileFromDB = async (key) => {
   }
 }
 
+// Bug #25: IndexedDB is not always available inside the app WebView, so keep a
+// fallback copy of each compressed image (small WebP data URL) in localStorage.
+const FALLBACK_FILE_PREFIX = "deliverySignupFile_"
+const DOC_FILE_KEYS = [
+  "profilePhoto",
+  "aadharFrontPhoto",
+  "aadharBackPhoto",
+  "panPhoto",
+  "drivingLicenseFrontPhoto",
+  "drivingLicenseBackPhoto",
+  "rcPhoto",
+]
+
+const saveFileFallback = (key, dataUrl) => {
+  if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:")) return
+  try {
+    localStorage.setItem(`${FALLBACK_FILE_PREFIX}${key}`, dataUrl)
+  } catch {
+    // Storage full: IndexedDB copy (if any) is still used.
+  }
+}
+
+const getFileFallback = (key) => {
+  try {
+    return localStorage.getItem(`${FALLBACK_FILE_PREFIX}${key}`) || null
+  } catch {
+    return null
+  }
+}
+
+const removeFileFallback = (key) => {
+  try {
+    localStorage.removeItem(`${FALLBACK_FILE_PREFIX}${key}`)
+  } catch {
+    /* ignore */
+  }
+}
+
 const clearAllFilesFromDB = async () => {
+  DOC_FILE_KEYS.forEach(removeFileFallback)
   try {
     const db = await openDeliveryFilesDB()
     const tx = db.transaction(FILES_STORE, "readwrite")
@@ -239,15 +278,9 @@ export default function SignupStep2() {
     document.body.scrollTop = 0
     
     const loadFiles = async () => {
-      const [prof, aadharFront, aadharBack, pan, dlFront, dlBack, rc] = await Promise.all([
-        getFileFromDB("profilePhoto"),
-        getFileFromDB("aadharFrontPhoto"),
-        getFileFromDB("aadharBackPhoto"),
-        getFileFromDB("panPhoto"),
-        getFileFromDB("drivingLicenseFrontPhoto"),
-        getFileFromDB("drivingLicenseBackPhoto"),
-        getFileFromDB("rcPhoto")
-      ])
+      const [prof, aadharFront, aadharBack, pan, dlFront, dlBack, rc] = await Promise.all(
+        DOC_FILE_KEYS.map(async (key) => (await getFileFromDB(key)) || getFileFallback(key))
+      )
       
       setDocuments(prev => ({
         ...prev,
@@ -324,6 +357,7 @@ export default function SignupStep2() {
 
       setDocuments((prev) => ({ ...prev, [docType]: compressedDataUrl }))
       setUploadedDocs((prev) => ({ ...prev, [docType]: { file: true } }))
+      saveFileFallback(docType, compressedDataUrl)
       await saveFileToDB(docType, compressedDataUrl)
       toast.success(`${docType.replace(/([A-Z])/g, " $1").trim()} selected`)
     } catch (error) {
@@ -352,6 +386,7 @@ export default function SignupStep2() {
       ...prev,
       [docType]: null
     }))
+    removeFileFallback(docType)
     await deleteFileFromDB(docType)
   }
 
@@ -485,6 +520,7 @@ export default function SignupStep2() {
         localStorage.removeItem("deliverySignupDocs")
         await clearAllFilesFromDB()
         localStorage.removeItem("deliveryNeedsRegistration")
+        localStorage.removeItem("pending_delivery_referral")
         setIsSuccess(true)
       }
     } catch (error) {

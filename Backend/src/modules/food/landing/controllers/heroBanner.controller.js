@@ -32,7 +32,10 @@ export const uploadHeroBannersController = async (req, res, next) => {
         };
 
         const results = await createHeroBannersFromFiles(req.files, meta);
-        return sendResponse(res, 201, 'Hero banners uploaded', { results });
+        // The admin page reads data.banners / data.errors (bug #107).
+        const banners = results.filter((r) => r.success).map((r) => r.banner);
+        const errors = results.filter((r) => !r.success).map((r) => r.error || 'Upload failed');
+        return sendResponse(res, 201, 'Hero banners uploaded', { banners, errors, results });
     } catch (error) {
         next(error);
     }

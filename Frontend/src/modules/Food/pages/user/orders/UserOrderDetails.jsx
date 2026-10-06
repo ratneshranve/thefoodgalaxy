@@ -123,7 +123,18 @@ export default function UserOrderDetails() {
 
   const orderIdDisplay = order.orderId || order._id || orderId
   // Use fetched restaurant data if available, otherwise use order.restaurantId or order.restaurant
-  const restaurantObj = restaurant || order.restaurantId || order.restaurant || {}
+  const orderRestaurantObj =
+    (order.restaurantId && typeof order.restaurantId === "object" ? order.restaurantId : null) ||
+    (order.restaurant && typeof order.restaurant === "object" ? order.restaurant : null) ||
+    {}
+  // Public restaurant data has no compliance numbers; keep the ones sent with the order.
+  const restaurantObj = {
+    ...orderRestaurantObj,
+    ...(restaurant || {}),
+    gstNumber: orderRestaurantObj.gstNumber || restaurant?.gstNumber,
+    fssaiNumber: orderRestaurantObj.fssaiNumber || restaurant?.fssaiNumber,
+    panNumber: orderRestaurantObj.panNumber || restaurant?.panNumber,
+  }
   const restaurantName =
     order.restaurantId?.restaurantName ||
     order.restaurantId?.name ||
@@ -178,8 +189,22 @@ export default function UserOrderDetails() {
   const pricing = order.pricing || {}
   const sendsCutlery = order.sendCutlery !== false
 
-  const userName = order.userName || ""
-  const userPhone = order.userPhone || ""
+  // Bug #76: the API sends the customer as order.userId (populated) / customerName,
+  // never as order.userName, so the name was always blank.
+  const orderUserObj = order.userId && typeof order.userId === "object" ? order.userId : {}
+  const userName =
+    order.customerName ||
+    orderUserObj.name ||
+    orderUserObj.fullName ||
+    order.deliveryAddress?.name ||
+    order.userName ||
+    ""
+  const userPhone =
+    order.customerPhone ||
+    orderUserObj.phone ||
+    order.deliveryAddress?.phone ||
+    order.userPhone ||
+    ""
   const paymentMethod = order.payment?.method || "Online"
   const paymentDate = order.createdAt
     ? new Date(order.createdAt).toLocaleString("en-IN", {
@@ -248,8 +273,9 @@ export default function UserOrderDetails() {
       const taxAmount = Number(pricing.tax || 0)
       const deliveryFeeAmount = Number(pricing.deliveryFee || 0)
       const platformFeeAmount = Number(pricing.platformFee || 0)
+      const packagingFeeAmount = Number(pricing.packagingFee || 0)
       const totalAmount = Number(pricing.total || 0)
-      const discountAmount = Math.max(0, Number(pricing.discount || 0) + Number(pricing.originalItemTotal || 0) - Number(pricing.subtotal || 0))
+      const discountAmount = Math.max(0, Number(pricing.discount || 0))
 
       const pageWidth = doc.internal.pageSize.getWidth()
       const pageHeight = doc.internal.pageSize.getHeight()
@@ -284,6 +310,7 @@ export default function UserOrderDetails() {
       doc.text(doc.splitTextToSize(restaurantLocation || "Address not available", 85), 110, 50)
       doc.text(`FSSAI: ${restaurantObj.fssaiNumber || restaurantObj.fssai || order.restaurantFssai || "N/A"}`, 110, 66)
       doc.text(`GSTIN: ${restaurantObj.gstNumber || restaurantObj.gstin || order.restaurantGstin || "N/A"}`, 110, 71)
+      doc.text(`PAN: ${restaurantObj.panNumber || "N/A"}`, 110, 76)
 
       doc.setDrawColor(226, 232, 240)
       doc.setLineWidth(0.5)
@@ -346,6 +373,12 @@ export default function UserOrderDetails() {
       doc.text(`Rs. ${subtotalAmount.toFixed(2)}`, rightX, yPos, { align: "right" })
       yPos += 6
 
+      if (packagingFeeAmount > 0) {
+        doc.text("Packaging:", 140, yPos)
+        doc.text(`Rs. ${packagingFeeAmount.toFixed(2)}`, rightX, yPos, { align: "right" })
+        yPos += 6
+      }
+
       if (taxAmount > 0) {
         doc.text("GST (gov. taxes):", 140, yPos)
         doc.text(`Rs. ${taxAmount.toFixed(2)}`, rightX, yPos, { align: "right" })
@@ -395,7 +428,7 @@ export default function UserOrderDetails() {
   }
 
   const handleViewInvoice = () => {
-    navigate(`/user/orders/${orderId}/invoice`)
+    navigate(`/food/user/orders/${orderId}/invoice`)
   }
 
   const handleReorder = (currentOrder) => {
@@ -557,14 +590,9 @@ export default function UserOrderDetails() {
                 )}
                 <div>
                   <div className="flex items-center gap-2">
-                    <div
-                      className={`w-3 h-3 border ${item.isVeg === true || item.foodType === 'Veg' ? "border-green-600" : "border-red-600"
-                        } flex items-center justify-center p-[1px]`}
-                    >
-                      <div
-                        className={`w-full h-full rounded-full ${item.isVeg === true || item.foodType === 'Veg' ? "bg-green-600" : "bg-red-600"
-                          }`}
-                      />
+                    {/* Veg-only app: always the green veg mark */}
+                    <div className="w-3 h-3 border border-green-600 flex items-center justify-center p-[1px]">
+                      <div className="w-full h-full rounded-full bg-green-600" />
                     </div>
                     <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
                       {item.quantity || item.qty || 1} x {item.name}{item.variantName ? ` (${item.variantName})` : ""}
@@ -632,6 +660,26 @@ export default function UserOrderDetails() {
                 ₹{Number(pricing.platformFee || 0).toFixed(2)}
               </span>
             </div>
+            {/* Bug #81: packaging charge is part of the total but was never shown */}
+            {Number(pricing.packagingFee || 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">Packaging charges</span>
+                <span className="text-gray-800 dark:text-gray-200">
+                  ₹{Number(pricing.packagingFee).toFixed(2)}
+                </span>
+              </div>
+            )}
+            {/* Bug #69: discount (coupon / offer) is subtracted from the total but was never shown */}
+            {Number(pricing.discount || 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-green-700 dark:text-green-400">
+                  Discount{pricing.couponCode ? ` (${pricing.couponCode})` : ""}
+                </span>
+                <span className="text-green-700 dark:text-green-400 font-medium">
+                  -₹{Number(pricing.discount).toFixed(2)}
+                </span>
+              </div>
+            )}
 
 
             <div className="border-t border-gray-100 dark:border-gray-800 my-2 pt-2 flex justify-between items-center">

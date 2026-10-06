@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Phone, ArrowRight, ShieldCheck, Loader2, Utensils, Star, Heart, ShieldQuestion, ChefHat, Smartphone, MapPin, Gauge, Pizza, Leaf, Info, User } from "lucide-react"
 import { toast } from "sonner"
 import { authAPI, userAPI } from "@food/api"
@@ -15,6 +15,10 @@ import {
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
+
+// Bug #125: referral code from "?ref=..." (kept until signup completes).
+const PENDING_REFERRAL_KEY = "pending_referral_ref"
+const normalizeReferralCode = (value) => String(value || "").trim().replace(/[^a-zA-Z0-9]/g, "").slice(0, 40)
 
 export default function UnifiedOTPFastLogin() {
   const RESEND_COOLDOWN_SECONDS = 60
@@ -33,7 +37,34 @@ export default function UnifiedOTPFastLogin() {
     return resolveMediaUrl(settings?.logo)
   })
   const navigate = useNavigate()
+  const location = useLocation()
   const submitting = useRef(false)
+  const [referralCode, setReferralCode] = useState(() => {
+    try {
+      return normalizeReferralCode(localStorage.getItem(PENDING_REFERRAL_KEY))
+    } catch {
+      return ""
+    }
+  })
+
+  useEffect(() => {
+    const fromUrl = normalizeReferralCode(new URLSearchParams(location.search || "").get("ref"))
+    if (!fromUrl) return
+    setReferralCode(fromUrl)
+    try {
+      localStorage.setItem(PENDING_REFERRAL_KEY, fromUrl)
+    } catch {
+      /* ignore storage errors */
+    }
+  }, [location.search])
+
+  const clearPendingReferral = () => {
+    try {
+      localStorage.removeItem(PENDING_REFERRAL_KEY)
+    } catch {
+      /* ignore storage errors */
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -160,7 +191,7 @@ export default function UnifiedOTPFastLogin() {
         console.warn("Failed to get FCM token during login", e);
       }
 
-      const response = await authAPI.verifyOTP(phoneNumber, otpDigits, "login", null, null, "user", null, null, fcmToken, platform)
+      const response = await authAPI.verifyOTP(phoneNumber, otpDigits, "login", null, null, "user", null, referralCode || null, fcmToken, platform)
       const data = response?.data?.data || response?.data || {}
       // Handle 2-step signup flow where name is required
       const needsName = data.needsName === true || data.isNewUser === true || (data.user && (!data.user.name || String(data.user.name).trim().length === 0 || String(data.user.name).toLowerCase() === "null"));
@@ -228,7 +259,7 @@ export default function UnifiedOTPFastLogin() {
           null,
           "user",
           null,
-          null,
+          normalizeReferralCode(referralCode) || null,
           pendingVerify.fcmToken,
           pendingVerify.platform,
         )
@@ -239,6 +270,7 @@ export default function UnifiedOTPFastLogin() {
 
         setAuthData("user", accessToken, user, refreshToken)
         setPendingVerify(null)
+        clearPendingReferral()
         toast.success(`Welcome, ${newName.trim()}!`)
         setShowNameModal(false)
         navigate("/food/user", { replace: true })
@@ -536,6 +568,22 @@ export default function UnifiedOTPFastLogin() {
                 />
               </div>
             </div>
+
+            {/* Bug #125: new users can enter (or see the pre-filled) referral code */}
+            {pendingVerify && (
+              <div className="space-y-2">
+                <Label htmlFor="referralCode" className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">
+                  Referral Code <span className="text-gray-400 font-normal">(Optional)</span>
+                </Label>
+                <Input
+                  id="referralCode"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(normalizeReferralCode(e.target.value))}
+                  placeholder="Enter referral code"
+                  className="pl-4 h-11 sm:h-12 bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary transition-all"
+                />
+              </div>
+            )}
 
             <div className="flex flex-col gap-2.5">
               <Button

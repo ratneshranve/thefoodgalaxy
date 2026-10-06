@@ -17,6 +17,7 @@ import { sendAdminResetOtpEmail } from "../../utils/email.js";
 import mongoose from "mongoose";
 import { creditReferralReward } from "../../modules/food/user/services/userWallet.service.js";
 import { normalizeMediaUrl, toMediaObject, toMediaArray } from "../../utils/mediaUrl.js";
+import { detachDeviceTokenFromOtherOwners } from "../notifications/firebase.service.js";
 
 const ROLES = {
   USER: "USER",
@@ -180,6 +181,7 @@ export const verifyUserOtpAndLogin = async (
     if (isModified) {
       await userDoc.save();
     }
+    await detachDeviceTokenFromOtherOwners({ model: FoodUser, ownerId: userDoc._id, token: fcmToken });
   }
 
   // Ensure referralCode exists (used for share links on older accounts).
@@ -389,6 +391,7 @@ export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform
     if (isModified) {
       await restaurantDoc.save();
     }
+    await detachDeviceTokenFromOtherOwners({ model: FoodRestaurant, ownerId: restaurantDoc._id, token: fcmToken });
   }
 
   // If restaurant approval status is used, handle pending/rejected states by returning info instead of throwing errors.
@@ -483,6 +486,7 @@ export const verifyDeliveryOtpAndLogin = async (phone, otp, fcmToken, platform) 
     if (isModified) {
       await deliveryPartner.save();
     }
+    await detachDeviceTokenFromOtherOwners({ model: FoodDeliveryPartner, ownerId: deliveryPartner._id, token: fcmToken });
   }
 
   // Bypass for legacy delivery partners created before this feature was rolled out.

@@ -30,9 +30,16 @@ export default function SignupStep1() {
       panNumber: "",
       aadharNumber: ""
     }
+    // Bug #126: pre-fill the referral code captured from a referral link.
+    try {
+      base.ref = String(localStorage.getItem("pending_delivery_referral") || "").trim()
+    } catch {
+      /* ignore storage errors */
+    }
     if (saved) {
       try {
-        return { ...base, ...JSON.parse(saved) }
+        const parsed = JSON.parse(saved)
+        return { ...base, ...parsed, ref: parsed?.ref || base.ref }
       } catch (e) {
         debugError("Error parsing saved details:", e)
       }
@@ -242,7 +249,16 @@ export default function SignupStep1() {
           <p className="text-sm text-gray-600">Please provide your information to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Bug #24: keep the focused field (e.g. PAN number) visible above the keyboard */}
+        <form
+          onSubmit={handleSubmit}
+          onFocusCapture={(e) => {
+            const field = e.target
+            if (!(field instanceof HTMLElement) || !field.matches("input, select, textarea")) return
+            window.setTimeout(() => field.scrollIntoView({ behavior: "smooth", block: "center" }), 350)
+          }}
+          className="space-y-4"
+        >
           {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -280,6 +296,25 @@ export default function SignupStep1() {
               placeholder="Enter your email"
             />
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+          </div>
+
+          {/* Bug #126: optional referral code */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Referral Code <span className="text-gray-400 font-normal">(Optional)</span>
+            </label>
+            <input
+              type="text"
+              name="ref"
+              value={formData.ref || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, ref: e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 40) }))
+              }
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 border-gray-300"
+              placeholder="Enter referral code (if any)"
+            />
           </div>
 
           {/* Address */}

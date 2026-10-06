@@ -176,11 +176,14 @@ export function clearUserSession() {
 /**
  * Clear restaurant-local cached UI data to prevent cross-account stale state.
  */
-export function clearRestaurantSessionCache() {
+export function clearRestaurantSessionCache({ keepOnboardingDraft = false } = {}) {
   const keys = [
     "restaurant_owner_contact",
     "restaurant_onboarding",
-    "restaurant_onboarding_data",
+    // Bug #11/#29: logging in again (e.g. after the app restarts) must not wipe the
+    // onboarding draft. The onboarding page only reuses a draft whose phone matches
+    // the logged-in restaurant, so keeping it on login is safe; logout still clears it.
+    ...(keepOnboardingDraft ? [] : ["restaurant_onboarding_data"]),
     "restaurant_invited_users",
     "restaurant_schedule_off",
     "restaurant_online_status",
@@ -188,6 +191,20 @@ export function clearRestaurantSessionCache() {
     "restaurant_hub_menu_active_tab",
     "restaurant_name",
     "restaurantName",
+    // Bug #111: these held the previous restaurant's orders/menu and could show up
+    // after another restaurant logged in on the same device.
+    "restaurant_pickupOtpReveal",
+    "restaurant_foods",
+    "restaurant_data",
+    "restaurant_wallet_state",
+    "restaurant_inventory_recommended_map",
+    "restaurant_addon_form_data",
+    "restaurant_inventory_addon_form",
+    "restaurant_inventory_stock_rules_v1",
+    "restaurant_inventory_active_tab",
+    "restaurant_withdraws_full_details",
+    "restaurant_draft_email",
+    "restaurant_dismissed_notifications",
   ];
 
   keys.forEach((key) => localStorage.removeItem(key));
@@ -261,7 +278,7 @@ export function setAuthData(module, token, user, refreshToken = null) {
     if (module === "user") {
       clearUserSession();
     } else if (module === "restaurant") {
-      clearRestaurantSessionCache();
+      clearRestaurantSessionCache({ keepOnboardingDraft: true });
     }
 
     localStorage.setItem(tokenKey, token);

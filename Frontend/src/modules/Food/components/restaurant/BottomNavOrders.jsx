@@ -7,7 +7,7 @@ import {
   MessageSquare,
   Compass,
 } from "lucide-react"
-import useNotificationInbox from "@food/hooks/useNotificationInbox"
+// import useNotificationInbox from "@food/hooks/useNotificationInbox"
 import { useRestaurantNotifications } from "@food/hooks/useRestaurantNotifications"
 
 const getOrdersTabs = (basePath = "/food/restaurant") => [
@@ -28,33 +28,52 @@ export default function BottomNavOrders() {
   const { pathname } = useLocation()
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false)
 
-  // Hide bottom nav only when keyboard is actively open over a focused text input
+  // Hide the bottom nav while the on-screen keyboard is open so it stays at the
+  // bottom of the screen instead of riding up above the keyboard.
+  // In the Android WebView both window.innerHeight and visualViewport shrink when
+  // the keyboard opens, so comparing them never detected the keyboard. Instead we
+  // treat "a text field is focused" (mobile widths only) or "viewport is much
+  // shorter than the tallest height seen" as keyboard open.
   useEffect(() => {
-    const handleResize = () => {
-      const activeEl = document.activeElement
-      const isInputFocused = activeEl && (
-        activeEl.tagName === 'INPUT' || 
-        activeEl.tagName === 'TEXTAREA' || 
-        activeEl.isContentEditable
-      )
+    const NON_TEXT_INPUT_TYPES = new Set([
+      "button", "checkbox", "radio", "range", "color", "file", "submit", "reset", "image", "hidden",
+    ])
+    let maxViewportHeight = Math.max(window.innerHeight, window.visualViewport?.height || 0)
 
-      if (isInputFocused && window.visualViewport) {
-        const isKeyboardOpen = window.visualViewport.height < window.innerHeight * 0.75
-        setIsKeyboardVisible(isKeyboardOpen)
-      } else {
-        setIsKeyboardVisible(false)
+    const isTextFieldFocused = () => {
+      const el = document.activeElement
+      if (!el) return false
+      if (el.isContentEditable || el.tagName === "TEXTAREA") return true
+      if (el.tagName === "INPUT") {
+        return !NON_TEXT_INPUT_TYPES.has(String(el.type || "text").toLowerCase())
       }
+      return false
     }
 
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize)
-      window.addEventListener('focusin', handleResize)
-      window.addEventListener('focusout', handleResize)
-      return () => {
-        window.visualViewport.removeEventListener('resize', handleResize)
-        window.removeEventListener('focusin', handleResize)
-        window.removeEventListener('focusout', handleResize)
+    const update = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight
+      if (!isTextFieldFocused()) {
+        maxViewportHeight = Math.max(maxViewportHeight, currentHeight, window.innerHeight)
+        setIsKeyboardVisible(false)
+        return
       }
+      const isMobileWidth = window.matchMedia?.("(max-width: 1023px)")?.matches ?? true
+      const viewportShrunk = currentHeight < maxViewportHeight * 0.8
+      setIsKeyboardVisible(isMobileWidth || viewportShrunk)
+    }
+
+    // focusout fires before the next element receives focus; defer the check.
+    const deferredUpdate = () => window.setTimeout(update, 50)
+
+    window.addEventListener("focusin", update)
+    window.addEventListener("focusout", deferredUpdate)
+    window.addEventListener("resize", update)
+    window.visualViewport?.addEventListener("resize", update)
+    return () => {
+      window.removeEventListener("focusin", update)
+      window.removeEventListener("focusout", deferredUpdate)
+      window.removeEventListener("resize", update)
+      window.visualViewport?.removeEventListener("resize", update)
     }
   }, [])
 
@@ -65,20 +84,22 @@ export default function BottomNavOrders() {
     ? "/food/restaurant"
     : "/food/restaurant"
 
-  const { unreadCount } = useNotificationInbox("restaurant", { limit: 20, pollMs: 60 * 1000 })
+  // const { unreadCount } = useNotificationInbox("restaurant", { limit: 20, pollMs: 60 * 1000 })
   const { newOrder, newReservation } = useRestaurantNotifications();
 
   const tabs = useMemo(() => getOrdersTabs(basePath), [basePath])
+
+  // All hooks must run before any early return; returning before this useMemo
+  // changed the hook count when the keyboard opened and crashed the app (bug #132).
+  const activeTab = useMemo(() => {
+    const match = findActiveTab(tabs, pathname)
+    return match?.id || "orders"
+  }, [tabs, pathname])
 
   const isInternalPage = pathname.includes("/create-offers")
   if (isInternalPage || isKeyboardVisible) {
     return null
   }
-
-  const activeTab = useMemo(() => {
-    const match = findActiveTab(tabs, pathname)
-    return match?.id || "orders"
-  }, [tabs, pathname])
 
   const handleTabClick = (tab) => {
     if (tab.route && tab.route !== pathname) {
@@ -131,8 +152,10 @@ export default function BottomNavOrders() {
                       />
                     </motion.div>
                     {/* Notification Dot */}
-                    {((tab.id === 'orders' && (newOrder || newReservation)) || 
-                      (tab.id === 'feedback' && unreadCount > 0)) && (
+                    {/* Bug #80: the Feedback tab used to show the general notification
+                        unread count, which has nothing to do with feedback. Only the
+                        Orders tab shows a dot now (pending new order / table request). */}
+                    {(tab.id === 'orders' && (newOrder || newReservation)) && (
                       <span className="absolute top-2 right-2">
                         <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75" />
                         <span className="relative block w-2.5 h-2.5 rounded-full bg-red-500 border border-white shadow-sm" />

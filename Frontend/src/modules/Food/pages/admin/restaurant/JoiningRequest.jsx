@@ -18,6 +18,13 @@ const formatTime12Hour = (timeStr) => {
 }
 
 
+// Bug #31: long database ids were shown in full; show a short, readable id.
+const shortRestaurantId = (value) => {
+  const id = String(value || "").trim()
+  if (!id) return "N/A"
+  return id.length > 12 ? `REST-${id.slice(-6).toUpperCase()}` : id
+}
+
 export default function JoiningRequest() {
   const [activeTab, setActiveTab] = useState("pending")
   const [searchQuery, setSearchQuery] = useState("")
@@ -857,7 +864,7 @@ export default function JoiningRequest() {
                         )}
                         <div className="flex items-center gap-1 text-slate-600">
                           <Building2 className="w-4 h-4" />
-                          <span className="text-sm">{r?.restaurantId || r?._id || "N/A"}</span>
+                          <span className="text-sm" title={String(r?.restaurantId || r?._id || "")}>{shortRestaurantId(r?.restaurantId || r?._id)}</span>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           approvalStatus === "approved" ? "bg-green-100 text-green-700" : approvalStatus === "rejected" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
@@ -947,6 +954,7 @@ export default function JoiningRequest() {
                             </div>
                           </div>
                         )}
+                        {/* Veg-only app: Pure Veg / Mixed Menu badge hidden.
                         {r?.pureVegRestaurant != null && (
                           <div className="flex items-center gap-3">
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${r.pureVegRestaurant ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
@@ -954,6 +962,7 @@ export default function JoiningRequest() {
                             </span>
                           </div>
                         )}
+                        */}
                         {(r?.primaryContactNumber || r?.phone) && (
                           <div className="flex items-center gap-3">
                             <Phone className="w-5 h-5 text-slate-400" />
@@ -1274,7 +1283,7 @@ export default function JoiningRequest() {
                         {r.restaurantId && (
                           <div>
                             <p className="text-xs text-slate-500 mb-1">Restaurant ID</p>
-                            <p className="font-medium text-slate-900">{r.restaurantId}</p>
+                            <p className="font-medium text-slate-900" title={String(r.restaurantId)}>{shortRestaurantId(r.restaurantId)}</p>
                           </div>
                         )}
                         {r.approvedAt != null && (

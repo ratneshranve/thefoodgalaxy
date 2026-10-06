@@ -23,7 +23,7 @@ const createFoodForm = () => ({
   variants: [],
   description: "",
   image: "",
-  foodType: "Non-Veg",
+  foodType: "Veg", // veg-only app
   isAvailable: true,
   preparationTime: "",
 })
@@ -424,7 +424,9 @@ export default function FoodsList() {
         })),
         description: foodForm.description.trim(),
         image: imageUrl,
-        foodType: foodForm.foodType === "Veg" ? "Veg" : "Non-Veg",
+        // Veg-only app: every dish is Veg.
+        // foodType: foodForm.foodType === "Veg" ? "Veg" : "Non-Veg",
+        foodType: "Veg",
         isAvailable: foodForm.isAvailable !== false,
         preparationTime: String(foodForm.preparationTime || "").trim(),
       }
@@ -932,6 +934,7 @@ export default function FoodsList() {
                   <p className="mt-1 text-xs text-slate-500">Variants are active, so customers will see the lowest variant price as the starting price.</p>
                 ) : null}
               </div>
+              {/* Veg-only app (bug #85): Food Type selector hidden; dishes are saved as Veg.
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Food Type</label>
                 <select
@@ -943,6 +946,7 @@ export default function FoodsList() {
                   <option value="Non-Veg">Non-Veg</option>
                 </select>
               </div>
+              */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Upload Image</label>
                 <input

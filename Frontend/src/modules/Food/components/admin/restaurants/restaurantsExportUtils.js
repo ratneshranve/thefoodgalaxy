@@ -1,3 +1,12 @@
+// Bug #89: the list passes { isActive, approvalStatus }, not "status", so every
+// restaurant was exported as "Inactive".
+const getRestaurantStatusLabel = (restaurant = {}) => {
+  if (typeof restaurant.isActive === "boolean") return restaurant.isActive ? "Active" : "Inactive"
+  const raw = String(restaurant.status ?? restaurant.originalData?.status ?? "").toLowerCase()
+  if (raw === "approved" || raw === "active" || raw === "true") return "Active"
+  return raw ? "Inactive" : "N/A"
+}
+
 // Export utility functions for restaurants
 export const exportRestaurantsToExcel = (restaurants, filename = "restaurants") => {
   const headers = [
@@ -20,7 +29,7 @@ export const exportRestaurantsToExcel = (restaurants, filename = "restaurants") 
     restaurant.ownerPhone || "N/A",
     restaurant.zone || "N/A",
     restaurant.cuisine || "N/A",
-    restaurant.status ? "Active" : "Inactive",
+    getRestaurantStatusLabel(restaurant),
     restaurant.rating || 0
   ])
   
@@ -61,7 +70,7 @@ export const exportRestaurantsToPDF = (restaurants, filename = "restaurants") =>
     restaurant.ownerPhone || "N/A",
     restaurant.zone || "N/A",
     restaurant.cuisine || "N/A",
-    restaurant.status ? "Active" : "Inactive",
+    getRestaurantStatusLabel(restaurant),
     restaurant.rating || 0
   ])
   

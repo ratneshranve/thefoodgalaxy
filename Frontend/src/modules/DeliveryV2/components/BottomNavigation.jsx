@@ -36,7 +36,7 @@ export default function BottomNavigation() {
 
   const TabIcon = (active, Outline, Solid) => {
     const Icon = active ? Solid : Outline
-    return <Icon className={iconClass} />
+    return <Icon className={iconClass} style={{ color: active ? "var(--dv-primary)" : "#78716c" }} />
   }
 
   const TabLabel = (active, label) => (
@@ -88,7 +88,7 @@ export default function BottomNavigation() {
 
   return (
     <div
-      className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t shadow-[0_-14px_34px_rgba(15,107,203,0.16)] z-50"
+      className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t shadow-[0_-10px_28px_rgba(217,56,58,0.08)] z-50"
       style={{ borderColor: "color-mix(in srgb, var(--dv-primary) 18%, #ffffff)" }}
     >
       <div className="flex items-center justify-around py-2.5 px-3">

@@ -915,8 +915,8 @@ Order again from this restaurant in the ${companyName} app.`
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start gap-2">
                               {/* Veg/Non-Veg Icon */}
-                              <div className={`w-4 h-4 border ${isVeg ? 'border-green-600' : 'border-red-600'} flex items-center justify-center p-[2px] flex-shrink-0 mt-0.5`}>
-                                <div className={`w-full h-full rounded-full ${isVeg ? 'bg-green-600' : 'bg-red-600'}`}></div>
+                              <div className="w-4 h-4 border border-green-600 flex items-center justify-center p-[2px] flex-shrink-0 mt-0.5">
+                                <div className="w-full h-full rounded-full bg-green-600"></div>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <span className="text-sm text-gray-800 dark:text-gray-200 font-medium block">

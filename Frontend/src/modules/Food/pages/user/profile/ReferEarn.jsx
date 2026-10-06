@@ -78,19 +78,37 @@ export default function ReferEarn() {
     };
   }, []);
 
-  const refId = userProfile?._id || userProfile?.id || userProfile?.referralCode || "";
-  const referralLink = refId
-    ? `${window.location.origin}/food/user/auth/login?ref=${encodeURIComponent(String(refId))}`
+  // Bug #125: the link pointed to "/food/user/auth/login" (no such page) and the
+  // login page ignored "?ref". Use the real login route and a public web origin.
+  const refId = userProfile?.referralCode || userProfile?._id || userProfile?.id || "";
+  const publicOrigin = (() => {
+    const configured = String(import.meta.env.VITE_PUBLIC_APP_URL || "").trim().replace(/\/+$/, "");
+    if (configured) return configured;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return /^https?:\/\//i.test(origin) ? origin : "";
+  })();
+  const referralLink = refId && publicOrigin
+    ? `${publicOrigin}/user/auth/login?ref=${encodeURIComponent(String(refId))}`
     : "";
+
+  const handleCopyCode = async () => {
+    if (!refId) return;
+    try {
+      await navigator.clipboard.writeText(String(refId));
+      toast.success("Referral code copied");
+    } catch {
+      toast.error("Unable to copy. Please copy the code manually.");
+    }
+  };
 
   const shareText = useMemo(() => {
     const rewardText = stats.rewardAmount > 0 ? `\u20B9${stats.rewardAmount}` : "rewards";
-    return `Join ${companyName} and earn ${rewardText}.`;
-  }, [companyName, stats.rewardAmount]);
+    return `Join ${companyName} and earn ${rewardText}. Use my referral code ${refId} while signing up.`;
+  }, [companyName, stats.rewardAmount, refId]);
 
   const handleShare = async () => {
-    if (!referralLink) {
-      toast.error("Referral link unavailable");
+    if (!refId) {
+      toast.error("Referral code unavailable");
       return;
     }
     try {
@@ -98,17 +116,18 @@ export default function ReferEarn() {
         await navigator.share({
           title: `${companyName} referral`,
           text: shareText,
-          url: referralLink,
+          ...(referralLink ? { url: referralLink } : {}),
         });
         return;
       }
 
+      const message = referralLink ? `${shareText} ${referralLink}` : shareText;
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(`${shareText} ${referralLink}`);
-        toast.success("Referral link copied");
+        await navigator.clipboard.writeText(message);
+        toast.success("Invite message copied");
       }
 
-      const fallbackUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${referralLink}`)}`;
+      const fallbackUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(fallbackUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       if (error?.name !== "AbortError") {
@@ -146,10 +165,25 @@ export default function ReferEarn() {
                 </p>
               </div>
             </div>
+            {refId ? (
+              <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Your referral code</p>
+                  <p className="truncate font-mono text-sm font-bold text-gray-900 dark:text-white">{refId}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyCode}
+                  className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white"
+                >
+                  Copy
+                </button>
+              </div>
+            ) : null}
             <Button
               type="button"
               onClick={handleShare}
-              disabled={!referralLink}
+              disabled={!refId}
               className="w-full mt-3 h-11 rounded-xl bg-primary hover:bg-[#d84f0a]"
             >
               <Share2 className="h-4 w-4 mr-2" />

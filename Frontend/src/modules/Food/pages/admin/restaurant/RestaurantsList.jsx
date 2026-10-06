@@ -944,7 +944,7 @@ export default function RestaurantsList() {
 
       const payload = {
         name: detailsForm.name.trim(),
-        pureVegRestaurant: detailsForm.pureVegRestaurant === true,
+        pureVegRestaurant: true, // veg-only app (was detailsForm.pureVegRestaurant === true)
         ownerName: detailsForm.ownerName.trim(),
         ownerEmail: (detailsForm.ownerEmail || detailsForm.email || "").trim(),
         ownerPhone: detailsForm.ownerPhone.trim(),
@@ -1744,6 +1744,7 @@ export default function RestaurantsList() {
                       <label className="block text-xs text-slate-500 mb-1">Restaurant Name</label>
                       <input type="text" value={detailsForm.name} onChange={(e) => setDetailsForm((prev) => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
                     </div>
+                    {/* Veg-only app: Pure Veg toggle hidden.
                     <div>
                       <label className="block text-xs text-slate-500 mb-1">Pure Veg</label>
                       <div className="flex items-center gap-2">
@@ -1771,6 +1772,7 @@ export default function RestaurantsList() {
                         </button>
                       </div>
                     </div>
+                    */}
                     <div>
                       <label className="block text-xs text-slate-500 mb-1">Restaurant Email</label>
                       <input type="email" value={detailsForm.email} onChange={(e) => setDetailsForm((prev) => ({ ...prev, email: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />

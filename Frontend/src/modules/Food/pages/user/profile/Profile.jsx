@@ -802,6 +802,7 @@ export default function Profile() {
             </motion.div>
           </Link>
 
+          {/* Veg-only app: Veg Mode row hidden from profile.
           <motion.div
             whileHover={{ x: 4, scale: 1.01 }}
             transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
@@ -836,6 +837,7 @@ export default function Profile() {
               </CardContent>
             </Card>
           </motion.div>
+          */}
 
           <motion.div
             whileHover={{ x: 4, scale: 1.01 }}
@@ -1168,6 +1170,7 @@ export default function Profile() {
       </div>
 
       {/* Veg Mode Popup */}
+      {/* Veg-only app: Veg Mode dialog hidden.
       <Dialog open={vegModeOpen} onOpenChange={setVegModeOpen}>
         <DialogContent className="max-w-sm md:max-w-md lg:max-w-lg w-[calc(100%-2rem)] rounded-2xl p-0 overflow-hidden">
           <DialogHeader className="p-5 pb-3">
@@ -1236,6 +1239,7 @@ export default function Profile() {
         </DialogContent>
       </Dialog>
 
+      */}
       {/* Logout Confirmation Popup */}
       {logoutConfirmOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
