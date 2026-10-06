@@ -86,7 +86,7 @@ export default function Coupons() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0">
+                      <div className="h-10 w-10 rounded-xl bg-orange-100 text-red-700 flex items-center justify-center shrink-0">
                         <TicketPercent className="h-5 w-5" />
                       </div>
                       <div className="min-w-0">

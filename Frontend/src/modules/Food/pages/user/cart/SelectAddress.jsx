@@ -11,7 +11,7 @@ import { Badge } from "@food/components/ui/badge"
 import { useProfile } from "@food/context/ProfileContext"
 import { toast } from "sonner"
 
-const ORANGE = "#7e3866"
+const ORANGE = "#c8161d"
 
 const getAddressId = (address) => address?.id || address?._id || ""
 
@@ -239,7 +239,7 @@ export default function SelectAddress() {
                                         {String(addr?.label || "Saved").toLowerCase() === "office" ? "Work" : (addr?.label || "Saved")}
                                       </p>
                                       {addr?.isDefault && (
-                                        <Badge className="bg-orange-100 text-orange-800 dark:bg-primary/15 dark:text-orange-200">
+                                        <Badge className="bg-orange-100 text-red-800 dark:bg-primary/15 dark:text-orange-200">
                                           Default
                                         </Badge>
                                       )}

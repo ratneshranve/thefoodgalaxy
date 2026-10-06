@@ -1328,7 +1328,7 @@ Order again from this restaurant in the ${companyName} app.`
                   onClick={() => openShareTarget("sms")}
                   className="rounded-2xl border border-gray-200 dark:border-gray-800 px-3 py-4 text-xs font-medium text-gray-700 dark:text-gray-200 flex flex-col items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  <MessagesSquare className="w-5 h-5 text-violet-500" />
+                  <MessagesSquare className="w-5 h-5 text-red-600" />
                   SMS
                 </button>
                 <button

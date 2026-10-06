@@ -2529,7 +2529,7 @@ export default function Home() {
                             );
                           }}
                           className={`h-9 px-4 rounded-full flex items-center gap-2 whitespace-nowrap flex-shrink-0 transition-all font-bold shadow-sm active:scale-95 ${isActive
-                            ? "bg-primary text-white border border-primary hover:bg-orange-700"
+                            ? "bg-primary text-white border border-primary hover:bg-red-700"
                             : "bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                             }`}
                         >
@@ -2626,7 +2626,7 @@ export default function Home() {
                   <motion.div
                     animate={{ y: [0, -15, 0], rotate: [0, 15, 0], scale: [1, 1.1, 1] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute -top-10 -left-10 text-orange-400/40"
+                    className="absolute -top-10 -left-10 text-red-500/40"
                   >
                     <Pizza className="w-12 h-12" strokeWidth={1} />
                   </motion.div>
@@ -2648,7 +2648,7 @@ export default function Home() {
                   <motion.div
                     animate={{ y: [0, -25, 0] }}
                     transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-                    className="relative z-10 w-44 h-44 bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-sm rounded-[3rem] shadow-[0_20px_50px_rgba(126,56,102,0.3)] flex items-center justify-center border border-white/50 dark:border-white/10 overflow-hidden"
+                    className="relative z-10 w-44 h-44 bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-sm rounded-[3rem] shadow-[0_20px_50px_rgba(200,22,29,0.3)] flex items-center justify-center border border-white/50 dark:border-white/10 overflow-hidden"
                   >
                     <img
                       src={chefMascot}

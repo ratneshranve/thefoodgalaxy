@@ -344,7 +344,7 @@ export default function AddToCartAnimation({
       // Step 1: Scale up with glow
       tl.to(linkRef.current, {
         scale: 1.08,
-        boxShadow: '0 10px 25px rgba(126, 56, 102, 0.4)',
+        boxShadow: '0 10px 25px rgba(200,22,29, 0.4)',
         duration: 0.15,
         ease: 'power2.out',
         transformOrigin: 'center center',
@@ -353,7 +353,7 @@ export default function AddToCartAnimation({
         // Step 2: Bounce back
         .to(linkRef.current, {
           scale: 1.0,
-          boxShadow: '0 4px 12px rgba(126, 56, 102, 0.3)',
+          boxShadow: '0 4px 12px rgba(200,22,29, 0.3)',
           duration: 0.2,
           ease: 'power2.inOut',
         })

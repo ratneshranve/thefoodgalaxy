@@ -140,10 +140,10 @@ export default function PullToRefresh({ onRefresh, enabled = true }) {
     >
       <div className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg">
         {refreshing ? (
-          <Loader2 className="h-5 w-5 animate-spin text-[#7e3866]" />
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
         ) : (
           <ArrowDown
-            className="h-5 w-5 text-[#7e3866] transition-transform"
+            className="h-5 w-5 text-primary transition-transform"
             style={{ transform: `rotate(${ready ? 180 : 0}deg)` }}
           />
         )}

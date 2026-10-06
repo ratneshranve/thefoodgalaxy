@@ -560,7 +560,7 @@ export default function UserOrderDetails() {
             <span
               className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${sendsCutlery
                   ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                  : "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800"
+                  : "bg-orange-50 dark:bg-orange-900/20 text-red-700 dark:text-red-500 border border-orange-200 dark:border-red-800"
                 }`}
             >
               {sendsCutlery ? "Send cutlery" : "Don't send cutlery"}

@@ -14,7 +14,7 @@ function RestaurantGridSkeleton() {
             <div className="p-3 sm:p-4 lg:p-5 pt-3 sm:pt-4 lg:pt-5 flex flex-col flex-grow">
               <div className="flex items-start justify-between gap-2 mb-2 lg:mb-3">
                 <div className="h-6 lg:h-8 w-48 lg:w-64 bg-orange-100 dark:bg-orange-900/30 rounded-md animate-pulse" />
-                <div className="h-6 lg:h-8 w-16 bg-orange-200 dark:bg-orange-800/40 rounded-3xl animate-pulse" />
+                <div className="h-6 lg:h-8 w-16 bg-orange-200 dark:bg-red-800/40 rounded-3xl animate-pulse" />
               </div>
               <div className="h-4 lg:h-5 w-24 bg-orange-50 dark:bg-orange-900/20 rounded animate-pulse" />
             </div>

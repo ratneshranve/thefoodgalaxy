@@ -2362,7 +2362,7 @@ export default function Cart() {
                 </div>
                 <button
                   onClick={() => setSendCutlery(!sendCutlery)}
-                  className={`flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border rounded-lg md:rounded-xl text-sm md:text-base h-full ${sendCutlery ? 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300' : 'border-primary dark:border-primary/50 text-primary dark:text-primary bg-[#7e386605] dark:bg-[#7e386610]'}`}
+                  className={`flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border rounded-lg md:rounded-xl text-sm md:text-base h-full ${sendCutlery ? 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300' : 'border-primary dark:border-primary/50 text-primary dark:text-primary bg-[#c8161d05] dark:bg-[#c8161d10]'}`}
                 >
                   <Utensils className="h-4 w-4 md:h-5 md:w-5" />
                   <span className="whitespace-nowrap">
@@ -2462,7 +2462,7 @@ export default function Cart() {
                                   restaurantId: cartRestaurantId
                                 });
                               }}
-                               className="absolute bottom-1 md:bottom-2 right-1 md:right-2 w-6 h-6 md:w-7 md:h-7 bg-white border border-primary rounded flex items-center justify-center shadow-sm hover:bg-[#7e386605] dark:hover:bg-[#7e386610] transition-colors"
+                               className="absolute bottom-1 md:bottom-2 right-1 md:right-2 w-6 h-6 md:w-7 md:h-7 bg-white border border-primary rounded flex items-center justify-center shadow-sm hover:bg-[#c8161d05] dark:hover:bg-[#c8161d10] transition-colors"
                             >
                                <Plus className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
                             </button>
@@ -2527,7 +2527,7 @@ export default function Cart() {
                           </div>
                         </div>
                         <button
-                           className="border border-primary text-primary dark:hover:bg-[#7e386610] rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed ml-2 shadow-sm"
+                           className="border border-primary text-primary dark:hover:bg-[#c8161d10] rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed ml-2 shadow-sm"
                           onClick={() => handleApplyCoupon(availableCoupons[0])}
                           disabled={subtotal < availableCoupons[0].minOrder || (availableCoupons[0].customerGroup === "new" && userOrderCount > 0)}
                         >
@@ -2554,7 +2554,7 @@ export default function Cart() {
                              className="flex-1 h-9 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0a0a0a] px-3 text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:border-primary"
                           />
                           <button
-                             className="bg-white dark:bg-[#1a1a1a] border border-primary text-primary rounded px-4 h-9 text-xs font-semibold uppercase hover:bg-[#7e386605] dark:hover:bg-[#7e386610]"
+                             className="bg-white dark:bg-[#1a1a1a] border border-primary text-primary rounded px-4 h-9 text-xs font-semibold uppercase hover:bg-[#c8161d05] dark:hover:bg-[#c8161d10]"
                             onClick={handleApplyCouponCode}
                           >
                             APPLY
@@ -2662,7 +2662,7 @@ export default function Cart() {
               <div className="bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-5 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800">
                 <div className="flex items-start justify-between w-full text-left">
                   <div className="flex items-start gap-4 flex-1">
-                     <div className="bg-[#7e386605] dark:bg-[#7e386610] p-2 rounded-xl mt-0.5">
+                     <div className="bg-[#c8161d05] dark:bg-[#c8161d10] p-2 rounded-xl mt-0.5">
                        <MapPin className="h-5 w-5 text-primary" />
                      </div>
                     <div className="flex-1">
@@ -2688,7 +2688,7 @@ export default function Cart() {
                                 </p>
                               )}
                               <div className="mt-1 flex items-center gap-2">
-                                 <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] md:text-[11px] font-semibold bg-[#7e386605] text-primary dark:bg-[#7e386610] dark:text-primary border border-primary/30">
+                                 <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] md:text-[11px] font-semibold bg-[#c8161d05] text-primary dark:bg-[#c8161d10] dark:text-primary border border-primary/30">
                                    GPS enabled
                                  </span>
                               </div>
@@ -2743,7 +2743,7 @@ export default function Cart() {
                                     handleSelectSavedAddress(address)
                                   }}
                                    className={`w-full text-left rounded-xl border-2 p-3 transition-colors ${isSelected
-                                     ? "border-primary bg-[#7e386605] dark:bg-primary/5"
+                                     ? "border-primary bg-[#c8161d05] dark:bg-primary/5"
                                      : "border-slate-100 dark:border-gray-800 hover:border-slate-200"
                                      }`}
                                 >
@@ -2772,7 +2772,7 @@ export default function Cart() {
                   <button
                     type="button"
                      onClick={openLocationSelector}
-                     className="p-2 text-primary bg-[#7e386605] rounded-full hover:bg-[#7e386610] transition-colors dark:bg-[#7e386615] dark:hover:bg-[#7e386620]"
+                     className="p-2 text-primary bg-[#c8161d05] rounded-full hover:bg-[#c8161d10] transition-colors dark:bg-[#c8161d15] dark:hover:bg-[#c8161d20]"
                      aria-label="Open location selector"
                    >
                      <ChevronRight className="h-5 w-5" />
@@ -3051,7 +3051,7 @@ export default function Cart() {
               onClick={() => setShowPaymentSheet(true)}
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[#7e386610] dark:bg-[#7e386620] flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-[#c8161d10] dark:bg-[#c8161d20] flex items-center justify-center flex-shrink-0">
                   {selectedPaymentMethod === "wallet" ? (
                     <Wallet className="h-5 w-5 text-primary" />
                   ) : selectedPaymentMethod === "razorpay" ? (
@@ -3077,7 +3077,7 @@ export default function Cart() {
                 </div>
               </div>
 
-               <div className="flex items-center gap-0.5 text-primary font-bold text-[11px] uppercase tracking-widest bg-[#7e386605] dark:bg-[#7e386610] px-2.5 py-1 rounded-lg">
+               <div className="flex items-center gap-0.5 text-primary font-bold text-[11px] uppercase tracking-widest bg-[#c8161d05] dark:bg-[#c8161d10] px-2.5 py-1 rounded-lg">
                 CHANGE <ChevronRight className="h-3.5 w-3.5" />
               </div>
             </div>
@@ -3086,7 +3086,7 @@ export default function Cart() {
             <button
               onClick={handlePlaceOrder}
               disabled={isPlacingOrder || (selectedPaymentMethod === "wallet" && walletBalance < total)}
-              className="w-full bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-[#3c0f3d] text-white px-6 h-12 md:h-14 rounded-2xl font-bold shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between transition-transform active:scale-[0.98]"
+              className="w-full bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-[#5a0a0e] text-white px-6 h-12 md:h-14 rounded-2xl font-bold shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between transition-transform active:scale-[0.98]"
             >
               {(selectedPaymentMethod === "razorpay" || selectedPaymentMethod === "wallet" || selectedPaymentMethod === "cash") && (
                 <div className="text-left flex flex-col justify-center border-r-[1.5px] border-white/20 pr-4">
@@ -3166,7 +3166,7 @@ export default function Cart() {
                          className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-100 ease-linear"
                         style={{
                            width: `${orderProgress}%`,
-                           boxShadow: '0 0 10px rgba(126, 56, 102, 0.5)'
+                           boxShadow: '0 0 10px rgba(200,22,29, 0.5)'
                          }}
                       />
                     </div>
@@ -3283,7 +3283,7 @@ export default function Cart() {
                     style={{
                       left: `${Math.random() * 100}%`,
                       top: `-10%`,
-                      backgroundColor: ['#7e3866', '#3b82f6', '#f59e0b', '#ef4444', '#55254b', '#ec4899'][Math.floor(Math.random() * 6)],
+                      backgroundColor: ['#c8161d', '#3b82f6', '#f59e0b', '#ef4444', '#9b1016', '#ec4899'][Math.floor(Math.random() * 6)],
                       animation: `confettiFall ${2 + Math.random() * 2}s linear ${Math.random() * 2}s infinite`,
                       transform: `rotate(${Math.random() * 360}deg)`,
                     }}
@@ -3471,7 +3471,7 @@ export default function Cart() {
                           name: 'Cash on Delivery',
                           description: 'Pay when order arrives',
                           icon: <Banknote className="w-5 h-5" />,
-                          color: 'bg-orange-50 text-#55254b dark:bg-orange-900/40 dark:text-orange-400',
+                          color: 'bg-orange-50 text-#9b1016 dark:bg-orange-900/40 dark:text-red-500',
                           selectedColor: 'bg-primary text-white',
                           hidden: isCodHidden
                         }
@@ -3518,7 +3518,7 @@ export default function Cart() {
                                 </p>
                                 {option.subInfo && !option.disabled && (
                                   <>
-                                    <span className={`w-1 h-1 rounded-full ${selectedPaymentMethod === option.id ? 'bg-white/40' : 'bg-orange-300 dark:bg-orange-700'
+                                    <span className={`w-1 h-1 rounded-full ${selectedPaymentMethod === option.id ? 'bg-white/40' : 'bg-orange-300 dark:bg-red-700'
                                       }`} />
                                     <p className={`text-[10px] font-black uppercase tracking-tighter transition-colors ${selectedPaymentMethod === option.id ? 'text-white' : 'text-green-600 dark:text-green-500'
                                       }`}>

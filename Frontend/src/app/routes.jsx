@@ -40,8 +40,21 @@ const RedirectToFood = () => {
 const MasterLandingPage = lazy(() => import('./MasterLandingPage'))
 const AdminRouter = lazy(() => import('../modules/Food/components/admin/AdminRouter'))
 
+// Red + yellow brand theme: only the user and delivery apps (not restaurant / admin).
+const FG_THEME_CLASS = 'theme-fg'
+const isFgThemedPath = (pathname = '') => {
+  const p = String(pathname).toLowerCase()
+  return /^\/(food\/)?(user|delivery)(\/|$)/.test(p) || p === '/food' || p === '/food/'
+}
+
 const AppRoutes = () => {
   const location = useLocation()
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined
+    document.documentElement.classList.toggle(FG_THEME_CLASS, isFgThemedPath(location.pathname))
+    return undefined
+  }, [location.pathname])
 
   useEffect(() => {
     if (typeof window === 'undefined') return

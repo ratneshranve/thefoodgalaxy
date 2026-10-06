@@ -198,7 +198,7 @@ export const NewOrderModal = ({ order, queuedOrders = [], onSelectOrder, onAccep
         {/* Header Ribbon */}
         <div 
           className="p-4 sm:p-8 flex justify-between items-center text-white border-b border-white/10"
-          style={{ background: 'linear-gradient(135deg, #d9383a 0%, #7f1d1d 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #c8161d 0%, #7a0c11 100%)' }}
         >
           <div>
             <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest mb-1">Incoming Request</p>

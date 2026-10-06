@@ -586,7 +586,7 @@ export default function ProductDetail() {
                       </Button>
                       <Button
                         type="submit"
-                        className="flex-1 bg-gradient-to-r bg-primary hover:from-yellow-600 hover:to-#55254b"
+                        className="flex-1 bg-gradient-to-r bg-primary hover:from-yellow-600 hover:to-#9b1016"
                       >
                         <Send className="h-4 w-4 mr-2" />
                         Submit Review

@@ -114,6 +114,57 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ------------------------------------------------------------------
+   The Food Galaxy red + yellow theme for the USER and DELIVERY apps.
+   The class is added to <html> by app/routes.jsx only on those routes, so
+   the restaurant and admin panels keep their own colours. It sits on <html>
+   so dialogs / popovers (rendered in a portal) are themed as well.
+   ------------------------------------------------------------------ */
+.theme-fg {
+  --background: #fcf9f5;
+  --foreground: #2a0f10;
+  --card-foreground: #2a0f10;
+  --popover-foreground: #2a0f10;
+  --primary: #c8161d;
+  --primary-foreground: #ffffff;
+  --secondary: #9b1016;
+  --secondary-foreground: #ffffff;
+  --muted: #f6f1ec;
+  --muted-foreground: #9a8480;
+  --accent: #ffc107;
+  --accent-foreground: #5a0a0e;
+  --ring: #c8161d;
+  --sidebar-foreground: #2a0f10;
+  --sidebar-primary: #c8161d;
+  --sidebar-accent: #9b1016;
+  --sidebar-ring: #c8161d;
+  --color-page-bg: #fcf9f5;
+  --color-primary-orange: #c8161d;
+}
+
+.theme-fg.dark {
+  --foreground: oklch(0.985 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: #e53935;
+  --primary-foreground: #ffffff;
+  --secondary: #b71c1c;
+  --secondary-foreground: #ffffff;
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: #ffc107;
+  --accent-foreground: #2a0f10;
+  --ring: #e53935;
+  --sidebar-primary: #e53935;
+  --sidebar-ring: #e53935;
+}
+
+/* Tailwind v4 reads these at build time, expose the yellow as a utility too */
+@theme inline {
+  --color-brand-yellow: #ffc107;
+  --color-brand-red: #c8161d;
+  --color-brand-red-dark: #9b1016;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -2350,7 +2350,7 @@ function RestaurantDetailsContent() {
               animate={{ opacity: 1, scale: 1 }}
               className={`absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 rounded-xl h-8 sm:h-9 md:h-10 px-3 sm:px-4 flex items-center justify-between gap-3 min-w-[90px] md:min-w-[100px] z-10 transition-all duration-300 ${shouldShowGrayscale || isRestaurantOffline
                   ? 'bg-gray-300 dark:bg-gray-800 text-gray-500 cursor-not-allowed opacity-50 shadow-none border border-gray-300 dark:border-gray-700'
-                  : 'shadow-md bg-white dark:bg-black text-orange-500 border border-orange-500 dark:border-orange-500'
+                  : 'shadow-md bg-white dark:bg-black text-red-600 border border-red-600 dark:border-red-600'
                 }`}
             >
               <button
@@ -2361,11 +2361,11 @@ function RestaurantDetailsContent() {
                   }
                 }}
                 disabled={shouldShowGrayscale || isRestaurantOffline}
-                className={shouldShowGrayscale || isRestaurantOffline ? 'text-gray-500 cursor-not-allowed' : 'text-orange-500 hover:text-orange-600 active:scale-90 transition-transform'}
+                className={shouldShowGrayscale || isRestaurantOffline ? 'text-gray-500 cursor-not-allowed' : 'text-red-600 hover:text-red-600 active:scale-90 transition-transform'}
               >
                 <Minus size={16} className="stroke-[3px]" />
               </button>
-              <span className="text-[13px] sm:text-[15px] font-black text-orange-600 dark:text-orange-400">{quantity}</span>
+              <span className="text-[13px] sm:text-[15px] font-black text-red-600 dark:text-red-500">{quantity}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -2379,7 +2379,7 @@ function RestaurantDetailsContent() {
                   }
                 }}
                 disabled={shouldShowGrayscale || isRestaurantOffline}
-                className={shouldShowGrayscale || isRestaurantOffline ? 'text-gray-500 cursor-not-allowed' : 'text-orange-500 hover:text-orange-600 active:scale-90 transition-transform'}
+                className={shouldShowGrayscale || isRestaurantOffline ? 'text-gray-500 cursor-not-allowed' : 'text-red-600 hover:text-red-600 active:scale-90 transition-transform'}
               >
                 <Plus size={16} className="stroke-[3px]" />
               </button>
@@ -2402,7 +2402,7 @@ function RestaurantDetailsContent() {
               disabled={shouldShowGrayscale || isRestaurantOffline}
               className={`absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 rounded-xl h-8 sm:h-9 md:h-10 px-5 sm:px-7 text-[12px] sm:text-[14px] md:text-[16px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap min-w-[90px] md:min-w-[100px] z-10 ${shouldShowGrayscale || isRestaurantOffline
                 ? 'bg-gray-400 dark:bg-gray-700 text-white cursor-not-allowed shadow-none border border-gray-400/20'
-                : 'bg-white dark:bg-black hover:bg-orange-50/50 dark:hover:bg-zinc-900 text-orange-500 dark:text-orange-500 shadow-md border border-orange-500 dark:border-orange-500'
+                : 'bg-white dark:bg-black hover:bg-orange-50/50 dark:hover:bg-zinc-900 text-red-600 dark:text-red-600 shadow-md border border-red-600 dark:border-red-600'
                 }`}
             >
               {isRestaurantOffline ? "OFFLINE" : (
@@ -2431,13 +2431,13 @@ function RestaurantDetailsContent() {
             scale: [1, 1.02, 1.01], 
             opacity: 1,
             boxShadow: [
-              "0 4px 12px rgba(126,56,102,0.1)",
-              "0 16px 36px rgba(126,56,102,0.3)",
-              "0 12px 28px rgba(126,56,102,0.22)"
+              "0 4px 12px rgba(200,22,29,0.1)",
+              "0 16px 36px rgba(200,22,29,0.3)",
+              "0 12px 28px rgba(200,22,29,0.22)"
             ]
           }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="flex gap-4 p-4 border-b border-gray-100 dark:border-gray-800 last:border-none relative cursor-pointer transition-all duration-500 rounded-2xl bg-gradient-to-r from-[#7e38660a] to-[#7e386615] dark:from-[#7e386618] dark:to-[#7e386622] ring-2 ring-primary z-10 mx-1 my-2"
+          className="flex gap-4 p-4 border-b border-gray-100 dark:border-gray-800 last:border-none relative cursor-pointer transition-all duration-500 rounded-2xl bg-gradient-to-r from-[#c8161d0a] to-[#c8161d15] dark:from-[#c8161d18] dark:to-[#c8161d22] ring-2 ring-primary z-10 mx-1 my-2"
           onClick={() => handleItemClick(item)}
         >
           {cardContent}
@@ -2703,7 +2703,7 @@ function RestaurantDetailsContent() {
               className="w-full rounded-2xl border border-gray-900/20 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-left shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition-all hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)]"
             >
               <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 dark:bg-orange-900/30 text-red-600 dark:text-red-500">
                   <Percent className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1 flex flex-col justify-center">
@@ -2738,7 +2738,7 @@ function RestaurantDetailsContent() {
                   <span
                     key={`offer-dot-${index}`}
                     className={`h-1.5 w-1.5 rounded-full ${
-                      index === activeOfferIndicator ? "bg-orange-500" : "bg-gray-200 dark:bg-gray-700"
+                      index === activeOfferIndicator ? "bg-red-600" : "bg-gray-200 dark:bg-gray-700"
                     }`}
                   />
                 ))}
@@ -2821,7 +2821,7 @@ function RestaurantDetailsContent() {
                       onClick={() => setSelectedMenuCategory("all")}
                       className={`flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
                         selectedMenuCategory === "all"
-                          ? "border-primary bg-[#7e386615] text-primary"
+                          ? "border-primary bg-[#c8161d15] text-primary"
                           : "border-gray-300 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300"
                       }`}
                     >
@@ -2834,7 +2834,7 @@ function RestaurantDetailsContent() {
                         onClick={() => setSelectedMenuCategory(category.id)}
                         className={`flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
                           selectedMenuCategory === category.id
-                            ? "border-primary bg-[#7e386615] text-primary"
+                            ? "border-primary bg-[#c8161d15] text-primary"
                             : "border-gray-300 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300"
                         }`}
                       >
@@ -3102,7 +3102,7 @@ function RestaurantDetailsContent() {
             className="fixed bottom-24 right-6 z-[60] pointer-events-auto sm:bottom-8 cursor-grab active:cursor-grabbing"
           >
             <Button
-              className="bg-primary hover:bg-secondary text-white flex items-center gap-2 shadow-[0_12px_40px_rgba(126,56,102,0.4)] border border-white/20 px-6 py-3.5 h-auto rounded-full font-bold transform transition-all duration-300 active:scale-95 group"
+              className="bg-primary hover:bg-secondary text-white flex items-center gap-2 shadow-[0_12px_40px_rgba(200,22,29,0.4)] border border-white/20 px-6 py-3.5 h-auto rounded-full font-bold transform transition-all duration-300 active:scale-95 group"
               size="lg"
               onClick={() => setShowMenuSheet(true)}
             >

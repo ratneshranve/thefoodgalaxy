@@ -88,7 +88,7 @@ export default function Footer() {
                   crossOrigin="anonymous"
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
-                <span className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+                <span className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
                   {companyName}
                 </span>
               </div>

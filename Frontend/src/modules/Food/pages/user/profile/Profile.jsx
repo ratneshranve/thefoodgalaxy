@@ -593,7 +593,7 @@ export default function Profile() {
             <motion.div
               whileHover={{ x: 4, scale: 1.01 }}
               transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-              <Card className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border border-amber-500/30 cursor-pointer">
+              <Card className="bg-gradient-to-r from-amber-500/10 via-red-600/10 to-amber-500/5 dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border border-amber-500/30 cursor-pointer">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <motion.div
@@ -785,7 +785,7 @@ export default function Profile() {
                     <motion.span
                       className={`text-xs font-medium px-2 py-1 rounded transition-colors ${isComplete
                           ? "bg-primary text-white shadow-sm"
-                          : "bg-[#7e386615] text-primary border border-primary/10"
+                          : "bg-[#c8161d15] text-primary border border-primary/10"
                         }`}
                       whileHover={{ scale: 1.1 }}
                       transition={{ duration: 0.2 }}>
@@ -1218,7 +1218,7 @@ export default function Profile() {
                 setVegModeOpen(false);
               }}
               className={`w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between ${!vegMode
-                  ? "border-secondary bg-[#fdfafc] dark:bg-[#3c0f3d]/10"
+                  ? "border-secondary bg-[#fffaf0] dark:bg-[#5a0a0e]/10"
                   : "border-gray-200 dark:border-gray-800 bg-white hover:border-gray-300"
                 }`}>
               <div className="flex items-center gap-3">
@@ -1262,7 +1262,7 @@ export default function Profile() {
               </Button>
               <Button
                 type="button"
-                className="flex-1 rounded-xl bg-secondary hover:bg-[#3c0f3d] text-white"
+                className="flex-1 rounded-xl bg-secondary hover:bg-[#5a0a0e] text-white"
                 onClick={() => {
                   setLogoutConfirmOpen(false);
                   handleLogout();
@@ -1294,12 +1294,12 @@ export default function Profile() {
                 setAppearanceOpen(false);
               }}
               className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${appearance === "light"
-                  ? "border-primary bg-[#fdfafc] dark:border-[#b18da5] dark:bg-[#3c0f3d]/20"
+                  ? "border-primary bg-[#fffaf0] dark:border-[#f08a84] dark:bg-[#5a0a0e]/20"
                   : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                 }`}>
               <div
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${appearance === "light"
-                    ? "border-primary bg-primary dark:border-[#b18da5] dark:bg-[#b18da5]"
+                    ? "border-primary bg-primary dark:border-[#f08a84] dark:bg-[#f08a84]"
                     : "border-gray-300 dark:border-gray-600"
                   }`}>
                 {appearance === "light" && (
@@ -1322,12 +1322,12 @@ export default function Profile() {
                 setAppearanceOpen(false);
               }}
               className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${appearance === "dark"
-                  ? "border-primary dark:border-[#b18da5] bg-[#fdfafc] dark:bg-[#3c0f3d]/20"
+                  ? "border-primary dark:border-[#f08a84] bg-[#fffaf0] dark:bg-[#5a0a0e]/20"
                   : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                 }`}>
               <div
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${appearance === "dark"
-                    ? "border-primary bg-primary dark:border-[#b18da5] dark:bg-[#b18da5]"
+                    ? "border-primary bg-primary dark:border-[#f08a84] dark:bg-[#f08a84]"
                     : "border-gray-300 dark:border-gray-600"
                   }`}>
                 {appearance === "dark" && (

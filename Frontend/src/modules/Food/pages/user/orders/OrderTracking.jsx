@@ -1753,7 +1753,7 @@ export default function OrderTracking() {
                     <Check className="w-full h-full" />
                   </div>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center p-2 text-orange-500">
+                  <div className="w-full h-full flex items-center justify-center p-2 text-red-600">
                     <Receipt className="w-full h-full" />
                   </div>
                 )}
@@ -1824,7 +1824,7 @@ export default function OrderTracking() {
               </h3>
               <button 
                 onClick={handleOpenRating}
-                className="text-[10px] font-bold text-primary dark:text-orange-400 uppercase tracking-widest hover:opacity-80 transition-opacity"
+                className="text-[10px] font-bold text-primary dark:text-red-500 uppercase tracking-widest hover:opacity-80 transition-opacity"
               >
                 Edit Rating
               </button>
@@ -2232,7 +2232,7 @@ export default function OrderTracking() {
               <div className="bg-orange-50/50 dark:bg-orange-900/10 rounded-xl p-4 border border-orange-100 dark:border-orange-900/40 flex gap-3">
                 <MessageSquare className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs text-#55254b font-bold uppercase tracking-wider mb-1">Delivery Instructions</p>
+                  <p className="text-xs text-#9b1016 font-bold uppercase tracking-wider mb-1">Delivery Instructions</p>
                   <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-medium capitalize">
                     {order.note}
                   </p>
@@ -2339,7 +2339,7 @@ export default function OrderTracking() {
       <Dialog open={isInstructionsModalOpen} onOpenChange={setIsInstructionsModalOpen}>
         <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-6 border-0 shadow-2xl bg-white dark:bg-[#1a1a1a] max-h-[90vh] overflow-y-auto z-[200]">
           <DialogHeader className="mb-2">
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-#55254b to-orange-400 bg-clip-text text-transparent">
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-#9b1016 to-red-500 bg-clip-text text-transparent">
               Delivery Instructions
             </DialogTitle>
           </DialogHeader>
@@ -2356,7 +2356,7 @@ export default function OrderTracking() {
             <Button 
               onClick={handleUpdateInstructions} 
               disabled={isUpdatingInstructions}
-              className="w-full bg-gradient-to-r from-primary to-amber-500 hover:from-#55254b hover:to-amber-600 text-white font-bold h-12 rounded-xl border-none"
+              className="w-full bg-gradient-to-r from-primary to-amber-500 hover:from-#9b1016 hover:to-amber-600 text-white font-bold h-12 rounded-xl border-none"
             >
               {isUpdatingInstructions ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Save Instructions"}
             </Button>
@@ -2379,7 +2379,7 @@ export default function OrderTracking() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="font-semibold text-gray-800 dark:text-gray-200">How was the food?</p>
-                <span className="text-xs px-2 py-0.5 bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400 rounded-full font-medium">Restaurant</span>
+                <span className="text-xs px-2 py-0.5 bg-orange-50 text-red-600 dark:bg-orange-950/30 dark:text-red-500 rounded-full font-medium">Restaurant</span>
               </div>
               <div className="flex justify-center gap-3">
                 {[1, 2, 3, 4, 5].map((star) => (

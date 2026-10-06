@@ -1009,7 +1009,7 @@ export default function PageNavbar({
   }
 
   const textColorClass = textColor === "white" ? "text-white" : "text-primary"
-  const iconFill = textColor === "white" ? "white" : "#7e3866"
+  const iconFill = textColor === "white" ? "white" : "#c8161d"
   const ringColor = textColor === "white" ? "ring-white/30" : "ring-primary/30"
 
   const zIndexClass = zIndex === 50 ? "z-50" : "z-20"

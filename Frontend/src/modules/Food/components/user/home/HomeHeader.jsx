@@ -203,7 +203,7 @@ export default function HomeHeader({
                 <div className="h-8 w-8 relative flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20 cursor-pointer active:scale-90 transition-all">
                   <Bell className="h-4 w-4 text-white" />
                   {unreadCount > 0 && (
-                    <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full border animate-pulse ${vegMode ? 'bg-orange-400 border-[#00b09b]' : 'bg-orange-400 border-primary'}`} />
+                    <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full border animate-pulse ${vegMode ? 'bg-red-500 border-[#00b09b]' : 'bg-red-500 border-primary'}`} />
                   )}
                 </div>
               </PopoverTrigger>

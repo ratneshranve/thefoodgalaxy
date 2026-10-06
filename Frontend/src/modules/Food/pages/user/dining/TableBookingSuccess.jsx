@@ -68,7 +68,7 @@ export default function TableBookingSuccess() {
                     {booking.status === 'pending' ? 'Waiting for restaurant approval' : 'Your table is ready for you'}
                 </p>
                 <div className="pt-2">
-                    <span className="bg-[#F9F9FB] dark:bg-slate-900 text-primary dark:text-purple-400 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest border border-primary/20 dark:border-purple-400/20">
+                    <span className="bg-[#F9F9FB] dark:bg-slate-900 text-primary dark:text-red-400 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest border border-primary/20 dark:border-red-400/20">
                         BOOKING ID: {booking.bookingId}
                     </span>
                 </div>

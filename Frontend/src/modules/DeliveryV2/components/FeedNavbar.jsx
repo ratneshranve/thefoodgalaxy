@@ -447,7 +447,7 @@ export default function FeedNavbar({ className = "" }) {
     <div 
       className={`px-4 py-3 flex items-center justify-between sticky top-0 z-50 border-b border-black/10 shadow-sm ${className}`}
       style={{
-        background: 'linear-gradient(135deg, #d9383a 0%, #b91c1c 100%)',
+        background: 'linear-gradient(135deg, #c8161d 0%, #9b1016 100%)',
         boxShadow: '0 4px 20px rgba(185, 28, 28, 0.18)'
       }}
     >
@@ -611,7 +611,7 @@ export default function FeedNavbar({ className = "" }) {
                   <ShieldCheck className="w-6 h-6 text-green-600" />
                 )}
                 {option.icon === "teamLeader" && (
-                  <User className="w-6 h-6 text-purple-600" />
+                  <User className="w-6 h-6 text-red-600" />
                 )}
               </div>
 

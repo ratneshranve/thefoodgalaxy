@@ -214,7 +214,7 @@ export default function OrderInvoice() {
     if (!inv) return
     try {
       const doc = new jsPDF()
-      const primaryColor = [126, 56, 102]
+      const primaryColor = [200, 22, 29]
       const secondaryColor = [71, 85, 105]
       const pageWidth = doc.internal.pageSize.getWidth()
       const pageHeight = doc.internal.pageSize.getHeight()
@@ -412,7 +412,7 @@ export default function OrderInvoice() {
             {/* Header section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start pb-4 mb-4 border-b border-gray-200">
               <div className="flex items-center gap-3">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#7e3866] flex flex-col items-center justify-center text-white p-2 border-2 border-[#55254b] mx-auto sm:mx-0">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#c8161d] flex flex-col items-center justify-center text-white p-2 border-2 border-[#9b1016] mx-auto sm:mx-0">
                   <div className="bg-white rounded-full p-1 mb-1">
                     <span className="text-2xl">👩‍🍳</span>
                   </div>

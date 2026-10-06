@@ -622,7 +622,7 @@ const DeliveryTrackingMapInner = ({
             animate={{ x: 0, opacity: 1 }}
             className="absolute top-4 left-4 z-[150] pointer-events-none"
           >
-            <div className="bg-primary/95 backdrop-blur-xl rounded-2xl p-3 shadow-[0_10px_30px_rgba(249,115,22,0.4)] border border-orange-400/50 flex flex-col min-w-[90px] group overflow-hidden relative">
+            <div className="bg-primary/95 backdrop-blur-xl rounded-2xl p-3 shadow-[0_10px_30px_rgba(249,115,22,0.4)] border border-red-500/50 flex flex-col min-w-[90px] group overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
               <div className="flex flex-col z-10">
                 <span className="text-[9px] text-white/80 font-black uppercase tracking-[0.2em] mb-0.5">Arrival</span>

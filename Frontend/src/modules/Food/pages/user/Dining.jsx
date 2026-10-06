@@ -71,7 +71,7 @@ const loadingRestaurantCards = Array.from({ length: 6 }, (_, index) => `restaura
 function DiningCategorySkeleton({ index }) {
   return (
     <motion.div
-      className={`relative h-[114px] sm:h-[148px] md:h-[160px] overflow-hidden rounded-[22px] border border-[#efe2d3] bg-[linear-gradient(180deg,#fdfafc_0%,#f9f3f7_100%)] shadow-[0_1px_2px_rgba(60,15,61,0.05)] ${shimmerClassName}`}
+      className={`relative h-[114px] sm:h-[148px] md:h-[160px] overflow-hidden rounded-[22px] border border-[#efe2d3] bg-[linear-gradient(180deg,#fffaf0_0%,#f9f3f7_100%)] shadow-[0_1px_2px_rgba(60,15,61,0.05)] ${shimmerClassName}`}
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.04 }}
@@ -81,7 +81,7 @@ function DiningCategorySkeleton({ index }) {
         <div className="mt-3 h-4 w-24 rounded-full bg-[#ead2bc]" />
         <div className="mt-2 h-4 w-20 rounded-full bg-[#f3e3d4]" />
       </div>
-      <div className="absolute inset-x-0 bottom-0 h-[64%] rounded-b-[18px] bg-[radial-gradient(circle_at_25%_20%,rgba(126,56,102,0.1),transparent_30%),linear-gradient(180deg,#fcf4f9_0%,#f5e8f1_100%)]">
+      <div className="absolute inset-x-0 bottom-0 h-[64%] rounded-b-[18px] bg-[radial-gradient(circle_at_25%_20%,rgba(200,22,29,0.1),transparent_30%),linear-gradient(180deg,#fff8e6_0%,#ffecc2_100%)]">
         <div className="absolute bottom-3 left-3 h-14 w-14 rounded-full bg-white/45 blur-md" />
       </div>
     </motion.div>
@@ -97,7 +97,7 @@ function DiningRestaurantSkeleton({ index }) {
       transition={{ duration: 0.4, delay: index * 0.06 }}
     >
       <div className="h-full overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-[#efe2d3]">
-        <div className={`relative h-48 overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(126,56,102,0.12),transparent_28%),linear-gradient(135deg,#fcf6fa_0%,#f9edf5_100%)] sm:h-56 md:h-60 lg:h-64 xl:h-72 ${shimmerClassName}`}>
+        <div className={`relative h-48 overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(200,22,29,0.12),transparent_28%),linear-gradient(135deg,#fcf6fa_0%,#f9edf5_100%)] sm:h-56 md:h-60 lg:h-64 xl:h-72 ${shimmerClassName}`}>
           <div className="absolute left-4 top-4 h-8 w-28 rounded-lg bg-black/10" />
           <div className="absolute right-4 top-4 h-9 w-9 rounded-lg bg-white/60" />
           <div className="absolute bottom-0 left-0 right-0 h-[40%] bg-gradient-to-r from-primary to-transparent/20">
@@ -994,7 +994,7 @@ export default function Dining() {
                                   className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white line-clamp-1"
                                   variants={{
                                     rest: {},
-                                    hover: { color: "#7e3866" }
+                                    hover: { color: "#c8161d" }
                                   }}
                                   transition={{ duration: 0.3 }}
                                 >

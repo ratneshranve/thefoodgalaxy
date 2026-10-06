@@ -172,7 +172,7 @@ function HomeRestaurantCard({
                       className="h-4 w-4 lg:h-5 lg:w-5 text-primary"
                       strokeWidth={3}
                     />
-                    <span className="text-primary dark:text-[#a05485] font-black uppercase text-[10px] tracking-wider">
+                    <span className="text-primary dark:text-[#e53935] font-black uppercase text-[10px] tracking-wider">
                       {restaurant.offer}
                     </span>
                   </div>

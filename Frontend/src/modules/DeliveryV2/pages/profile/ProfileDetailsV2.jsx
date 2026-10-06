@@ -629,7 +629,7 @@ export const ProfileDetailsV2 = () => {
               {/* UPI Section */}
               <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center justify-between group">
                  <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 border border-purple-100 group-hover:scale-105 transition-transform">
+                    <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 border border-red-100 group-hover:scale-105 transition-transform">
                        <Smartphone className="w-7 h-7" />
                     </div>
                     <div>
@@ -882,8 +882,8 @@ export const ProfileDetailsV2 = () => {
              ))}
 
              {/* UPI Scanner Upload */}
-             <div className="bg-purple-50 p-6 rounded-3xl border border-purple-100 flex flex-col items-center gap-4 text-center">
-                <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">UPI Payment QR Scanner</p>
+             <div className="bg-red-50 p-6 rounded-3xl border border-red-100 flex flex-col items-center gap-4 text-center">
+                <p className="text-[10px] font-black text-red-600 uppercase tracking-widest">UPI Payment QR Scanner</p>
                 
                 {upiQrPreview || bankDetails.upiQrCode ? (
                   <div className="relative">
@@ -901,21 +901,21 @@ export const ProfileDetailsV2 = () => {
                       onClick={() => handleTakeCameraPhoto("upiQrCode")}
                       className="flex-1 aspect-square rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-100 transition-all"
                     >
-                       <Camera className="w-6 h-6 text-purple-300" />
-                       <span className="text-[8px] font-black text-purple-400 uppercase">Camera</span>
+                       <Camera className="w-6 h-6 text-red-300" />
+                       <span className="text-[8px] font-black text-red-400 uppercase">Camera</span>
                     </div>
                     <div 
                       onClick={() => handlePickFromGallery("upiQrCode", upiQrInputRef)}
                       className="flex-1 aspect-square rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-100 transition-all"
                     >
-                       <ImageIcon className="w-6 h-6 text-purple-300" />
-                       <span className="text-[8px] font-black text-purple-400 uppercase">Gallery</span>
+                       <ImageIcon className="w-6 h-6 text-red-300" />
+                       <span className="text-[8px] font-black text-red-400 uppercase">Gallery</span>
                     </div>
                   </div>
                 )}
                 <input ref={upiQrInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpiQrSelected} />
                 <input ref={upiQrCameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleUpiQrCameraSelected} />
-                <p className="text-[9px] text-purple-400 font-medium">Upload your UPI QR code from Google Pay, PhonePe, etc. to receive easy payouts.</p>
+                <p className="text-[9px] text-red-400 font-medium">Upload your UPI QR code from Google Pay, PhonePe, etc. to receive easy payouts.</p>
              </div>
           </div>
 

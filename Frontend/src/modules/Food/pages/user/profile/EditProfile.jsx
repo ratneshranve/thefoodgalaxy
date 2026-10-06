@@ -132,7 +132,7 @@ const datePickerFieldSx = {
     borderColor: '#9ca3af',
   },
   '& .MuiPickersOutlinedInput-root.Mui-focused .MuiPickersOutlinedInput-notchedOutline': {
-    borderColor: '#7e3866',
+    borderColor: '#c8161d',
     borderWidth: '1px',
   },
   '& .MuiPickersSectionList-root, & .MuiInputBase-input': {
@@ -149,7 +149,7 @@ const getDatePickerTheme = (isDark) =>
   createTheme({
     palette: {
       mode: isDark ? 'dark' : 'light',
-      primary: { main: isDark ? '#a14d86' : '#7e3866' },
+      primary: { main: isDark ? '#e53935' : '#c8161d' },
     },
   })
 

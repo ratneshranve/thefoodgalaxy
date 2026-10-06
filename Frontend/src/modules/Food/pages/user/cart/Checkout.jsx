@@ -380,7 +380,7 @@ export default function Checkout() {
                     )}
                     <div className="flex justify-between font-bold text-lg md:text-xl lg:text-2xl pt-2 md:pt-3 border-t dark:border-gray-700">
                       <span className="dark:text-white">Total</span>
-                      <span className="text-primary dark:text-orange-400">₹{total.toFixed(0)}</span>
+                      <span className="text-primary dark:text-red-500">₹{total.toFixed(0)}</span>
                     </div>
                   </div>
 

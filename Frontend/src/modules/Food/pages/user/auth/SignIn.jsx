@@ -140,7 +140,7 @@ export default function SignIn() {
   return (
     <AnimatedPage className="min-h-screen bg-[#FFFBF5] dark:bg-[#121212] flex items-center justify-center relative overflow-hidden">
       {/* Decorative Background Elements */}
-      <motion.div animate={floatingAnimation(0, 5, 20)} className="absolute top-16 right-8 md:right-32 text-orange-400 opacity-60 drop-shadow-md">
+      <motion.div animate={floatingAnimation(0, 5, 20)} className="absolute top-16 right-8 md:right-32 text-red-500 opacity-60 drop-shadow-md">
         <Gauge className="w-12 h-12" />
       </motion.div>
       <motion.div animate={floatingAnimation(1, 4.5, 15)} className="absolute top-32 left-8 md:left-24 text-green-500 opacity-50 drop-shadow-md">

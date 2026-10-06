@@ -127,7 +127,7 @@ export default function AppIntroSplash({ onComplete }) {
             e.stopPropagation();
             handleAdClick();
           }}
-          className="absolute bottom-16 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 z-50"
+          className="absolute bottom-16 px-6 py-3 bg-gradient-to-r from-red-600 to-amber-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 z-50"
         >
           <span>Visit {restaurantName}</span>
           <ChevronRight className="w-4 h-4" />

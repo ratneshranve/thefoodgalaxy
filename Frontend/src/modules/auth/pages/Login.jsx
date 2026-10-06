@@ -589,7 +589,7 @@ export default function UnifiedOTPFastLogin() {
               <Button
                 type="submit"
                 disabled={isUpdatingName}
-                className="w-full h-11 sm:h-12 bg-primary hover:bg-[#6b2f57] text-white rounded-xl font-bold text-[15px] sm:text-lg shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full h-11 sm:h-12 bg-primary hover:bg-secondary text-white rounded-xl font-bold text-[15px] sm:text-lg shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 {isUpdatingName ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

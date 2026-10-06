@@ -2,20 +2,20 @@
 
 :root {
   /* Primary Soft Red Palette */
-  --dv-primary: #d9383a;
-  --dv-primary-strong: #991b1b;
-  --dv-primary-soft: #fef2f2;
-  --dv-primary-glow: rgba(217, 56, 58, 0.28);
+  --dv-primary: #c8161d;
+  --dv-primary-strong: #9b1016;
+  --dv-primary-soft: #fff1f0;
+  --dv-primary-glow: rgba(200, 22, 29, 0.28);
 
   /* Accent Warm Yellow / Golden Amber Palette */
-  --dv-accent: #f59e0b;
-  --dv-accent-strong: #d97706;
-  --dv-accent-soft: #fef3c7;
-  --dv-accent-glow: rgba(245, 158, 11, 0.28);
+  --dv-accent: #ffc107;
+  --dv-accent-strong: #f5a800;
+  --dv-accent-soft: #fff4cc;
+  --dv-accent-glow: rgba(255, 193, 7, 0.32);
 
   /* Neutral & Canvas */
   --dv-surface: #ffffff;
-  --dv-bg: #fdfbf7;
+  --dv-bg: #fcf9f5;
   --dv-text: #1c1917;
   --dv-muted: #78716c;
   --dv-border: #f3e8e2;
@@ -87,8 +87,8 @@
 .delivery-v2-theme .text-blue-600,
 .delivery-v2-theme .text-cyan-500,
 .delivery-v2-theme .text-cyan-600,
-.delivery-v2-theme .text-indigo-500,
-.delivery-v2-theme .text-indigo-600,
+.delivery-v2-theme .text-red-600,
+.delivery-v2-theme .text-red-600,
 .delivery-v2-theme .text-teal-500,
 .delivery-v2-theme .text-teal-600,
 .delivery-v2-theme .text-orange-500,
@@ -109,8 +109,8 @@
 .delivery-v2-theme .bg-blue-600,
 .delivery-v2-theme .bg-cyan-500,
 .delivery-v2-theme .bg-cyan-600,
-.delivery-v2-theme .bg-indigo-500,
-.delivery-v2-theme .bg-indigo-600,
+.delivery-v2-theme .bg-red-600,
+.delivery-v2-theme .bg-red-600,
 .delivery-v2-theme .bg-teal-500,
 .delivery-v2-theme .bg-teal-600,
 .delivery-v2-theme .bg-orange-500,
@@ -121,8 +121,8 @@
 .delivery-v2-theme .hover\:bg-orange-600:hover,
 .delivery-v2-theme .hover\:bg-blue-600:hover,
 .delivery-v2-theme .hover\:bg-cyan-600:hover,
-.delivery-v2-theme .hover\:bg-indigo-600:hover,
-.delivery-v2-theme [class~="hover:bg-[#6a2f56]"]:hover {
+.delivery-v2-theme .hover\:bg-red-600:hover,
+.delivery-v2-theme [class~="hover:bg-[#a50f14]"]:hover {
   background-color: var(--dv-primary-strong) !important;
 }
 
@@ -130,7 +130,7 @@
 .delivery-v2-theme .bg-orange-50,
 .delivery-v2-theme .bg-blue-50,
 .delivery-v2-theme .bg-cyan-50,
-.delivery-v2-theme .bg-indigo-50,
+.delivery-v2-theme .bg-red-50,
 .delivery-v2-theme .bg-teal-50,
 .delivery-v2-theme .bg-red-50,
 .delivery-v2-theme .bg-orange-500\/10,
@@ -159,7 +159,7 @@
 .delivery-v2-theme .border-blue-200,
 .delivery-v2-theme .border-blue-500\/20,
 .delivery-v2-theme .border-cyan-100,
-.delivery-v2-theme .border-indigo-200,
+.delivery-v2-theme .border-red-200,
 .delivery-v2-theme [class~="border-primary"] {
   border-color: color-mix(in srgb, var(--dv-primary) 22%, #ffffff) !important;
 }
@@ -173,12 +173,12 @@
 .delivery-v2-theme .from-orange-500,
 .delivery-v2-theme .from-blue-500,
 .delivery-v2-theme .from-cyan-500,
-.delivery-v2-theme .from-indigo-500,
+.delivery-v2-theme .from-red-600,
 .delivery-v2-theme .from-teal-500,
 .delivery-v2-theme .to-orange-600,
 .delivery-v2-theme .to-blue-600,
 .delivery-v2-theme .to-cyan-600,
-.delivery-v2-theme .to-indigo-600,
+.delivery-v2-theme .to-red-600,
 .delivery-v2-theme .to-teal-600 {
   --tw-gradient-from: var(--dv-primary) var(--tw-gradient-from-position) !important;
   --tw-gradient-to: var(--dv-primary-strong) var(--tw-gradient-to-position) !important;
@@ -198,7 +198,7 @@
 .delivery-v2-theme .shadow-orange-500\/20,
 .delivery-v2-theme .shadow-blue-500\/20,
 .delivery-v2-theme .shadow-cyan-500\/20,
-.delivery-v2-theme .shadow-indigo-500\/20,
+.delivery-v2-theme .shadow-red-600\/20,
 .delivery-v2-theme .shadow-red-500\/20 {
   --tw-shadow-color: color-mix(in srgb, var(--dv-primary) 28%, transparent) !important;
 }
@@ -236,7 +236,7 @@
 .delivery-v2-theme textarea:focus,
 .delivery-v2-theme select:focus {
   border-color: color-mix(in srgb, var(--dv-primary) 65%, #fff) !important;
-  box-shadow: 0 0 0 4px rgba(217, 56, 58, 0.14) !important;
+  box-shadow: 0 0 0 4px rgba(200, 22, 29, 0.14) !important;
 }
 
 @media (max-width: 900px) {

@@ -253,7 +253,7 @@ export default function Gourmet() {
                             </div>
                             <span className="text-gray-200">•</span>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[#a05485] font-black">{distanceStr} away</span>
+                              <span className="text-[#e53935] font-black">{distanceStr} away</span>
                             </div>
                           </div>
 

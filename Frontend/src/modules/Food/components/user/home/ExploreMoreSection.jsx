@@ -42,7 +42,7 @@ export default function ExploreMoreSection({
                             index % 3 === 0
                               ? "from-primary to-rose-500"
                               : index % 3 === 1
-                                ? "from-indigo-500 to-purple-500"
+                                ? "from-red-600 to-red-600"
                                 : "from-teal-500 to-emerald-500"
                           } z-20 pointer-events-none`}
                         />

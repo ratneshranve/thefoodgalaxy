@@ -82,7 +82,7 @@ const helpCategories = [
     id: "delivery",
     title: "Delivery",
     icon: Truck,
-    color: "text-#55254b",
+    color: "text-#9b1016",
     bgColor: "bg-orange-50",
     description: "Delivery times, fees, and tracking",
     topics: [

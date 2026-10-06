@@ -78,7 +78,7 @@ const VegModePopups = ({
 
                 <div className="relative text-center">
                   <div className="w-20 h-20 bg-primary/5 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-primary/5 dark:ring-primary/5">
-                    <AlertCircle className="w-10 h-10 text-primary dark:text-[#b18da5]" />
+                    <AlertCircle className="w-10 h-10 text-primary dark:text-[#f08a84]" />
                   </div>
                   <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3">Switching Off?</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-8">

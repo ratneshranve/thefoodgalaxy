@@ -171,7 +171,7 @@ export default function TableBookingConfirmation() {
                     className="w-full bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between group transition-colors"
                 >
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-xl transition-colors ${specialRequest ? 'bg-purple-50 dark:bg-purple-950/30' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'}`}>
+                        <div className={`p-2 rounded-xl transition-colors ${specialRequest ? 'bg-red-50 dark:bg-red-600/30' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'}`}>
                             <Info className={`w-5 h-5 ${specialRequest ? 'text-primary' : 'text-slate-600 dark:text-slate-400'}`} />
                         </div>
                         <div className="text-left">
@@ -220,7 +220,7 @@ export default function TableBookingConfirmation() {
                              className="w-full bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-[0.98] transition-all"
                         >
                             <div className="flex items-start gap-3">
-                                <div className="text-primary dark:text-purple-400 mt-1">
+                                <div className="text-primary dark:text-red-400 mt-1">
                                     <Edit2 className="w-5 h-5" />
                                 </div>
                                 <div className="text-left">
@@ -366,7 +366,7 @@ export default function TableBookingConfirmation() {
                                         setSpecialRequest(tempRequest)
                                         setShowRequestModal(false)
                                     }}
-                                    className="h-12 rounded-xl bg-primary text-white font-bold text-sm uppercase tracking-widest shadow-lg shadow-purple-200 active:scale-95 transition-all"
+                                    className="h-12 rounded-xl bg-primary text-white font-bold text-sm uppercase tracking-widest shadow-lg shadow-red-200 active:scale-95 transition-all"
                                 >
                                     Save
                                 </button>
@@ -390,8 +390,8 @@ export default function TableBookingConfirmation() {
                         </div>
                         <div className="space-y-4 py-2">
                             <div className="flex gap-4 p-4 rounded-2xl bg-orange-50 border border-orange-100">
-                                <Info className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-                                <div className="text-sm font-medium text-orange-800">
+                                <Info className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                                <div className="text-sm font-medium text-red-800">
                                     {policyType === 'cancellation' 
                                         ? `You can cancel your booking until ${timeSlot} today without any charges.` 
                                         : `You can modify your booking details until ${timeSlot} today for free.`}

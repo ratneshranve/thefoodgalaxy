@@ -24,7 +24,7 @@ export default function PremiumLoader() {
         
         {/* Floating elements */}
         <motion.div
-          className="absolute top-2 right-2 text-[#a05485]"
+          className="absolute top-2 right-2 text-[#e53935]"
           animate={{ y: [-5, -15, -5], opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
         >

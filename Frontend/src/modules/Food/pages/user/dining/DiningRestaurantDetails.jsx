@@ -396,7 +396,7 @@ export default function DiningRestaurantDetails() {
         <section id="restaurant-prebook">
           <div>
             <h2 className="text-[29px] font-black leading-none text-[#23180f] dark:text-slate-100">Pre-book offers</h2>
-            <p className="mt-1 text-[15px] text-primary dark:text-purple-400">Limited slots with extra offers</p>
+            <p className="mt-1 text-[15px] text-primary dark:text-red-400">Limited slots with extra offers</p>
           </div>
 
           <div className="mt-3 overflow-hidden rounded-[18px] bg-[linear-gradient(135deg,#0f4a87,#0b2954_70%)] text-white shadow-[0_10px_26px_rgba(8,52,95,0.25)]">
@@ -419,7 +419,7 @@ export default function DiningRestaurantDetails() {
           <div className="flex items-end justify-between gap-3">
             <div>
               <h2 className="text-[28px] font-black leading-none text-[#23180f] dark:text-slate-100">Menu</h2>
-              <p className="mt-2 text-[13px] text-[#e19135] dark:text-orange-400">Last updated a month ago</p>
+              <p className="mt-2 text-[13px] text-[#e19135] dark:text-red-500">Last updated a month ago</p>
             </div>
             <div className="rounded-full bg-[#fff3e6] dark:bg-orange-950/30 px-3 py-1 text-xs font-semibold text-[#e58a2c] dark:text-orange-300">
               {featuredSections.length || 2} dishes
@@ -530,7 +530,7 @@ export default function DiningRestaurantDetails() {
             disabled={!isDiningEnabled}
             className={`h-12 w-full rounded-2xl border text-[17px] font-medium transition-all ${
               isDiningEnabled
-                ? "border-[#b18da5] bg-white dark:bg-slate-900 text-primary dark:text-purple-400 hover:bg-[#fdfafc] dark:hover:bg-slate-800"
+                ? "border-[#f08a84] bg-white dark:bg-slate-900 text-primary dark:text-red-400 hover:bg-[#fffaf0] dark:hover:bg-slate-800"
                 : "cursor-not-allowed border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-gray-400 dark:text-slate-600 opacity-80"
             }`}
           >
@@ -580,7 +580,7 @@ export default function DiningRestaurantDetails() {
                       onClick={() => setSelectedGuests(count)}
                       className={`relative rounded-2xl border px-3 py-4 text-sm font-bold transition-all ${
                           selectedGuests === count
-                            ? "border-primary bg-[#fdfafc] dark:bg-purple-950/30 text-primary scale-[1.02] shadow-sm"
+                            ? "border-primary bg-[#fffaf0] dark:bg-red-600/30 text-primary scale-[1.02] shadow-sm"
                             : isBooked
                               ? "border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-950/20 text-red-400 cursor-not-allowed opacity-70"
                               : isTooLarge

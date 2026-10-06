@@ -373,7 +373,7 @@ export default function ProfessionalSearch() {
                        </div>
                        <div className="flex-1 min-w-0 py-1 flex flex-col justify-between">
                           <div>
-                            <div className="text-[#a05485] text-[9px] font-black uppercase tracking-wider mb-1 px-2 py-0.5 bg-primary/5 rounded-full w-fit">
+                            <div className="text-[#e53935] text-[9px] font-black uppercase tracking-wider mb-1 px-2 py-0.5 bg-primary/5 rounded-full w-fit">
                                {r.restaurantName}
                             </div>
                             <h3 className="text-base font-black text-gray-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors">{r.matchedDish || query}</h3>
@@ -454,7 +454,7 @@ export default function ProfessionalSearch() {
                                }
                             </div>
                          </div>
-                         <div className="text-[10px] font-black text-white bg-gradient-to-r from-primary to-[#a05485] px-3 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-primary/20">
+                         <div className="text-[10px] font-black text-white bg-gradient-to-r from-primary to-[#e53935] px-3 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-primary/20">
                             View Menu
                          </div>
                       </div>
