@@ -1,7 +1,7 @@
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
-import { getDrivingDistances } from '../../../../services/googleMaps.service.js';
+import { getBrowseDistances } from '../../../../services/googleMaps.service.js';
 import mongoose from 'mongoose';
 
 /**
@@ -245,7 +245,7 @@ export const searchUnified = async (query = {}, options = {}) => {
                 }
             });
             
-            drivingDistances = await getDrivingDistances(origin, dests);
+            drivingDistances = await getBrowseDistances(origin, dests);
         } catch (err) {
             console.error('[Search-Service] Google Maps API error:', err.message);
         }

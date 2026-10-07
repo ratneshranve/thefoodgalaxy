@@ -336,10 +336,8 @@ export default function GoogleMapsTracking({
         destination: destination,
         waypoints: googleWaypoints,
         travelMode: window.google.maps.TravelMode.DRIVING, // DRIVING mode as requested
-        drivingOptions: {
-          departureTime: new Date(),
-          trafficModel: 'bestguess'
-        },
+        // Traffic-aware routing (drivingOptions.departureTime) is billed at the higher Directions
+        // Advanced rate; the ETA shown to users comes from the backend, so plain routing is enough.
         optimizeWaypoints: true,
       },
       (result, status) => {

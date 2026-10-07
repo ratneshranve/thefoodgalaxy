@@ -376,8 +376,13 @@ export default function AddressSelectorPage() {
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 
+  // Cost control: reverse geocoding is billed per call, so skip it for tiny pin moves (< ~40 m).
+  const lastGeocodedRef = useRef(null)
   const handleMapMoveEnd = async (lat, lng) => {
     if (!ENABLE_LOCATION_REVERSE_GEOCODE) return
+    const last = lastGeocodedRef.current
+    if (last && Math.abs(lat - last.lat) < 0.00035 && Math.abs(lng - last.lng) < 0.00035) return
+    lastGeocodedRef.current = { lat, lng }
     try {
       // Prioritize Google Maps API if available
       if (GOOGLE_MAPS_API_KEY) {

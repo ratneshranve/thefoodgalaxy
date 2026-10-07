@@ -7,7 +7,7 @@ import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodDiningRestaurant } from '../../dining/models/diningRestaurant.model.js';
 import Promocode from '../../../../models/Promocode.js';
 import { upsertOutletTimingsForRestaurant } from './outletTimings.service.js';
-import { getDrivingDistances } from '../../../../services/googleMaps.service.js';
+import { getBrowseDistances } from '../../../../services/googleMaps.service.js';
 import { parseQueryLimit, parseQueryPage } from '../../../../utils/helpers.js';
 import { normalizeMediaUrl, toMediaObject, toMediaArray } from '../../../../utils/mediaUrl.js';
 
@@ -1477,7 +1477,7 @@ export const listApprovedRestaurants = async (query = {}) => {
             lng: r.location?.coordinates?.[0]
         }));
         
-        const drivingDistances = await getDrivingDistances(origin, dests);
+        const drivingDistances = await getBrowseDistances(origin, dests);
         
         const restaurants = (restaurantsRawGeo || []).map((r) => {
             const drivingInfo = drivingDistances.get(String(r._id));
@@ -1597,7 +1597,7 @@ export const listApprovedRestaurants = async (query = {}) => {
             lat: r.location?.coordinates?.[1],
             lng: r.location?.coordinates?.[0]
         }));
-        drivingDistances = await getDrivingDistances(origin, dests);
+        drivingDistances = await getBrowseDistances(origin, dests);
     }
 
     const restaurants = (restaurantsRaw || []).map((r) => {
@@ -1711,7 +1711,7 @@ export const getApprovedRestaurantByIdOrSlug = async (idOrSlug, query = {}) => {
                 lat: doc.location?.coordinates?.[1],
                 lng: doc.location?.coordinates?.[0]
             }];
-            const drivingDistances = await getDrivingDistances(origin, dests);
+            const drivingDistances = await getBrowseDistances(origin, dests);
             drivingInfo = drivingDistances.get(String(doc._id)) || null;
         } catch (err) {
             // Silently ignore

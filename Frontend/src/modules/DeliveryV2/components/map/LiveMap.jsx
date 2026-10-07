@@ -156,15 +156,15 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
     if (!directions) return true;
     if (isOffCurrentRoute) return true;
 
-    let throttleMs = 20000;
+    let throttleMs = 45000;
     if (parsedRiderLocation && targetLocation && window.google) {
       try {
         const p1 = new window.google.maps.LatLng(parsedRiderLocation.lat, parsedRiderLocation.lng);
         const p2 = new window.google.maps.LatLng(targetLocation.lat, targetLocation.lng);
         const dist = window.google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
-        if (dist > 2000) throttleMs = 60000;
-        else if (dist > 500) throttleMs = 20000;
-        else throttleMs = 5000;
+        if (dist > 2000) throttleMs = 90000;
+        else if (dist > 500) throttleMs = 45000;
+        else throttleMs = 20000;
       } catch (e) {}
     }
     return (now - lastDirectionsAt) >= throttleMs;
