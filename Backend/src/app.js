@@ -88,7 +88,7 @@ app.use(express.json({
     limit: '15mb',
     verify: (req, res, buf) => {
         // Store rawBody for signature verification (Razorpay webhooks)
-        if (req.originalUrl && req.originalUrl.includes('/webhook/razorpay')) {
+        if (req.originalUrl && req.originalUrl.includes('/webhook')) {
             req.rawBody = buf;
         }
     }

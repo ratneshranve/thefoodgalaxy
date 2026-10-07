@@ -2020,6 +2020,9 @@ export const orderAPI = {
     userClient.post("/food/orders", payload ?? {}),
   verifyPayment: (body) =>
     userClient.post("/food/orders/verify-payment", body ?? {}),
+  // Asks the server to check with Razorpay whether this order was actually paid.
+  syncPayment: (orderId) =>
+    userClient.post(`/food/orders/${orderId}/sync-payment`, {}),
   getOrders: (params = {}) =>
     userClient
       .get("/food/orders", {

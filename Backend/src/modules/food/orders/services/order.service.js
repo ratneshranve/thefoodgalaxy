@@ -24,7 +24,8 @@ import {
     verifyPaymentSignature,
     getRazorpayKeyId,
     isRazorpayConfigured,
-    initiateRazorpayRefund
+    initiateRazorpayRefund,
+    fetchRazorpayOrderPayments
 } from '../helpers/razorpay.helper.js';
 import { getIO, rooms } from '../../../../config/socket.js';
 import { addOrderJob } from '../../../../queues/producers/order.producer.js';
@@ -203,7 +204,39 @@ export async function calculateOrder(userId, dto) {
 }
 
 // ----- Create order -----
+
+/** Same response shape as a fresh createOrder, for a duplicate / retried request. */
+function buildCreateOrderReplay(existing) {
+  const pay = existing.payment || {};
+  const canResumePayment =
+    pay.method === "razorpay" &&
+    pay.status === "created" &&
+    pay.razorpay?.orderId &&
+    existing.orderStatus === "created";
+  return {
+    order: normalizeOrderForClient(existing),
+    razorpay: canResumePayment
+      ? {
+          key: getRazorpayKeyId(),
+          orderId: pay.razorpay.orderId,
+          amount: Math.round(Number(existing.pricing?.total || 0) * 100),
+          currency: existing.pricing?.currency || "INR",
+        }
+      : null,
+    duplicate: true,
+  };
+}
+
 export async function createOrder(userId, dto) {
+  const idempotencyKey = dto.idempotencyKey ? String(dto.idempotencyKey).trim() : "";
+  if (idempotencyKey && userId) {
+    const replay = await FoodOrder.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      idempotencyKey,
+    });
+    if (replay) return buildCreateOrderReplay(replay);
+  }
+
   const restaurant = await FoodRestaurant.findById(dto.restaurantId)
     .select("status restaurantName zoneId location isAcceptingOrders")
     .lean();
@@ -396,6 +429,7 @@ export async function createOrder(userId, dto) {
     deliveryDiscount: normalizedPricing.deliveryDiscount,
     totalSubscriptionSavings: normalizedPricing.totalSubscriptionSavings,
     payment,
+    idempotencyKey: idempotencyKey || undefined,
     orderStatus: "created",
     dispatch: { modeAtCreation: dispatchMode, status: "unassigned" },
     statusHistory: [
@@ -416,6 +450,19 @@ export async function createOrder(userId, dto) {
     deliveryBonusAmount,
     platformProfit,
   });
+
+  if (paymentMethod === "razorpay" && userId) {
+    const pendingDuplicate = await FoodOrder.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      restaurantId: new mongoose.Types.ObjectId(dto.restaurantId),
+      "payment.method": "razorpay",
+      "payment.status": "created",
+      orderStatus: "created",
+      "pricing.total": normalizedPricing.total,
+      createdAt: { $gt: new Date(Date.now() - 3 * 60 * 1000) },
+    });
+    if (pendingDuplicate) return buildCreateOrderReplay(pendingDuplicate);
+  }
 
   if (normalizedPricing.totalSubscriptionSavings > 0 && userId) {
     FoodUserSubscription.updateOne(
@@ -446,7 +493,19 @@ export async function createOrder(userId, dto) {
     }
   }
 
-  await order.save();
+  try {
+    await order.save();
+  } catch (saveErr) {
+    // Two identical requests raced past the replay check: the unique index let only one win.
+    if (saveErr?.code === 11000 && idempotencyKey && userId) {
+      const winner = await FoodOrder.findOne({
+        userId: new mongoose.Types.ObjectId(userId),
+        idempotencyKey,
+      });
+      if (winner) return buildCreateOrderReplay(winner);
+    }
+    throw saveErr;
+  }
 
   if (isWallet) {
     try {
@@ -560,6 +619,189 @@ export async function createOrder(userId, dto) {
   return { order: saved, razorpay: razorpayPayload };
 }
 
+// ----- Online payment confirmation (single, idempotent path) -----
+
+const PAYMENT_ABANDON_NOTE = /payment|never completed|gateway/i;
+const LATE_PAYMENT_REVIVE_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * The ONE place that turns an online order into "paid and placed". The client callback
+ * (verifyPayment), the Razorpay webhook, the "payment sync" endpoint and the watchdog all call
+ * this. The first caller atomically claims the order and runs the side effects; every other
+ * caller (duplicate webhook, verify racing the webhook, retries) gets the current order back
+ * without notifying the restaurant or dispatching again.
+ *
+ * A payment that lands AFTER the order was auto-cancelled because the payment looked abandoned
+ * (modal closed, 15 min timeout) is honoured: the order is restored if it is recent, otherwise
+ * the money is refunded automatically. Money is never silently kept.
+ */
+export async function confirmOnlinePayment(
+  orderId,
+  { paymentId = "", signature = "", source = "verify", userId = null } = {},
+) {
+  const claimSet = { "payment.status": "paid" };
+  if (paymentId) claimSet["payment.razorpay.paymentId"] = paymentId;
+  if (signature) claimSet["payment.razorpay.signature"] = signature;
+
+  const prev = await FoodOrder.findOneAndUpdate(
+    {
+      _id: orderId,
+      "payment.method": "razorpay",
+      "payment.status": { $in: ["created", "authorized", "failed"] },
+    },
+    { $set: claimSet },
+    { new: false },
+  );
+
+  if (!prev) {
+    const current = await FoodOrder.findById(orderId);
+    return { order: current, claimed: false };
+  }
+
+  const order = await FoodOrder.findById(orderId);
+  const total = Number(order.pricing?.total ?? order.payment?.amountDue ?? 0);
+  const wasCancelled = String(prev.orderStatus || "").startsWith("cancelled");
+
+  if (wasCancelled) {
+    const lastNote = (prev.statusHistory || []).slice(-1)[0]?.note || "";
+    const ageMs = Date.now() - new Date(prev.createdAt).getTime();
+    const cancelledForPayment =
+      PAYMENT_ABANDON_NOTE.test(lastNote) || prev.orderStatus === "cancelled_by_user";
+    if (cancelledForPayment && ageMs <= LATE_PAYMENT_REVIVE_WINDOW_MS) {
+      order.orderStatus = "created";
+      pushStatusHistory(order, {
+        byRole: "SYSTEM",
+        from: prev.orderStatus,
+        to: "created",
+        note: `Order restored: payment received after cancellation (${source})`,
+      });
+      await order.save();
+    } else {
+      // Too old / cancelled for another reason: give the money back automatically.
+      const refund = paymentId
+        ? await initiateRazorpayRefund(paymentId, total)
+        : { success: false, error: "missing payment id" };
+      order.payment.status = refund.success ? "refunded" : "paid";
+      order.payment.refund = {
+        status: refund.success ? "processed" : "failed",
+        destination: "source",
+        amount: total,
+        refundId: refund.refundId || "",
+        processedAt: refund.success ? new Date() : undefined,
+      };
+      await order.save();
+      logger.warn(
+        `Late payment ${paymentId} for cancelled order ${order._id}: refund ${refund.success ? "processed" : "FAILED - needs manual refund"}`,
+      );
+      return { order, claimed: true, refunded: Boolean(refund.success) };
+    }
+  } else {
+    pushStatusHistory(order, {
+      byRole: userId ? "USER" : "SYSTEM",
+      byId: userId || undefined,
+      from: order.orderStatus,
+      to: order.orderStatus,
+      note: `Payment verified (${source})`,
+    });
+    await order.save();
+  }
+
+  try {
+    await foodTransactionService.updateTransactionStatus(order._id, "captured", {
+      status: "captured",
+      razorpayPaymentId: paymentId,
+      razorpaySignature: signature,
+      recordedByRole: userId ? "USER" : "SYSTEM",
+      recordedById: userId ? new mongoose.Types.ObjectId(userId) : undefined,
+      note: `Online payment confirmed (${source})`,
+    });
+  } catch (err) {
+    logger.error(`confirmOnlinePayment ledger error (order ${order._id}): ${err?.message || err}`);
+  }
+
+  // Restaurant must hear about the order exactly once, and only now that it is paid.
+  try {
+    await notifyRestaurantNewOrder(order);
+  } catch (err) {
+    logger.error(`confirmOnlinePayment restaurant notify error (order ${order._id}): ${err?.message || err}`);
+  }
+
+  addOrderJob(
+    {
+      action: "SYNC_PETPOOJA",
+      orderId: order.order_id || order._id.toString(),
+      orderMongoId: order._id.toString(),
+    },
+    { jobId: `petpooja-${order._id.toString()}`, delay: 1000 },
+  );
+
+  await notifyOwnersSafely([{ ownerType: "USER", ownerId: String(order.userId) }], {
+    title: "Payment Successful! ✅",
+    body: `We have received your payment of ₹${order.payment.amountDue} for Order #${order.order_id || order._id.toString()}.`,
+    image: "https://i.ibb.co/3m2Yh7r/TheFoodGalaxy-Brand-Image.png",
+    data: {
+      type: "payment_success",
+      orderId: String(order._id.toString()),
+      orderMongoId: String(order._id),
+    },
+  });
+
+  try {
+    const settings = await getDispatchSettings();
+    const dispatchableStatuses = ["confirmed", "preparing", "ready_for_pickup", "ready", "picked_up"];
+    if (settings.dispatchMode === "auto" && dispatchableStatuses.includes(order.orderStatus)) {
+      await tryAutoAssign(order._id);
+    }
+  } catch {
+    // leave unassigned; dispatch watchdog picks it up
+  }
+
+  return { order, claimed: true };
+}
+
+/**
+ * Ask Razorpay whether this order was actually paid, and confirm it if so. Used when the
+ * client callback was lost (app killed, network drop, UPI app returned late) and before an
+ * unpaid order is cancelled, so a paid order is never cancelled by mistake.
+ */
+export async function syncOnlinePaymentStatus(userId, orderId) {
+  const identity = buildOrderIdentityFilter(orderId);
+  if (!identity) throw new ValidationError("Order id required");
+  const order = await FoodOrder.findOne({
+    ...identity,
+    userId: new mongoose.Types.ObjectId(userId),
+  });
+  if (!order) throw new NotFoundError("Order not found");
+
+  if (order.payment?.status === "paid") {
+    return { paid: true, order: normalizeOrderForClient(order), payment: order.payment };
+  }
+  const rzOrderId = order.payment?.razorpay?.orderId;
+  if (order.payment?.method !== "razorpay" || !rzOrderId || !isRazorpayConfigured()) {
+    return { paid: false, order: normalizeOrderForClient(order), payment: order.payment };
+  }
+
+  let attempts = [];
+  try {
+    attempts = await fetchRazorpayOrderPayments(rzOrderId);
+  } catch (err) {
+    logger.warn(`syncOnlinePaymentStatus fetch failed for ${rzOrderId}: ${err?.message || err}`);
+    return { paid: false, order: normalizeOrderForClient(order), payment: order.payment };
+  }
+
+  const captured = attempts.find((p) => p?.status === "captured");
+  if (!captured) {
+    return { paid: false, order: normalizeOrderForClient(order), payment: order.payment };
+  }
+  const result = await confirmOnlinePayment(order._id, {
+    paymentId: captured.id,
+    source: "sync",
+    userId,
+  });
+  const fresh = result.order || order;
+  return { paid: fresh.payment?.status === "paid", order: normalizeOrderForClient(fresh), payment: fresh.payment };
+}
+
 // ----- Verify payment -----
 export async function verifyPayment(userId, dto) {
   const identity = buildOrderIdentityFilter(dto.orderId);
@@ -573,6 +815,15 @@ export async function verifyPayment(userId, dto) {
   if (order.payment.status === "paid")
     return { order: normalizeOrderForClient(order), payment: order.payment };
 
+  // The payment must belong to THIS order's Razorpay order. Without this check a valid
+  // signature from a cheap order could be replayed against a more expensive one.
+  if (
+    !order.payment?.razorpay?.orderId ||
+    String(order.payment.razorpay.orderId) !== String(dto.razorpayOrderId)
+  ) {
+    throw new ValidationError("Payment does not belong to this order");
+  }
+
   const valid = verifyPaymentSignature(
     dto.razorpayOrderId,
     dto.razorpayPaymentId,
@@ -580,63 +831,14 @@ export async function verifyPayment(userId, dto) {
   );
   if (!valid) throw new ValidationError("Payment verification failed");
 
-  order.payment.status = "paid";
-  order.payment.razorpay.paymentId = dto.razorpayPaymentId;
-  order.payment.razorpay.signature = dto.razorpaySignature;
-  pushStatusHistory(order, {
-    byRole: "USER",
-    byId: userId,
-    from: order.orderStatus,
-    to: "created",
-    note: "Payment verified",
+  const result = await confirmOnlinePayment(order._id, {
+    paymentId: dto.razorpayPaymentId,
+    signature: dto.razorpaySignature,
+    source: "verify",
+    userId,
   });
-  await order.save();
-
-  await foodTransactionService.updateTransactionStatus(order._id, 'captured', {
-    status: 'captured',
-    razorpayPaymentId: dto.razorpayPaymentId,
-    razorpaySignature: dto.razorpaySignature,
-    recordedByRole: "USER",
-    recordedById: new mongoose.Types.ObjectId(userId)
-  });
-
-  // After online payment is verified, now notify restaurant about the new order.
-  await notifyRestaurantNewOrder(order);
-
-  // Enqueue async Petpooja sync
-  addOrderJob({ 
-    action: 'SYNC_PETPOOJA', 
-    orderId: order.order_id || order._id.toString(), 
-    orderMongoId: order._id.toString() 
-  }, { jobId: `petpooja-${order._id.toString()}`, delay: 1000 });
-
-  // Notify Customer about payment success
-  await notifyOwnersSafely([{ ownerType: "USER", ownerId: userId }], {
-    title: "Payment Successful! ✅",
-    body: `We have received your payment of ₹${order.payment.amountDue} for Order #${order._id.toString()}.`,
-    image: "https://i.ibb.co/3m2Yh7r/TheFoodGalaxy-Brand-Image.png",
-    data: {
-      type: "payment_success",
-      orderId: String(order._id.toString()),
-      orderMongoId: String(order._id),
-    },
-  });
-
-  const settings = await getDispatchSettings();
-  const dispatchableStatuses = [
-    "confirmed",
-    "preparing",
-    "ready_for_pickup",
-    "ready",
-    "picked_up",
-  ];
-  if (settings.dispatchMode === "auto" && dispatchableStatuses.includes(order.orderStatus)) {
-    try {
-      await tryAutoAssign(order._id);
-    } catch {}
-  }
-
-  return { order: normalizeOrderForClient(order), payment: order.payment };
+  const confirmed = result.order || order;
+  return { order: normalizeOrderForClient(confirmed), payment: confirmed.payment };
 }
 
 // ----- Auto-assign -----
@@ -784,6 +986,106 @@ export async function getDropOtpUser(orderId, userId) {
 }
 
 /**
+ * Reconcile online payments with Razorpay:
+ *  - unpaid orders older than 2 min: if Razorpay captured a payment, confirm the order (the
+ *    client callback / webhook was lost); if nothing was paid and the order is older than
+ *    15 min, cancel it.
+ *  - orders auto-cancelled in the last 2 h whose payment later succeeded are recovered too
+ *    (restored, or refunded when too old).
+ */
+export async function reconcileOnlinePayments(now = new Date()) {
+  if (!isRazorpayConfigured()) return;
+  const TWO_MIN = 2 * 60 * 1000;
+  const FIFTEEN_MIN = 15 * 60 * 1000;
+  const TWO_HOURS = 2 * 60 * 60 * 1000;
+  const DAY = 24 * 60 * 60 * 1000;
+
+  const pending = await FoodOrder.find({
+    'payment.method': 'razorpay',
+    'payment.status': 'created',
+    orderStatus: 'created',
+    createdAt: { $lt: new Date(now - TWO_MIN), $gt: new Date(now - DAY) },
+  })
+    .select('_id createdAt payment.razorpay.orderId')
+    .sort({ createdAt: 1 })
+    .limit(100)
+    .lean();
+
+  let confirmed = 0;
+  let cancelled = 0;
+  for (const o of pending) {
+    const rzOrderId = o.payment?.razorpay?.orderId;
+    let paidPayment = null;
+    let checked = false;
+    if (rzOrderId) {
+      try {
+        const attempts = await fetchRazorpayOrderPayments(rzOrderId);
+        checked = true;
+        paidPayment = attempts.find((p) => p?.status === 'captured') || null;
+      } catch (err) {
+        logger.warn(`Reconcile: payment lookup failed for ${rzOrderId}: ${err?.message || err}`);
+      }
+    }
+    if (paidPayment) {
+      try {
+        await confirmOnlinePayment(o._id, { paymentId: paidPayment.id, source: 'reconcile' });
+        confirmed += 1;
+      } catch (err) {
+        logger.error(`Reconcile: confirm failed for order ${o._id}: ${err?.message || err}`);
+      }
+      continue;
+    }
+    const stale = now - new Date(o.createdAt) > FIFTEEN_MIN;
+    // Only cancel when Razorpay positively said "nothing captured" (or there is no Razorpay order).
+    if (stale && (checked || !rzOrderId)) {
+      const res = await FoodOrder.updateOne(
+        { _id: o._id, 'payment.status': 'created', orderStatus: 'created' },
+        {
+          $set: { orderStatus: 'cancelled_by_user', 'payment.status': 'failed' },
+          $push: {
+            statusHistory: {
+              at: now,
+              byRole: 'SYSTEM',
+              from: 'created',
+              to: 'cancelled_by_user',
+              note: 'Auto-cancelled: payment was never completed (15 min timeout)',
+            },
+          },
+        },
+      );
+      cancelled += res.modifiedCount || 0;
+    }
+  }
+
+  // Late captures on orders we already gave up on.
+  const recentlyFailed = await FoodOrder.find({
+    'payment.method': 'razorpay',
+    'payment.status': 'failed',
+    'payment.razorpay.orderId': { $exists: true, $ne: '' },
+    updatedAt: { $gt: new Date(now - TWO_HOURS) },
+  })
+    .select('_id payment.razorpay.orderId')
+    .limit(50)
+    .lean();
+  for (const o of recentlyFailed) {
+    try {
+      const attempts = await fetchRazorpayOrderPayments(o.payment.razorpay.orderId);
+      const paidPayment = attempts.find((p) => p?.status === 'captured');
+      if (paidPayment) {
+        await confirmOnlinePayment(o._id, { paymentId: paidPayment.id, source: 'reconcile-late' });
+        confirmed += 1;
+      }
+    } catch (err) {
+      logger.warn(`Reconcile: late-payment check failed for ${o._id}: ${err?.message || err}`);
+    }
+  }
+
+  if (confirmed || cancelled) {
+    logger.info(`Payment reconcile: confirmed ${confirmed}, cancelled ${cancelled} unpaid orders.`);
+  }
+}
+
+/**
  * Watchdog: Recovers orders stuck in 'assigned' or 'preparing' status for too long.
  * Should be called on server startup.
  */
@@ -819,34 +1121,8 @@ export async function recoverStuckOrders() {
       { $unset: { 'dispatch.dispatchingAt': '' } }
     );
 
-    // 3. Auto-cancel stale unpaid Razorpay orders (payment never completed)
-    const FIFTEEN_MIN = 15 * 60 * 1000;
-    const staleUnpaidResult = await FoodOrder.updateMany(
-      {
-        'payment.method': 'razorpay',
-        'payment.status': 'created',
-        orderStatus: 'created',
-        createdAt: { $lt: new Date(now - FIFTEEN_MIN) }
-      },
-      {
-        $set: {
-          orderStatus: 'cancelled_by_user',
-          'payment.status': 'failed'
-        },
-        $push: {
-          statusHistory: {
-            at: now,
-            byRole: 'SYSTEM',
-            from: 'created',
-            to: 'cancelled_by_user',
-            note: 'Auto-cancelled: payment was never completed (15 min timeout)'
-          }
-        }
-      }
-    );
-    if (staleUnpaidResult.modifiedCount > 0) {
-      logger.info(`Watchdog: Auto-cancelled ${staleUnpaidResult.modifiedCount} stale unpaid Razorpay orders.`);
-    }
+    // 3. Unpaid Razorpay orders: ask Razorpay first, only then cancel (payment never completed).
+    await reconcileOnlinePayments(now);
 
     // 4. Removed 1-hour auto-kill limit as per user request to allow infinite dispatch hunt.
 
@@ -971,6 +1247,23 @@ export async function cancelOrder(orderId, userId, reason, refundDestination = "
     userId: new mongoose.Types.ObjectId(userId),
   });
   if (!order) throw new NotFoundError("Order not found");
+
+  // The payment may have succeeded although the client never told us (UPI app returning late,
+  // dropped connection). Check with Razorpay first so a paid order is not cancelled as unpaid.
+  if (
+    order.payment?.method === "razorpay" &&
+    order.payment?.status === "created" &&
+    order.payment?.razorpay?.orderId
+  ) {
+    try {
+      const synced = await syncOnlinePaymentStatus(userId, order._id);
+      if (synced.paid) {
+        return cancelOrder(orderId, userId, reason, refundDestination);
+      }
+    } catch (syncErr) {
+      logger.warn(`cancelOrder payment sync failed: ${syncErr?.message || syncErr}`);
+    }
+  }
 
   const allowed = ["created"];
   const timeSinceCreation = Date.now() - new Date(order.createdAt).getTime();

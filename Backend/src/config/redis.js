@@ -15,7 +15,12 @@ export const createRedisClient = () => {
     }
 
     const client = createClient({
-        url: config.redisUrl
+        url: config.redisUrl,
+        socket: {
+            connectTimeout: 5000,
+            // Keep retrying in the background with a capped backoff instead of giving up.
+            reconnectStrategy: (retries) => Math.min(retries * 500, 10000)
+        }
     });
 
     client.on('error', (err) => logger.error(`Redis Client Error: ${err.message}`));
@@ -44,7 +49,15 @@ export const connectRedis = async () => {
         }
 
         if (redisClient) {
-            await redisClient.connect();
+            // connect() never settles while Redis is unreachable (it retries forever), which
+            // would block API startup. Give up waiting after 8 s; the client keeps retrying in
+            // the background and the app runs without cache until it is ready.
+            await Promise.race([
+                redisClient.connect(),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('connect timeout after 8s (is Redis running?)')), 8000)
+                )
+            ]);
             logger.info('Successfully connected to Redis');
         }
         return redisClient;

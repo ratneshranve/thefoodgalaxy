@@ -3,6 +3,7 @@ import {
     calculateOrderController,
     createOrderController,
     verifyPaymentController,
+    syncPaymentController,
     listOrdersUserController,
     getOrderPaymentsUserController,
     getOrderByIdUserController,
@@ -17,6 +18,7 @@ const router = express.Router();
 router.post('/calculate', calculateOrderController);
 router.post('/', createOrderController);
 router.post('/verify-payment', verifyPaymentController);
+router.post('/:orderId/sync-payment', syncPaymentController);
 router.get('/', listOrdersUserController);
 router.get('/:orderId/payments', getOrderPaymentsUserController);
 router.get('/:orderId/drop-otp', getOrderDropOtpUserController);

@@ -179,6 +179,15 @@ export default function Cart() {
 
   const [sendCutlery, setSendCutlery] = useState(true)
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+  // Synchronous guard: state updates are async, so a fast double tap could otherwise start two orders.
+  const placingRef = useRef(false)
+  // One key per checkout attempt. Retrying the same attempt (network drop, double tap) makes the
+  // server return the same order instead of creating a duplicate; cleared when the attempt ends.
+  const checkoutKeyRef = useRef(null)
+  const releasePlacing = () => {
+    placingRef.current = false
+    setIsPlacingOrder(false)
+  }
   const [showBillDetails, setShowBillDetails] = useState(true)
   const [showGstModal, setShowGstModal] = useState(false)
   const [showPlacingOrder, setShowPlacingOrder] = useState(false)
@@ -1613,6 +1622,8 @@ export default function Cart() {
       return
     }
 
+    if (placingRef.current) return
+    placingRef.current = true
     setIsPlacingOrder(true)
 
     // Use API_BASE_URL from config (supports both dev and production)
@@ -1686,7 +1697,7 @@ export default function Cart() {
           }))
         });
         alert('Error: Restaurant information is missing. Please refresh the page and try again.');
-        setIsPlacingOrder(false);
+        releasePlacing();
         return;
       }
 
@@ -1738,7 +1749,7 @@ export default function Cart() {
           }
         }
 
-        setIsPlacingOrder(false);
+        releasePlacing();
         return;
       }
 
@@ -1773,7 +1784,7 @@ export default function Cart() {
             cartRestaurantName: cartRestaurantNames[0]
           });
           alert(`Error: Cart items belong to "${cartRestaurantNames[0] || 'Unknown Restaurant'}" but restaurant data doesn't match. Please refresh the page and try again.`);
-          setIsPlacingOrder(false);
+          releasePlacing();
           return;
         }
       }
@@ -1787,7 +1798,7 @@ export default function Cart() {
             finalRestaurantName: finalRestaurantName
           });
           alert(`Error: Cart items belong to "${cartRestaurantName}" but restaurant data shows "${finalRestaurantName}". Please refresh the page and try again.`);
-          setIsPlacingOrder(false);
+          releasePlacing();
           return;
         }
       }
@@ -1817,11 +1828,18 @@ export default function Cart() {
           finalRestaurantName: finalRestaurantName
         });
         alert('Error: Restaurant information mismatch detected. Please refresh the page and try again.');
-        setIsPlacingOrder(false);
+        releasePlacing();
         return;
       }
 
+      if (!checkoutKeyRef.current) {
+        checkoutKeyRef.current =
+          (typeof crypto !== "undefined" && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : `co-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
+      }
       const orderPayload = {
+        idempotencyKey: checkoutKeyRef.current,
         items: orderItems,
         address: {
           ...defaultAddress,
@@ -1854,7 +1872,7 @@ export default function Cart() {
       // Check wallet balance if wallet payment selected
       if (selectedPaymentMethod === "wallet" && walletBalance < total) {
         toast.error(`Insufficient wallet balance. Required: ${RUPEE_SYMBOL}${total.toFixed(0)}, Available: ${RUPEE_SYMBOL}${walletBalance.toFixed(0)}`)
-        setIsPlacingOrder(false)
+        releasePlacing()
         return
       }
 
@@ -1865,9 +1883,41 @@ export default function Cart() {
 
       const { order, razorpay } = orderResponse.data.data
 
+      // Single "payment confirmed" UI path (used by the gateway callback and by recovery).
+      const finishPaidOnlineOrder = (paidOrder) => {
+        checkoutKeyRef.current = null
+        setPlacedOrderId(paidOrder?._id || paidOrder?.orderId || paidOrder?.id || null)
+        setPlacedOrder(paidOrder || null)
+        setOrderSuccessSavingsAmount(platformPricingSavings.totalSavings > 0 ? platformPricingSavings.totalSavings : 0)
+        if (platformPricingSavings.totalSavings > 0) {
+          setCongratssSavingsAmount(platformPricingSavings.totalSavings)
+          setCongratssSavingsPercentage(platformPricingSavings.savingsPercentage)
+          setCongratssSavingsItems(platformPricingSavings.items)
+          setShowSavingsCongrats(true)
+        } else {
+          setShowOrderSuccess(true)
+        }
+        window.dispatchEvent(new CustomEvent('order-placed', { detail: { order: paidOrder } }))
+        clearCart()
+        releasePlacing()
+      }
+
+      // A retried request got an already existing order that can no longer be paid through
+      // the gateway (already paid, or cancelled). Check with the server before giving up.
+      if (selectedPaymentMethod === "razorpay" && !razorpay && orderResponse.data.data.duplicate) {
+        const synced = await orderAPI.syncPayment(order?._id || order?.id).catch(() => null)
+        if (synced?.data?.data?.paid) {
+          finishPaidOnlineOrder(synced.data.data.order || order)
+          return
+        }
+        checkoutKeyRef.current = null
+        throw new Error("This order can no longer be paid. Please place the order again.")
+      }
+
       // Cash flow: order placed without online payment
       if (selectedPaymentMethod === "cash") {
         toast.success("Order placed with Cash on Delivery")
+        checkoutKeyRef.current = null
         setPlacedOrderId(order?._id || order?.orderId || order?.id || null)
         setPlacedOrder(order || null)
         setOrderSuccessSavingsAmount(platformPricingSavings.totalSavings > 0 ? platformPricingSavings.totalSavings : 0)
@@ -1888,13 +1938,14 @@ export default function Cart() {
         } catch {
           // ignore
         }
-        setIsPlacingOrder(false)
+        releasePlacing()
         return
       }
 
       // Wallet flow: order placed with wallet payment (already processed in backend)
       if (selectedPaymentMethod === "wallet") {
         toast.success("Order placed with Wallet payment")
+        checkoutKeyRef.current = null
         setPlacedOrderId(order?._id || order?.orderId || order?.id || null)
         setPlacedOrder(order || null)
         setOrderSuccessSavingsAmount(platformPricingSavings.totalSavings > 0 ? platformPricingSavings.totalSavings : 0)
@@ -1915,7 +1966,7 @@ export default function Cart() {
         } catch {
           // ignore
         }
-        setIsPlacingOrder(false)
+        releasePlacing()
         // Refresh wallet balance
         try {
           const walletResponse = await userAPI.getWallet()
@@ -1981,14 +2032,12 @@ export default function Cart() {
         },
         handler: async (response) => {
           paymentHandled = true
+          const verifyOrderId = order?._id || order?.id || order?.orderMongoId
           try {
             debugLog("? Payment successful, verifying...", {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id
             })
-
-            // Verify payment with backend
-            const verifyOrderId = order?._id || order?.id || order?.orderMongoId
             if (!verifyOrderId) {
               throw new Error("Unable to verify payment: missing order id from create-order response")
             }
@@ -1998,86 +2047,98 @@ export default function Cart() {
               razorpayPaymentId: response.razorpay_payment_id,
               razorpaySignature: response.razorpay_signature
             })
-
             debugLog("? Payment verification response:", verifyResponse.data)
-
-            if (verifyResponse.data.success) {
-              // Payment successful
-              debugLog("?? Order placed successfully:", {
-                orderId: order._id || order.orderId,
-                paymentId: verifyResponse.data.data?.payment?.paymentId
-              })
-              setPlacedOrderId(order._id || order.orderId)
-              setPlacedOrder(order || null)
-              setOrderSuccessSavingsAmount(platformPricingSavings.totalSavings > 0 ? platformPricingSavings.totalSavings : 0)
-              if (platformPricingSavings.totalSavings > 0) {
-                setCongratssSavingsAmount(platformPricingSavings.totalSavings)
-                setCongratssSavingsPercentage(platformPricingSavings.savingsPercentage)
-                setCongratssSavingsItems(platformPricingSavings.items)
-                setShowSavingsCongrats(true)
-              } else {
-                setShowOrderSuccess(true)
-              }
-              window.dispatchEvent(new CustomEvent('order-placed', { detail: { order } }))
-              clearCart()
-              setIsPlacingOrder(false)
-            } else {
+            if (!verifyResponse.data.success) {
               throw new Error(verifyResponse.data.message || "Payment verification failed")
             }
+            finishPaidOnlineOrder(order)
           } catch (error) {
             debugError("? Payment verification error:", error)
+            // The money may already be deducted (verification call dropped, slow network).
+            // Ask the server to check with Razorpay before telling the customer it failed.
+            let recovered = false
+            for (let attempt = 0; attempt < 3 && verifyOrderId; attempt += 1) {
+              try {
+                const synced = await orderAPI.syncPayment(verifyOrderId)
+                if (synced?.data?.data?.paid) {
+                  recovered = true
+                  break
+                }
+              } catch {
+                // retry
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1500))
+            }
+            if (recovered) {
+              finishPaidOnlineOrder(order)
+              return
+            }
             const errorMessage =
               error?.response?.data?.message ||
               error?.response?.data?.error?.message ||
               error?.response?.data?.errors?.[0]?.message ||
               error?.message ||
-              "Payment verification failed. Please contact support."
-            alert(errorMessage)
-            setIsPlacingOrder(false)
+              "Payment verification failed."
+            alert(`${errorMessage}\n\nIf money was deducted, your order will be confirmed automatically or the amount refunded. Please check My Orders.`)
+            releasePlacing()
           }
         },
         onError: async (error) => {
+          // payment.failed: Razorpay keeps its window open so the customer can retry with another
+          // method. Do NOT cancel the order here - a retry may still succeed. The order is only
+          // cancelled when the window is closed without a payment (onClose below).
+          const isGatewayPaymentFailure = Boolean(error?.metadata || error?.step || error?.reason || error?.source)
+          if (isGatewayPaymentFailure) {
+            toast.error(error?.description || "Payment failed. You can retry in the payment window.")
+            return
+          }
           if (paymentHandled) return
           paymentHandled = true
-          debugError("? Razorpay payment error:", error)
-          // Auto-cancel the unpaid order in backend
+          debugError("? Razorpay could not start:", error)
+          // Gateway never opened (SDK / network): release the unpaid order.
           const cancelOrderId = order?._id || order?.id || order?.orderMongoId
           if (cancelOrderId) {
             try {
               await orderAPI.cancelOrder(cancelOrderId, {
                 reason: "Payment failed or was not completed"
               })
+              checkoutKeyRef.current = null
             } catch (cancelErr) {
               debugError("Failed to cancel unpaid order:", cancelErr)
             }
           }
-          // Don't show alert for user cancellation
-          if (error?.code !== 'PAYMENT_CANCELLED' && error?.message !== 'PAYMENT_CANCELLED') {
-            const errorMessage = error?.description || error?.message || "Payment failed. Please try again."
-            alert(errorMessage)
-          } else {
-            toast.info("Payment was cancelled. No order has been placed.")
-          }
-          setIsPlacingOrder(false)
+          alert(error?.description || error?.message || "Payment could not be started. Please try again.")
+          releasePlacing()
         },
         onClose: async () => {
           if (paymentHandled) return
           paymentHandled = true
           debugLog("?? Payment modal closed by user")
-          // Auto-cancel the unpaid order since user left without paying
           const cancelOrderId = order?._id || order?.id || order?.orderMongoId
           if (cancelOrderId) {
+            // UPI apps can return after the window closed: check with the server first so a
+            // payment that actually went through is not cancelled.
+            try {
+              const synced = await orderAPI.syncPayment(cancelOrderId)
+              if (synced?.data?.data?.paid) {
+                finishPaidOnlineOrder(order)
+                return
+              }
+            } catch {
+              // fall through to cancel; the server re-checks Razorpay before cancelling
+            }
             try {
               await orderAPI.cancelOrder(cancelOrderId, {
                 reason: "User closed payment gateway without paying"
               })
+              checkoutKeyRef.current = null
               toast.info("Payment was not completed. No order has been placed.")
             } catch (cancelErr) {
               debugError("Failed to cancel unpaid order:", cancelErr)
               toast.warning("Payment was not completed. If you see a pending order, please cancel it manually.")
             }
           }
-          setIsPlacingOrder(false)
+          releasePlacing()
         }
       })
     } catch (error) {
@@ -2127,7 +2188,7 @@ export default function Cart() {
       }
 
       alert(errorMessage)
-      setIsPlacingOrder(false)
+      releasePlacing()
     }
   }
 
@@ -3185,7 +3246,7 @@ export default function Cart() {
                    <button
                     onClick={() => {
                       setShowPlacingOrder(false)
-                      setIsPlacingOrder(false)
+                      releasePlacing()
                     }}
                     className="w-full text-right"
                   >
