@@ -29,9 +29,18 @@ export const config = {
     otpRateWindow: Number(process.env.OTP_RATE_WINDOW || 600),
     useDefaultOtp: process.env.USE_DEFAULT_OTP === 'true',
 
-    // MSG91
+    // MSG91 (no longer used for OTPs, kept for backward compatibility)
     msg91AuthKey: process.env.MSG91_AUTH_KEY,
     msg91TemplateId: process.env.MSG91_TEMPLATE_ID,
+
+    // SMS India Hub (login OTP SMS)
+    smsIndiaHubUsername: process.env.SMS_INDIA_HUB_USERNAME,
+    smsApiKey: process.env.SMS_INDIA_HUB_API_KEY,
+    smsSenderId: process.env.SMS_INDIA_HUB_SENDER_ID,
+    smsDltTemplateId: process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID,
+    smsEntityId: process.env.SMS_INDIA_HUB_ENTITY_ID,
+    smsBrandName: process.env.SMS_BRAND_NAME || 'The Food Galaxy',
+    smsMessageTemplate: process.env.SMS_INDIA_HUB_MESSAGE_TEMPLATE,
 
     // Rate limiting
     rateLimitWindowMinutes: Number(process.env.RATE_LIMIT_WINDOW || 15),
@@ -119,6 +128,13 @@ export const updateConfig = () => {
     config.useDefaultOtp = process.env.USE_DEFAULT_OTP === 'true';
     config.msg91AuthKey = process.env.MSG91_AUTH_KEY || config.msg91AuthKey;
     config.msg91TemplateId = process.env.MSG91_TEMPLATE_ID || config.msg91TemplateId;
+    config.smsIndiaHubUsername = process.env.SMS_INDIA_HUB_USERNAME || config.smsIndiaHubUsername;
+    config.smsApiKey = process.env.SMS_INDIA_HUB_API_KEY || config.smsApiKey;
+    config.smsSenderId = process.env.SMS_INDIA_HUB_SENDER_ID || config.smsSenderId;
+    config.smsDltTemplateId = process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID || config.smsDltTemplateId;
+    config.smsEntityId = process.env.SMS_INDIA_HUB_ENTITY_ID || config.smsEntityId;
+    config.smsBrandName = process.env.SMS_BRAND_NAME || config.smsBrandName;
+    config.smsMessageTemplate = process.env.SMS_INDIA_HUB_MESSAGE_TEMPLATE || config.smsMessageTemplate;
     config.rateLimitWindowMinutes = Number(process.env.RATE_LIMIT_WINDOW || config.rateLimitWindowMinutes);
     config.rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX || config.rateLimitMaxRequests);
     config.authRateLimitWindowMinutes = Number(process.env.AUTH_RATE_LIMIT_WINDOW || config.authRateLimitWindowMinutes);

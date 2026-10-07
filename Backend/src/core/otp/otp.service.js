@@ -4,57 +4,11 @@ import { FoodOtp } from './otp.model.js';
 import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 import { ValidationError } from '../auth/errors.js';
+import { sendOtpSms } from '../../services/sms.service.js';
 
 const generateOtpCode = () => {
     const code = crypto.randomInt(100000, 999999);
     return String(code);
-};
-
-/**
- * Sends SMS via MSG91 API
- * @param {string} phone - 10-digit mobile number
- * @param {string} otp
- */
-const sendSmsViaMsg91 = async (phone, otp) => {
-    try {
-        // Normalize phone: strip non-digits, ensure 91 country code prefix
-        const digits = String(phone || '').replace(/\D/g, '');
-        let msisdn = digits;
-        if (msisdn.length === 10) {
-            msisdn = `91${msisdn}`;
-        } else if (!msisdn.startsWith('91')) {
-            msisdn = `91${msisdn}`;
-        }
-
-        // MSG91 API
-        const url = new URL('https://control.msg91.com/api/v5/otp');
-        url.searchParams.append('template_id', config.msg91TemplateId);
-        url.searchParams.append('mobile', msisdn);
-        url.searchParams.append('authkey', config.msg91AuthKey);
-        url.searchParams.append('otp', otp);
-
-        logger.info(`[SMS] Sending OTP to ${msisdn} via MSG91...`);
-        const response = await fetch(url.toString(), { method: 'POST' });
-        const resultText = await response.text();
-        logger.info(`[SMS] Raw response for ${msisdn}: ${resultText}`);
-
-        let parsed = null;
-        try { parsed = JSON.parse(resultText); } catch (_) { }
-
-        if (parsed && parsed.type === 'error') {
-            const errMsg = `MSG91 ERROR for ${phone}: ${parsed.message || resultText}`;
-            logger.error(errMsg);
-            // eslint-disable-next-line no-console
-            console.error(`❌ [SMS ERROR] ${errMsg}`);
-        } else if (!response.ok) {
-            logger.error(`SMS API HTTP error for ${phone}: ${response.status} – ${resultText}`);
-        } else {
-            logger.info(`✅ SMS sent successfully to ${msisdn} via MSG91`);
-        }
-    } catch (error) {
-        logger.error(`Error sending SMS to ${phone} via MSG91: ${error.message}`);
-        // Do NOT throw — OTP is already stored in DB; SMS failure should not block the flow
-    }
 };
 
 export const createOrUpdateOtp = async (phone) => {
@@ -113,9 +67,10 @@ export const createOrUpdateOtp = async (phone) => {
         });
     }
 
-    // Only send SMS if not in default OTP mode
+    // Only send SMS if not in default OTP mode (USE_DEFAULT_OTP=false in production)
     if (!config.useDefaultOtp && !phone.endsWith('9755633147') && !phone.endsWith('8624862400')) {
-        await sendSmsViaMsg91(phone, otp);
+        // SMS India Hub (user, restaurant and delivery login OTPs)
+        await sendOtpSms(phone, otp);
     }
 
     return otp;

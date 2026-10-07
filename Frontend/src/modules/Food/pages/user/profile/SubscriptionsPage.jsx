@@ -136,7 +136,7 @@ export default function SubscriptionsPage() {
           }
         },
         theme: {
-          color: "#047857"
+          color: "#c8161d"
         }
       };
 
@@ -192,7 +192,7 @@ export default function SubscriptionsPage() {
 
       <div className="max-w-4xl mx-auto p-4 space-y-6 overflow-x-hidden">
         {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-green-950 to-emerald-900 text-white p-6 sm:p-8 shadow-xl border border-emerald-500/30">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-950 via-red-950 to-red-900 text-white p-6 sm:p-8 shadow-xl border border-red-600/30">
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="space-y-2">
@@ -203,11 +203,11 @@ export default function SubscriptionsPage() {
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Unlock Free Delivery & Food Discounts
               </h2>
-              <p className="text-sm text-emerald-100/80 max-w-md">
+              <p className="text-sm text-red-100/80 max-w-md">
                 Subscribe to your favorite plan and start saving big on every food order!
               </p>
             </div>
-            <div className="p-4 bg-emerald-900/40 border border-amber-400/30 rounded-2xl backdrop-blur-xs flex items-center space-x-3">
+            <div className="p-4 bg-red-900/40 border border-amber-400/30 rounded-2xl backdrop-blur-xs flex items-center space-x-3">
               <Crown className="w-10 h-10 text-amber-400" />
               <div>
                 <p className="text-xs text-amber-300 font-medium">Exclusive Membership</p>
@@ -220,15 +220,15 @@ export default function SubscriptionsPage() {
         {/* Loading Indicator */}
         {loading ? (
           <div className="py-16 text-center space-y-3">
-            <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin mx-auto" />
+            <RefreshCw className="w-8 h-8 text-red-600 animate-spin mx-auto" />
             <p className="text-sm text-gray-500">Loading available plans...</p>
           </div>
         ) : (
           <>
             {/* Active Subscription Banner / Card */}
             {activeSub && (
-              <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950/30 via-green-900/20 to-emerald-900/30 dark:from-emerald-950/50 dark:via-green-950/40 dark:to-emerald-900/50 rounded-3xl p-6 border-2 border-emerald-500/50 shadow-lg shadow-emerald-950/20">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-emerald-500/20 pb-4">
+              <div className="relative overflow-hidden bg-gradient-to-r from-red-950/30 via-red-900/20 to-red-900/30 dark:from-red-950/50 dark:via-red-950/40 dark:to-red-900/50 rounded-3xl p-6 border-2 border-red-600/50 shadow-lg shadow-red-950/20">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-red-600/20 pb-4">
                   <div className="flex min-w-0 items-center space-x-3">
                     <div className="p-3 shrink-0 bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-950 rounded-2xl shadow-md">
                       <Crown className="w-6 h-6" />
@@ -248,7 +248,7 @@ export default function SubscriptionsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right bg-white dark:bg-emerald-950/60 px-4 py-2 rounded-2xl border border-amber-400/30">
+                  <div className="text-right bg-white dark:bg-red-950/60 px-4 py-2 rounded-2xl border border-amber-400/30">
                     <p className="text-xs text-gray-500 font-medium">Total Savings Accrued</p>
                     <p className="text-lg font-extrabold text-amber-500 dark:text-amber-400">
                       ₹{activeSub.totalSavingsAccrued || 0}
@@ -258,21 +258,21 @@ export default function SubscriptionsPage() {
 
                 {/* Benefits Active */}
                 <div className="mt-4 pt-2">
-                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2">
+                  <p className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wider mb-2">
                     Your Active Member Benefits:
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {Array.isArray(activeSub.planSnapshot?.benefits) &&
                       activeSub.planSnapshot.benefits.map((b, idx) => (
                         <div key={idx} className="flex items-center space-x-2 text-sm font-medium">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-red-600 shrink-0" />
                           <span className="min-w-0 break-words">{b.title}</span>
                         </div>
                       ))}
                   </div>
                 </div>
 
-                <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center space-x-2 text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+                <div className="mt-4 p-3 bg-red-600/10 border border-red-600/20 rounded-xl flex items-center space-x-2 text-xs text-red-800 dark:text-red-300 font-medium">
                   <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
                   <span>
                     You can only have one active subscription at a time. New plan purchases are paused until expiration.
@@ -312,7 +312,7 @@ export default function SubscriptionsPage() {
                         className={`bg-white dark:bg-gray-900 rounded-3xl p-6 border transition-all duration-300 shadow-sm hover:shadow-xl relative flex flex-col justify-between ${
                           activeSub
                             ? "border-gray-200 dark:border-gray-800 opacity-80"
-                            : "border-emerald-500/30 hover:border-amber-400/60 hover:shadow-emerald-900/20"
+                            : "border-red-600/30 hover:border-amber-400/60 hover:shadow-red-900/20"
                         }`}
                       >
                         <div>
@@ -347,7 +347,7 @@ export default function SubscriptionsPage() {
                             {Array.isArray(plan.benefits) &&
                               plan.benefits.map((b, idx) => (
                                 <div key={idx} className="flex items-center space-x-2 text-xs font-semibold text-gray-800 dark:text-gray-200">
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                  <CheckCircle2 className="w-4 h-4 text-red-600 shrink-0" />
                                   <span className="min-w-0 break-words">{b.title}</span>
                                 </div>
                               ))}
@@ -368,7 +368,7 @@ export default function SubscriptionsPage() {
                             <button
                               onClick={() => handleBuyNow(plan)}
                               disabled={isPurchasing}
-                              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white text-sm font-bold rounded-2xl shadow-lg shadow-emerald-900/20 transition-all transform active:scale-95 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                              className="w-full py-3.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-sm font-bold rounded-2xl shadow-lg shadow-red-900/20 transition-all transform active:scale-95 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
                             >
                               {isPurchasing ? (
                                 <>

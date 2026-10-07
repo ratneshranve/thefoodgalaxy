@@ -2197,7 +2197,7 @@ export default function Home() {
         <img src={outOfZoneBg} alt="Out of zone background" className="absolute inset-0 w-full h-full object-cover z-0" />
 
         {/* Dark overlay at bottom for text readability */}
-        <div className="absolute bottom-0 w-full h-[70%] bg-gradient-to-t from-[#1b152d] via-black/60 to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute bottom-0 w-full h-[70%] bg-gradient-to-t from-[#2a0507] via-black/60 to-transparent z-10 pointer-events-none"></div>
 
         <div className="relative z-20 flex flex-col items-center justify-center px-6 text-center h-full pb-20">
           <h2 className="text-3xl font-black text-white mb-3 tracking-tight drop-shadow-lg">
@@ -2349,7 +2349,7 @@ export default function Home() {
           {/* Brand Top Section (Dark) */}
           {/* Decoupled Dark Background - Dynamic height based on actual components to prevent clipping sticky elements while covering properly */}
           <div 
-             className="absolute top-0 left-0 right-0 overflow-hidden bg-gradient-to-b from-[#3a142c] to-[#1a0a14] rounded-b-[2rem] shadow-lg pointer-events-none z-0 transition-all duration-300 [transform:translateZ(0)] [mask-image:-webkit-radial-gradient(white,black)]"
+             className="absolute top-0 left-0 right-0 overflow-hidden bg-gradient-to-b from-[#c8161d] via-[#a50f14] to-[#5a0a0e] rounded-b-[2rem] shadow-lg pointer-events-none z-0 transition-all duration-300 [transform:translateZ(0)] [mask-image:-webkit-radial-gradient(white,black)]"
              style={{ height: festVideoActive ? '360px' : (headerBgHeight > 0 ? `${headerBgHeight}px` : (activeTab === 'food' ? '300px' : '140px')) }}
           >
             {festVideoActive && (

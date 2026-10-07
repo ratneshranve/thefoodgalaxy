@@ -115,7 +115,7 @@ export default function HomeHeader({
       <div id="home-header-loc-row" className="relative pt-2 pb-0 px-4 transition-all duration-700 overflow-hidden bg-transparent shadow-none">
         {/* Subtle Artistic Glows - Adds depth without being 'boring' */}
         <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-48 h-48 bg-[#48c479]/5 blur-[80px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-48 h-48 bg-[#ffc107]/20 blur-[80px] rounded-full pointer-events-none" />
 
         {/* Main Header Content */}
         <div className="relative z-10 space-y-2.5">
@@ -136,7 +136,7 @@ export default function HomeHeader({
             onClick={handleLocationClick}
           >
             <div className="flex-shrink-0 flex items-center justify-center">
-              <MapPin className="h-[26px] w-[26px] text-[#e11d48]" strokeWidth={2.5} />
+              <MapPin className="h-[26px] w-[26px] text-[#ffc107]" strokeWidth={2.5} />
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1">
@@ -203,7 +203,7 @@ export default function HomeHeader({
                 <div className="h-8 w-8 relative flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20 cursor-pointer active:scale-90 transition-all">
                   <Bell className="h-4 w-4 text-white" />
                   {unreadCount > 0 && (
-                    <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full border animate-pulse ${vegMode ? 'bg-red-500 border-[#00b09b]' : 'bg-red-500 border-primary'}`} />
+                    <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full border animate-pulse bg-[#ffc107] border-white`} />
                   )}
                 </div>
               </PopoverTrigger>
@@ -259,7 +259,7 @@ export default function HomeHeader({
         <div className="flex items-center gap-2.5 w-[96%] mx-auto pointer-events-auto">
           {/* Search Bar */}
           <div
-            className="relative bg-white/70 dark:bg-[#1a1a1a]/70 backdrop-blur-md rounded-2xl flex items-center px-3 shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-white/50 dark:border-white/10 cursor-pointer active:scale-[0.98] transition-all duration-300 flex-1 h-11"
+            className="relative bg-white/70 dark:bg-[#1a1a1a]/70 backdrop-blur-md rounded-2xl flex items-center px-3 shadow-[0_8px_24px_rgba(0,0,0,0.08)] border-2 border-[#ffc107] cursor-pointer active:scale-[0.98] transition-all duration-300 flex-1 h-11"
             onClick={handleSearchFocus}
           >
             <Search className="h-[18px] w-[18px] text-primary mr-2 shrink-0" strokeWidth={2.5} />

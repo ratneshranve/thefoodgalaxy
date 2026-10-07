@@ -59,7 +59,7 @@ export default function BottomNavigation() {
         <Link
           to="/food/user/"
           className={`flex flex-col items-center justify-center gap-1 w-[22%] py-2 rounded-[1.5rem] transition-all duration-300 ${isHome
-              ? "bg-[#ffeef2] dark:bg-primary/20 text-primary"
+              ? "bg-[#fff3cd] dark:bg-primary/20 text-primary"
               : "text-slate-500 dark:text-gray-400"
             }`}
         >
@@ -73,7 +73,7 @@ export default function BottomNavigation() {
         <Link
           to="/food/user/under-250"
           className={`flex flex-col items-center justify-center gap-1 w-[22%] py-2 rounded-[1.5rem] transition-all duration-300 ${isUnder250
-              ? "bg-[#ffeef2] dark:bg-primary/20 text-primary"
+              ? "bg-[#fff3cd] dark:bg-primary/20 text-primary"
               : "text-slate-500 dark:text-gray-400"
             }`}
         >
@@ -87,7 +87,7 @@ export default function BottomNavigation() {
         <Link
           to="/food/user/orders"
           className={`flex flex-col items-center justify-center gap-1 w-[22%] py-2 rounded-[1.5rem] transition-all duration-300 ${isOrders
-              ? "bg-[#ffeef2] dark:bg-primary/20 text-primary"
+              ? "bg-[#fff3cd] dark:bg-primary/20 text-primary"
               : "text-slate-500 dark:text-gray-400"
             }`}
         >
@@ -101,7 +101,7 @@ export default function BottomNavigation() {
         <Link
           to="/food/user/profile"
           className={`flex flex-col items-center justify-center gap-1 w-[22%] py-2 rounded-[1.5rem] transition-all duration-300 ${isProfile
-              ? "bg-[#ffeef2] dark:bg-primary/20 text-primary"
+              ? "bg-[#fff3cd] dark:bg-primary/20 text-primary"
               : "text-slate-500 dark:text-gray-400"
             }`}
         >
