@@ -1,4 +1,6 @@
+import crypto from 'crypto';
 import { sendResponse } from '../../../../utils/response.js';
+import { config } from '../../../../config/env.js';
 import * as userSubscriptionService from '../services/userSubscription.service.js';
 
 export async function getPublicPlansController(req, res, next) {
@@ -43,6 +45,19 @@ export async function verifySubscriptionPaymentController(req, res, next) {
 
 export async function razorpaySubscriptionWebhookController(req, res, next) {
   try {
+    // This endpoint is public, so the Razorpay signature MUST be checked. Without this anyone
+    // could post a fake "order.paid" event and activate a subscription for free.
+    const signature = String(req.headers['x-razorpay-signature'] || '');
+    const secret = config.razorpayWebhookSecret;
+    if (!signature || !secret || !req.rawBody) {
+      return res.status(400).send('Invalid signature');
+    }
+    const expected = crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
+    const a = Buffer.from(expected);
+    const b = Buffer.from(signature);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      return res.status(400).send('Invalid signature');
+    }
     const result = await userSubscriptionService.handleSubscriptionWebhook(req.body);
     return sendResponse(res, 200, 'Webhook processed', result);
   } catch (err) {

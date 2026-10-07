@@ -45,6 +45,16 @@ export async function verifyPaymentController(req, res, next) {
     }
 }
 
+export async function syncPaymentController(req, res, next) {
+    try {
+        const userId = req.user?.userId;
+        const result = await orderService.syncOnlinePaymentStatus(userId, req.params.orderId);
+        return sendResponse(res, 200, result.paid ? 'Payment confirmed' : 'Payment not completed', result);
+    } catch (err) {
+        next(err);
+    }
+}
+
 export async function listOrdersUserController(req, res, next) {
     try {
         const userId = req.user?.userId;

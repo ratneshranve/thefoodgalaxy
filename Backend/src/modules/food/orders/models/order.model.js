@@ -270,6 +270,9 @@ const orderSchema = new mongoose.Schema(
             type: paymentSchema,
             required: false
         },
+        // Client generated per checkout attempt. A retried / double-tapped "Place order"
+        // with the same key returns the same order instead of creating a duplicate.
+        idempotencyKey: { type: String, trim: true },
         orderStatus: {
             type: String,
             enum: [
@@ -348,6 +351,13 @@ orderSchema.index({ 'dispatch.status': 1, orderStatus: 1 });
 orderSchema.index({ 'dispatch.status': 1, orderStatus: 1, updatedAt: -1 });
 orderSchema.index({ 'dispatch.deliveryPartnerId': 1, 'dispatch.status': 1, updatedAt: -1 });
 orderSchema.index({ 'payment.status': 1, createdAt: -1 });
+// Webhook / reconciliation look orders up by their Razorpay order id.
+orderSchema.index({ 'payment.razorpay.orderId': 1 }, { sparse: true });
+// Duplicate-order guard (only enforced when the client sends a key).
+orderSchema.index(
+    { userId: 1, idempotencyKey: 1 },
+    { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } }
+);
 orderSchema.index({ 'payment.method': 1, createdAt: -1 });
 
 orderSchema.pre('save', async function (next) {

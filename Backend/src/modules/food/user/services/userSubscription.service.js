@@ -153,41 +153,48 @@ export async function verifySubscriptionPaymentUser(userId, dto) {
     throw new NotFoundError('Pending subscription record not found for this order.');
   }
 
-  const planName = userSub.planSnapshot?.name || 'Subscription';
-  const totalAmount = userSub.totalAmount || 0;
+  // Already activated (double tap, retry, or the webhook got there first): nothing more to do.
+  if (userSub.status === 'active' && userSub.razorpayPaymentId) return userSub;
 
   const configured = isRazorpayConfigured();
-  if (configured && razorpaySignature) {
-    const isValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+  if (configured) {
+    // The signature is mandatory. It used to be skippable, which let anyone activate a
+    // subscription for free by simply omitting it.
+    const isValid = razorpaySignature &&
+      verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
     if (!isValid) {
-      userSub.status = 'failed';
-      await userSub.save();
-      // Send 3. Payment failed notification
-      notifyPaymentFailed(userId, planName, totalAmount).catch(console.error);
       throw new ValidationError('Payment signature verification failed.');
     }
+  } else if (process.env.NODE_ENV === 'production') {
+    throw new ValidationError('Payment gateway is not configured.');
   }
 
-  // Calculate validity dates
+  return activateSubscription(userSub, razorpayPaymentId, razorpaySignature);
+}
+
+/**
+ * Atomically moves a pending subscription to active. Only the first caller (client verify or
+ * webhook) wins, so dates are set once and the notifications are sent once.
+ */
+async function activateSubscription(userSub, razorpayPaymentId, razorpaySignature) {
   const now = new Date();
   const durationDays = userSub.planSnapshot?.durationDays || 30;
   const endDate = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
-  userSub.startDate = now;
-  userSub.endDate = endDate;
-  userSub.status = 'active';
-  userSub.razorpayPaymentId = razorpayPaymentId;
-  if (razorpaySignature) {
-    userSub.razorpaySignature = razorpaySignature;
-  }
+  const set = { startDate: now, endDate, status: 'active', razorpayPaymentId };
+  if (razorpaySignature) set.razorpaySignature = razorpaySignature;
 
-  await userSub.save();
+  const activated = await FoodUserSubscription.findOneAndUpdate(
+    { _id: userSub._id, status: { $in: ['pending', 'failed'] } },
+    { $set: set },
+    { new: true }
+  );
+  if (!activated) return FoodUserSubscription.findById(userSub._id);
 
-  // Send 2. Payment successful and 4. Subscription activated notifications
-  notifyPaymentSuccessful(userId, planName, totalAmount).catch(console.error);
-  notifySubscriptionActivated(userId, planName, endDate).catch(console.error);
-
-  return userSub;
+  const planName = activated.planSnapshot?.name || 'Subscription';
+  notifyPaymentSuccessful(activated.userId, planName, activated.totalAmount).catch(console.error);
+  notifySubscriptionActivated(activated.userId, planName, endDate).catch(console.error);
+  return activated;
 }
 
 /**
@@ -202,22 +209,9 @@ export async function handleSubscriptionWebhook(payload) {
   const razorpayPaymentId = entity.id;
 
   if (event === 'order.paid' || event === 'payment.captured') {
-    const userSub = await FoodUserSubscription.findOne({ razorpayOrderId, status: 'pending' });
+    const userSub = await FoodUserSubscription.findOne({ razorpayOrderId, status: { $in: ['pending', 'failed'] } });
     if (userSub) {
-      const now = new Date();
-      const durationDays = userSub.planSnapshot?.durationDays || 30;
-      const endDate = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
-
-      userSub.startDate = now;
-      userSub.endDate = endDate;
-      userSub.status = 'active';
-      userSub.razorpayPaymentId = razorpayPaymentId;
-      await userSub.save();
-
-      const planName = userSub.planSnapshot?.name || 'Subscription';
-      notifyPaymentSuccessful(userSub.userId, planName, userSub.totalAmount).catch(console.error);
-      notifySubscriptionActivated(userSub.userId, planName, endDate).catch(console.error);
-
+      await activateSubscription(userSub, razorpayPaymentId, '');
       return { success: true, activated: true };
     }
   }
