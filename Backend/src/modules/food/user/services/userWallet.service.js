@@ -1,7 +1,15 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { FoodUserWallet } from '../models/userWallet.model.js';
-import { createRazorpayOrder, getRazorpayKeyId, isRazorpayConfigured, verifyPaymentSignature } from '../../orders/helpers/razorpay.helper.js';
+import { config } from '../../../../config/env.js';
+import {
+    createRazorpayOrder,
+    fetchRazorpayOrder,
+    fetchRazorpayPayment,
+    getRazorpayKeyId,
+    isRazorpayConfigured,
+    verifyPaymentSignature
+} from '../../orders/helpers/razorpay.helper.js';
 
 const ensureWallet = async (userId) => {
     const id = String(userId || '');
@@ -87,7 +95,11 @@ export const createWalletTopupOrder = async (userId, amountInr) => {
     }
 
     const receipt = `wallet_topup_${String(userId).slice(-8)}_${Date.now()}`;
-    const order = await createRazorpayOrder(amountPaise, 'INR', receipt);
+    // notes let the webhook credit the right wallet even if the app never calls verify.
+    const order = await createRazorpayOrder(amountPaise, 'INR', receipt, {
+        type: 'wallet_topup',
+        userId: String(userId)
+    });
 
     return {
         razorpay: {
@@ -99,16 +111,45 @@ export const createWalletTopupOrder = async (userId, amountInr) => {
     };
 };
 
+/**
+ * Credits a verified Razorpay top-up exactly once. Atomic: the update only matches while no
+ * transaction with this Razorpay order id exists, so a double tap, a retry, or the client
+ * callback racing the webhook can never credit twice.
+ */
+export const creditVerifiedWalletTopup = async ({ userId, razorpayOrderId, razorpayPaymentId, razorpaySignature = '', amountInr, source = 'verify' }) => {
+    const wallet = await ensureWallet(userId);
+    const res = await FoodUserWallet.updateOne(
+        { _id: wallet._id, 'transactions.razorpayOrderId': { $ne: razorpayOrderId } },
+        {
+            $push: {
+                transactions: {
+                    $each: [{
+                        type: 'addition',
+                        amount: amountInr,
+                        status: 'Completed',
+                        description: 'Wallet top-up',
+                        metadata: { source: 'wallet_topup', mode: 'razorpay', via: source },
+                        razorpayOrderId,
+                        razorpayPaymentId,
+                        razorpaySignature: razorpaySignature || null
+                    }],
+                    $position: 0
+                }
+            },
+            $inc: { balance: amountInr }
+        }
+    );
+    return { credited: res.modifiedCount > 0 };
+};
+
 export const verifyWalletTopupPayment = async (userId, payload) => {
     const orderId = String(payload?.razorpayOrderId || '').trim();
     const paymentId = String(payload?.razorpayPaymentId || '').trim();
     const signature = String(payload?.razorpaySignature || '').trim();
-    const amount = Number(payload?.amount);
 
     if (!orderId) throw new ValidationError('razorpayOrderId is required');
     if (!paymentId) throw new ValidationError('razorpayPaymentId is required');
     if (!signature) throw new ValidationError('razorpaySignature is required');
-    if (!Number.isFinite(amount) || amount <= 0) throw new ValidationError('amount is required');
 
     const wallet = await ensureWallet(userId);
     const existing = wallet.transactions.find((t) => String(t.razorpayOrderId || '') === orderId);
@@ -116,30 +157,69 @@ export const verifyWalletTopupPayment = async (userId, payload) => {
         return { wallet: await getUserWallet(userId) };
     }
 
-    // If razorpay not configured (dev), accept and credit wallet.
-    const ok = isRazorpayConfigured()
-        ? verifyPaymentSignature(orderId, paymentId, signature)
-        : true;
-    if (!ok) {
+    if (!isRazorpayConfigured()) {
+        // Dev only: never credit money for free in production because of a missing config.
+        if (config.nodeEnv === 'production') {
+            throw new ValidationError('Payment gateway is not configured');
+        }
+        const devAmount = Number(payload?.amount);
+        if (!Number.isFinite(devAmount) || devAmount <= 0) throw new ValidationError('amount is required');
+        await creditVerifiedWalletTopup({
+            userId, razorpayOrderId: orderId, razorpayPaymentId: paymentId, razorpaySignature: signature,
+            amountInr: devAmount, source: 'dev'
+        });
+        return { wallet: await getUserWallet(userId) };
+    }
+
+    if (!verifyPaymentSignature(orderId, paymentId, signature)) {
         throw new ValidationError('Payment verification failed');
     }
 
-    // Store ONLY after payment is verified.
-    wallet.transactions.unshift({
-        type: 'addition',
-        amount,
-        status: 'Completed',
-        description: isRazorpayConfigured() ? 'Wallet top-up' : 'Wallet top-up (dev)',
-        metadata: { source: 'wallet_topup', mode: isRazorpayConfigured() ? 'razorpay' : 'dev' },
+    // Credit what Razorpay actually received. The amount sent by the client is never trusted
+    // (otherwise a Rs 1 payment could be reported as Rs 50,000).
+    let rzPayment = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        rzPayment = await fetchRazorpayPayment(paymentId);
+        if (rzPayment?.status === 'captured') break;
+        await new Promise((resolve) => setTimeout(resolve, 700));
+    }
+    if (String(rzPayment?.order_id || '') !== orderId) {
+        throw new ValidationError('Payment does not belong to this top-up');
+    }
+    if (rzPayment?.status !== 'captured') {
+        throw new ValidationError('Payment is still being confirmed. Your wallet will be credited automatically once it completes.');
+    }
+
+    await creditVerifiedWalletTopup({
+        userId,
         razorpayOrderId: orderId,
         razorpayPaymentId: paymentId,
-        razorpaySignature: signature
+        razorpaySignature: signature,
+        amountInr: Number(rzPayment.amount) / 100,
+        source: 'verify'
     });
 
-    wallet.balance = Number(wallet.balance || 0) + amount;
-    await wallet.save();
-
     return { wallet: await getUserWallet(userId) };
+};
+
+/**
+ * Webhook path: credit a captured top-up even when the app never called verify
+ * (app killed, network drop). Only orders we created with type=wallet_topup notes qualify.
+ */
+export const creditWalletTopupFromWebhook = async ({ razorpayOrderId, razorpayPaymentId, amountPaise }) => {
+    if (!isRazorpayConfigured() || !razorpayOrderId || !razorpayPaymentId) return { handled: false };
+    const rzOrder = await fetchRazorpayOrder(razorpayOrderId);
+    if (rzOrder?.notes?.type !== 'wallet_topup' || !rzOrder?.notes?.userId) return { handled: false };
+    const amountInr = Number(amountPaise || rzOrder.amount_paid || 0) / 100;
+    if (!Number.isFinite(amountInr) || amountInr <= 0) return { handled: false };
+    const { credited } = await creditVerifiedWalletTopup({
+        userId: rzOrder.notes.userId,
+        razorpayOrderId,
+        razorpayPaymentId,
+        amountInr,
+        source: 'webhook'
+    });
+    return { handled: true, credited };
 };
 
 export const deductWalletBalance = async (userId, amountInr, description = 'Order payment', metadata = {}) => {
