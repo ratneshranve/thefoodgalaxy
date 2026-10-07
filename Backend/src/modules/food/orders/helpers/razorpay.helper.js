@@ -26,14 +26,23 @@ export function getRazorpayInstance() {
     return new Razorpay({ key_id: KEY_ID, key_secret: KEY_SECRET });
 }
 
-export function createRazorpayOrder(amountPaise, currency = 'INR', receipt = '') {
+export function createRazorpayOrder(amountPaise, currency = 'INR', receipt = '', notes = undefined) {
     const instance = getRazorpayInstance();
     if (!instance) return Promise.reject(new Error('Razorpay not configured'));
     return instance.orders.create({
         amount: Math.round(amountPaise),
         currency,
-        receipt: receipt || undefined
+        receipt: receipt || undefined,
+        notes: notes && Object.keys(notes).length ? notes : undefined
     });
+}
+
+/** Fetch a Razorpay order (used to read the notes we attached, e.g. wallet top-up owner). */
+export async function fetchRazorpayOrder(razorpayOrderId) {
+    const instance = getRazorpayInstance();
+    if (!instance) throw new Error('Razorpay not configured');
+    if (!razorpayOrderId) throw new Error('razorpayOrderId is required');
+    return instance.orders.fetch(String(razorpayOrderId));
 }
 
 export function createPaymentLink({ amountPaise, currency = 'INR', description, orderId, customerName, customerEmail, customerPhone }) {
@@ -67,6 +76,19 @@ export async function fetchRazorpayPayment(paymentId) {
     if (!instance) throw new Error('Razorpay not configured');
     if (!paymentId) throw new Error('paymentId is required');
     return instance.payments.fetch(String(paymentId));
+}
+
+/**
+ * Fetch every payment attempt made against a Razorpay order (used to recover payments whose
+ * client callback / webhook never reached us).
+ * @param {string} razorpayOrderId
+ */
+export async function fetchRazorpayOrderPayments(razorpayOrderId) {
+    const instance = getRazorpayInstance();
+    if (!instance) throw new Error('Razorpay not configured');
+    if (!razorpayOrderId) throw new Error('razorpayOrderId is required');
+    const res = await instance.orders.fetchPayments(String(razorpayOrderId));
+    return Array.isArray(res?.items) ? res.items : [];
 }
 
 /**

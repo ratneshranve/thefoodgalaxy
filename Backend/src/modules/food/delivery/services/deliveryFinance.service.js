@@ -7,7 +7,7 @@ import { FoodDeliveryPartner } from '../models/deliveryPartner.model.js';
 import { DeliveryBonusTransaction } from '../../admin/models/deliveryBonusTransaction.model.js';
 import { getDeliveryCashLimitSettings } from '../../admin/services/admin.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
-import { createRazorpayOrder, getRazorpayKeyId, isRazorpayConfigured, verifyPaymentSignature } from '../../orders/helpers/razorpay.helper.js';
+import { createRazorpayOrder, fetchRazorpayPayment, getRazorpayKeyId, isRazorpayConfigured, verifyPaymentSignature } from '../../orders/helpers/razorpay.helper.js';
 
 /**
  * Enhanced wallet fetch for delivery partners.
@@ -248,12 +248,10 @@ export const verifyDeliveryCashDepositPayment = async (deliveryPartnerId, payloa
     const orderId = String(payload?.razorpayOrderId || '').trim();
     const paymentId = String(payload?.razorpayPaymentId || '').trim();
     const signature = String(payload?.razorpaySignature || '').trim();
-    const amount = Number(payload?.amount);
 
     if (!orderId) throw new ValidationError('razorpayOrderId is required');
     if (!paymentId) throw new ValidationError('razorpayPaymentId is required');
     if (!signature) throw new ValidationError('razorpaySignature is required');
-    if (!Number.isFinite(amount) || amount < 1) throw new ValidationError('amount is required');
 
     const existing = await FoodDeliveryCashDeposit.findOne({
         deliveryPartnerId,
@@ -267,41 +265,66 @@ export const verifyDeliveryCashDepositPayment = async (deliveryPartnerId, payloa
         return { deposit: existing, wallet: await getDeliveryPartnerWalletEnhanced(deliveryPartnerId) };
     }
 
+    let amount = Number(payload?.amount);
+    const razorpayOn = isRazorpayConfigured();
+    if (razorpayOn) {
+        if (!verifyPaymentSignature(orderId, paymentId, signature)) {
+            throw new ValidationError('Payment verification failed');
+        }
+        // Use what Razorpay actually received, never the amount the app reports: otherwise a
+        // Rs 1 payment could clear thousands of cash-in-hand.
+        let rzPayment = null;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            rzPayment = await fetchRazorpayPayment(paymentId);
+            if (rzPayment?.status === 'captured') break;
+            await new Promise((resolve) => setTimeout(resolve, 700));
+        }
+        if (String(rzPayment?.order_id || '') !== orderId) {
+            throw new ValidationError('Payment does not belong to this deposit');
+        }
+        if (rzPayment?.status !== 'captured') {
+            throw new ValidationError('Payment is still being confirmed. Please check again in a moment.');
+        }
+        amount = Number(rzPayment.amount) / 100;
+    } else if (process.env.NODE_ENV === 'production') {
+        throw new ValidationError('Payment gateway is not configured');
+    }
+    if (!Number.isFinite(amount) || amount < 1) throw new ValidationError('amount is required');
+
     const wallet = await getDeliveryPartnerWalletEnhanced(deliveryPartnerId);
     if (amount > wallet.cashInHand) {
         throw new ValidationError('Deposit amount cannot exceed cash in hand');
     }
 
-    const isValid = isRazorpayConfigured()
-        ? verifyPaymentSignature(orderId, paymentId, signature)
-        : true;
-
-    if (!isValid) {
-        throw new ValidationError('Payment verification failed');
-    }
-
+    const paymentMethod = razorpayOn ? 'razorpay' : 'cash';
+    // Complete once: the filter only matches a deposit that is not Completed yet, and the
+    // upsert only inserts when there is none for this Razorpay order.
     const deposit = existing
-        ? await FoodDeliveryCashDeposit.findByIdAndUpdate(
-            existing._id,
+        ? await FoodDeliveryCashDeposit.findOneAndUpdate(
+            { _id: existing._id, status: { $ne: 'Completed' } },
             {
                 $set: {
                     amount,
-                    paymentMethod: isRazorpayConfigured() ? 'razorpay' : 'cash',
+                    paymentMethod,
                     status: 'Completed',
                     razorpayOrderId: orderId,
                     razorpayPaymentId: paymentId
                 }
             },
             { new: true }
-        )
-        : await FoodDeliveryCashDeposit.create({
-            deliveryPartnerId,
-            amount,
-            paymentMethod: isRazorpayConfigured() ? 'razorpay' : 'cash',
-            status: 'Completed',
-            razorpayOrderId: orderId,
-            razorpayPaymentId: paymentId
-        });
+        ) || await FoodDeliveryCashDeposit.findById(existing._id)
+        : await FoodDeliveryCashDeposit.findOneAndUpdate(
+            { deliveryPartnerId, razorpayOrderId: orderId },
+            {
+                $setOnInsert: {
+                    amount,
+                    paymentMethod,
+                    status: 'Completed',
+                    razorpayPaymentId: paymentId
+                }
+            },
+            { upsert: true, new: true }
+        );
 
     return {
         deposit,
