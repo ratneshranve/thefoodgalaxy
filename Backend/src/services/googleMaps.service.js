@@ -5,7 +5,13 @@ import { haversineMeters, estimateEtaSeconds, roundCoord } from '../utils/geo.js
 
 let redisClient = null;
 if (config.redisEnabled && config.redisUrl) {
-    redisClient = new Redis(config.redisUrl);
+    // Cache only: fail fast when Redis is down instead of queueing commands and stalling requests.
+    redisClient = new Redis(config.redisUrl, {
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+        retryStrategy: (times) => Math.min(times * 500, 10000)
+    });
+    redisClient.on('error', (err) => logger.warn(`Distance cache Redis error: ${err.message}`));
 }
 
 /**
